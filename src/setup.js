@@ -7,6 +7,7 @@ const LINUX = "linux";
 const MACOS = "macos";
 const WINDOWS = "windows";
 const INTEL = "intel";
+const NVIDIA_AMD = "gpu";
 const XMRIG_MO = "xmrig-mo";
 const SRB_GPU = "srb-gpu";
 const META_MINER = "meta-miner";
@@ -62,8 +63,7 @@ export const SETUP_HASHRATE_UNITS = HASHRATE_UNITS;
 
 export const SETUP_GPU_VENDORS = [
   [INTEL, "Intel"],
-  ["nvidia", "NVIDIA"],
-  ["amd", "AMD"]
+  [NVIDIA_AMD, "NVIDIA/AMD"]
 ];
 
 const GPU_ALGO_IDS = ["autolykos2", "kawpow", "etchash", "cn/gpu", "c29"];
@@ -120,7 +120,7 @@ export function setupHashrateDefaults(profile = XMRIG_MO, gpu = INTEL, algo = ""
   if (normalized === XMR_NODE_PROXY) return { value: 128, unit: "kh" };
   if (GPU_PROFILES.includes(normalized) && algo === "c29") return { value: 1, unit: "h" };
   if (GPU_PROFILES.includes(normalized)) {
-    return gpu === INTEL ? { value: 128, unit: "kh" } : { value: 512, unit: "kh" };
+    return isIntelGpu(gpu) ? { value: 128, unit: "kh" } : { value: 512, unit: "kh" };
   }
   return { value: 4, unit: "kh" };
 }
@@ -133,7 +133,8 @@ export function setupHashrateToHps(value, unit = "kh") {
 }
 
 export function setupConfiguredPorts(source = []) {
-  const rows = Array.isArray(source) ? source : Array.isArray(source?.configured) ? source.configured : [];
+  const global = !Array.isArray(source) && Array.isArray(source?.global);
+  const rows = Array.isArray(source) ? source : global ? source.global.filter((row) => row && !row.tls) : Array.isArray(source?.configured) ? source.configured : [];
   return rows
     .map((row) => {
       if (Array.isArray(row)) {
@@ -144,10 +145,11 @@ export function setupConfiguredPorts(source = []) {
           label: String(row[3] || "").trim()
         };
       }
-      const port = Number(row.port);
-      const tlsPort = Number(row.tlsPort);
+      const rawPort = Number(row.port);
+      const port = global && rawPort === 80 ? 10001 : rawPort;
+      const tlsPort = global ? port === 10001 ? 20001 : port + 10000 : Number(row.tlsPort);
       const difficulty = Number(row.difficulty);
-      const targetHashrate = Number(row.targetHashrate) || (isFiniteNumber(difficulty) && difficulty > 0 ? difficulty / 30 : 0);
+      const targetHashrate = Number(row.targetHashrate) || (isFiniteNumber(difficulty) && difficulty > 0 ? difficulty / (global ? 10 : 30) : 0);
       return {
         port: port > 0 ? port : 0,
         tlsPort: tlsPort > 0 ? tlsPort : 0,
@@ -155,14 +157,14 @@ export function setupConfiguredPorts(source = []) {
         label: String(row.label || row.description || "").trim()
       };
     })
-    .filter((row) => row.port > 0 && row.targetHashrate > 0)
+    .filter((row, index, list) => row.port > 0 && row.targetHashrate > 0 && (!global || list.findIndex((match) => match.port === row.port) === index))
     .sort((a, b) => a.targetHashrate - b.targetHashrate || a.port - b.port);
 }
 
 export function setupPlan(options = {}) {
   const os = optionId(options.os, SETUP_OS, LINUX);
   const profile = profileId(options.profile, os);
-  const gpu = optionId(options.gpu, SETUP_GPU_VENDORS, INTEL);
+  const gpu = gpuId(options.gpu);
   const requestedAlgo = optionId(options.algo, SETUP_ALGOS, profileUsesAutoAlgo(profile) ? AUTO_ALGO[0] : "rx/0");
   const algo = normalizeProfileAlgo(profile, requestedAlgo);
   const defaultHashrate = setupHashrateDefaults(profile, gpu, algo);
@@ -226,15 +228,16 @@ function xmrigPlan({ os, address, worker, pool, portRow }) {
 }
 
 function srbPlan({ os, gpu, algo, address, worker, password, pool, portRow }) {
+  const intelGpu = isIntelGpu(gpu);
   if (algo === "c29") {
-    return gpu === INTEL
+    return intelGpu
       ? mominerPlan({ os, address, password, pool, portRow })
       : lolminerPlan({ os, address, password, pool, portRow });
   }
   const windows = os === WINDOWS;
   const binary = windows ? SRBMINER_EXE : SRBMINER_BIN;
   const srbAlgo = SRB_ALGO[algo] || GPU_ALGO_IDS[0];
-  const disable = gpuDisableFlags(gpu);
+  const disable = gpuDisableFlags(intelGpu);
   const ethExtra = algo === "etchash" ? ETCHASH_EXTRA : "";
   const d = windows
     ? srbWindowsDownload()
@@ -251,26 +254,25 @@ function srbPlan({ os, gpu, algo, address, worker, password, pool, portRow }) {
   };
 }
 
-function metaMinerPlan({ os, gpu, address, worker, pool, portRow }) {
+function metaMinerPlan({ os, gpu, address, pool, portRow }) {
   const windows = os === WINDOWS;
-  const disable = gpuDisableFlags(gpu);
+  const intelGpu = isIntelGpu(gpu);
+  const disable = gpuDisableFlags(intelGpu);
   const tlsPool = portRow.tlsPort ? `${POOL_HOST}:ssl${portRow.tlsPort}` : pool;
   return {
     summary: setupPoolSummary(tlsPool, portRow, `. MM listens on ${LOCAL_PROXY} for child miners.`),
     downloadCommand: windows
-      ? metaMinerWindowsDownload(gpu)
-      : metaMinerLinuxDownload(gpu),
+      ? metaMinerWindowsDownload(intelGpu)
+      : metaMinerLinuxDownload(intelGpu),
     downloadNote: windows ? WINDOWS_POWERSHELL_BKM : "",
-    tlsRunCommand: windows ? metaMinerWindowsRun({ address, pool: tlsPool, disable, gpu }) : metaMinerLinuxRun({ address, pool: tlsPool, disable, gpu }),
+    tlsRunCommand: windows ? metaMinerWindowsRun({ address, pool: tlsPool, disable, intelGpu }) : metaMinerLinuxRun({ address, pool: tlsPool, disable, intelGpu }),
     tlsRunNote: TLS_MODE_NOTE,
     notes: "Use this only for GPU algo switching; fixed GPU setup is simpler. First run benchmarks/autotunes configured algorithms before normal mining output appears."
   };
 }
 
-function gpuDisableFlags(gpu) {
-  if (gpu === INTEL) return "--disable-gpu-amd --disable-gpu-nvidia";
-  if (gpu === "nvidia") return "--disable-gpu-amd --disable-gpu-intel";
-  return "--disable-gpu-nvidia --disable-gpu-intel";
+function gpuDisableFlags(intelGpu) {
+  return intelGpu ? "--disable-gpu-amd --disable-gpu-nvidia" : "";
 }
 
 function xmrigRun(binary, pool, address, worker, tls = false) {
@@ -282,7 +284,7 @@ function srbRun(binary, disable, algo, pool, address, password, worker, tls, ext
 }
 
 function srbCommon(disable, pool, address, worker, binary = "") {
-  return `${binary ? `${binary} ` : ""}--disable-cpu ${disable} --pool ${pool} --wallet ${address} --worker ${worker} --gpu-id 0 --keepalive true`;
+  return [binary, "--disable-cpu", disable, "--pool", pool, "--wallet", address, "--worker", worker, "--gpu-id", "0", "--keepalive", "true"].filter(Boolean).join(" ");
 }
 
 function lolminerPlan({ os, address, password, pool, portRow }) {
@@ -329,44 +331,42 @@ function mominerRun(pool, address, password) {
   return `${MOMINER_DOCKER} mine ${pool} ${address} ${password} --new.algo_param.c29 '{"dev":"gpu1*1"}'`;
 }
 
-function metaMinerAlgoArgs({ common, lineContinuation, gpu, lolminer, mominer, wallet, mominerJson }) {
-  return metaMinerCommands({ common, gpu, lolminer, mominer, wallet, mominerJson })
+function metaMinerAlgoArgs({ common, lineContinuation, intelGpu, lolminer, mominer, wallet, mominerJson }) {
+  return metaMinerCommands({ common, intelGpu, lolminer, mominer, wallet, mominerJson })
     .map(([name, command]) => `  --${name}="${command}"`)
     .join(` ${lineContinuation}\n`);
 }
 
-function metaMinerCommands({ common, gpu, lolminer, mominer, wallet, mominerJson }) {
+function metaMinerCommands({ common, intelGpu, lolminer, mominer, wallet, mominerJson }) {
   const commands = META_MINER_ALGOS.map(([name, algorithm, extra]) => [name, `${common} --algorithm ${algorithm} --password x${extra}`]);
-  commands.push(gpu === INTEL
+  commands.push(intelGpu
     ? ["c29", `${mominer} mine ${LOCAL_PROXY} ${wallet} x --new.algo_param.c29 '${mominerJson}'`]
     : ["c29", `${lolminer} --algo CR29 --pool ${LOCAL_PROXY} --user ${wallet} --pass x`]);
   return commands;
 }
 
-function metaMinerLinuxRun({ address, pool, disable, gpu }) {
+function metaMinerLinuxRun({ address, pool, disable, intelGpu }) {
   return `WALLET='${address}'
 POOL='${pool}'
 LOCAL_PROXY='${LOCAL_PROXY}'
 SRB='${SRBMINER_BIN}'
-${gpu === INTEL ? `MOMINER='./${MOMINER_DIR}/deploy/docker-mominer.sh'` : `LOLMINER='${LOLMINER_BIN}'`}
-GPU_FLAGS='${disable}'
-COMMON="${srbCommon("$GPU_FLAGS", "$LOCAL_PROXY", "$WALLET", "mm", "$SRB")} --tls false"
+${intelGpu ? `MOMINER='./${MOMINER_DIR}/deploy/docker-mominer.sh'` : `LOLMINER='${LOLMINER_BIN}'`}
+${disable ? `GPU_FLAGS='${disable}'\n` : ""}COMMON="${srbCommon(disable ? "$GPU_FLAGS" : "", "$LOCAL_PROXY", "$WALLET", "mm", "$SRB")} --tls false"
 
 node ./mm.js --no-config-save --pool="$POOL" --user="$WALLET" --pass=x --algo_min_time=60 \\
-${metaMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", gpu, lolminer: "$LOLMINER", mominer: "$MOMINER", wallet: "$WALLET", mominerJson: "{\\\"dev\\\":\\\"gpu1*1\\\",\\\"perf\\\":1}" })}`;
+${metaMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", intelGpu, lolminer: "$LOLMINER", mominer: "$MOMINER", wallet: "$WALLET", mominerJson: "{\\\"dev\\\":\\\"gpu1*1\\\",\\\"perf\\\":1}" })}`;
 }
 
-function metaMinerWindowsRun({ address, pool, disable, gpu }) {
+function metaMinerWindowsRun({ address, pool, disable, intelGpu }) {
   return `$Wallet="${address}"
 $Pool="${pool}"
 $LocalProxy="${LOCAL_PROXY}"
 $Srb="${SRBMINER_EXE}"
-${gpu === INTEL ? `$Mominer=".\\${MOMINER_DIR}\\deploy\\docker-mominer.sh"` : `$Lolminer="${LOLMINER_EXE}"`}
-$GpuFlags="${disable}"
-$Common="${srbCommon("$GpuFlags", "$LocalProxy", "$Wallet", "mm", "$Srb")} --tls false"
+${intelGpu ? `$Mominer=".\\${MOMINER_DIR}\\deploy\\docker-mominer.sh"` : `$Lolminer="${LOLMINER_EXE}"`}
+${disable ? `$GpuFlags="${disable}"\n` : ""}$Common="${srbCommon(disable ? "$GpuFlags" : "", "$LocalProxy", "$Wallet", "mm", "$Srb")} --tls false"
 
 mm.exe --no-config-save --pool="$Pool" --user="$Wallet" --pass=x --algo_min_time=60 \`
-${metaMinerAlgoArgs({ common: "$Common", lineContinuation: "`", gpu, lolminer: "$Lolminer", mominer: "$Mominer", wallet: "$Wallet", mominerJson: "{`\"dev`\":`\"gpu1*1`\",`\"perf`\":1}" })}`;
+${metaMinerAlgoArgs({ common: "$Common", lineContinuation: "`", intelGpu, lolminer: "$Lolminer", mominer: "$Mominer", wallet: "$Wallet", mominerJson: "{`\"dev`\":`\"gpu1*1`\",`\"perf`\":1}" })}`;
 }
 
 function xmrigProxyPlan({ os, address, worker, pool, portRow }) {
@@ -475,6 +475,16 @@ function profileId(value, os = LINUX) {
   return setupProfileOptions(os).some((row) => row[0] === value) ? value : XMRIG_MO;
 }
 
+function gpuId(value) {
+  if (value === INTEL) return INTEL;
+  if (value === NVIDIA_AMD || value === "nvidia" || value === "amd") return NVIDIA_AMD;
+  return INTEL;
+}
+
+function isIntelGpu(gpu) {
+  return gpu === INTEL;
+}
+
 function optionId(value, rows, fallback) {
   return rows.some((row) => row[0] === value) ? value : fallback;
 }
@@ -511,22 +521,22 @@ git clone https://github.com/MoneroOcean/mominer.git ~/${MOMINER_DIR}
 cd ~/${MOMINER_DIR}/deploy`;
 }
 
-function metaMinerLinuxDownload(gpu) {
-  return `sudo apt-get install nodejs curl${gpu === INTEL ? " git docker.io" : ""}
+function metaMinerLinuxDownload(intelGpu) {
+  return `sudo apt-get install nodejs curl${intelGpu ? " git docker.io" : ""}
 mkdir -p ~/meta-miner && cd ~/meta-miner
 curl -L https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js -o mm.js && chmod +x mm.js
 ${srbLinuxDownload(false).replaceAll(`~/${SRBMINER_DIR}`, "~/meta-miner")}
-${gpu === INTEL ? "git clone https://github.com/MoneroOcean/mominer.git ~/meta-miner/mominer" : lolminerLinuxDownload(false).replaceAll(`~/${LOLMINER_DIR}`, "~/meta-miner")}`;
+${intelGpu ? "git clone https://github.com/MoneroOcean/mominer.git ~/meta-miner/mominer" : lolminerLinuxDownload(false).replaceAll(`~/${LOLMINER_DIR}`, "~/meta-miner")}`;
 }
 
-function metaMinerWindowsDownload(gpu) {
+function metaMinerWindowsDownload(intelGpu) {
   return `${windowsAssetDownload(META_MINER_RELEASE_API, "mm-v.*\\.zip$", "mm.zip")}
 ${windowsExtractZip("mm.zip", META_MINER, false)}
 ${windowsAssetDownload(SRBMINER_RELEASE_API, WIN64_ZIP_ASSET, SRBMINER_ZIP)}
 Expand-Archive ${SRBMINER_ZIP} -DestinationPath .\\${SRBMINER_DIR} -Force
 $dir=Get-ChildItem .\\${SRBMINER_DIR} -Directory | ${FIRST_ASSET}
 if ($dir) { Copy-Item "$($dir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${SRBMINER_DIR}\\*" . -Recurse -Force }
-${gpu === INTEL ? "" : `${windowsAssetDownload(LOLMINER_RELEASE_API, WIN64_ZIP_ASSET, LOLMINER_ZIP)}
+${intelGpu ? "" : `${windowsAssetDownload(LOLMINER_RELEASE_API, WIN64_ZIP_ASSET, LOLMINER_ZIP)}
 Expand-Archive ${LOLMINER_ZIP} -DestinationPath .\\${LOLMINER_DIR} -Force
 $gdir=Get-ChildItem .\\${LOLMINER_DIR} -Directory | ${FIRST_ASSET}
 if ($gdir) { Copy-Item "$($gdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${LOLMINER_DIR}\\*" . -Recurse -Force }`}`;

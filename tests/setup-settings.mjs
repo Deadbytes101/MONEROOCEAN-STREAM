@@ -160,6 +160,21 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.deepEqual(configuredPorts.map((row) => row.port), [10002, 10016]);
     assert.equal(setupPlan({ profile: "xmrig-mo", hashrate: 4, hashrateUnit: "kh", ports: configuredPorts }).selection.port, 10016);
     assert.match(setupPlan({ profile: "xmrig-mo", hashrate: 4, hashrateUnit: "kh", ports: configuredPorts }).summary, /Fast CPU/);
+    const globalPorts = setupConfiguredPorts({
+      global: [
+        { port: 80, tls: false, difficulty: 10000, description: "1 kH/s" },
+        { port: 443, tls: true, difficulty: 10000, description: "1 kH/s" },
+        { port: 10001, tls: false, difficulty: 10000, description: "1 KH/s" },
+        { port: 20001, tls: true, difficulty: 10000, description: "1 KH/s" },
+        { port: 10002, tls: false, difficulty: 20000, description: "2 KH/s" },
+        { port: 20002, tls: true, difficulty: 20000, description: "2 KH/s" },
+        { port: 10128, tls: false, difficulty: 1280000, description: "128 KH/s" },
+        { port: 20128, tls: true, difficulty: 1280000, description: "128 KH/s" }
+      ]
+    });
+    assert.deepEqual(globalPorts.map((row) => [row.port, row.tlsPort, row.targetHashrate]), [[10001, 20001, 1000], [10002, 20002, 2000], [10128, 20128, 128000]]);
+    assert.match(setupPlan({ profile: "srb-gpu", gpu: "intel", algo: "c29", ports: globalPorts }).plainRunCommand, /gulf\.moneroocean\.stream:10001 /);
+    assert.match(setupPlan({ profile: "srb-gpu", gpu: "intel", algo: "c29", ports: globalPorts }).tlsRunCommand, /gulf\.moneroocean\.stream:20001tls /);
     assert.equal(setupPlan().selection.port, 0);
     assert.equal(setupPlanWithPorts({ profile: "xmrig-mo" }).selection.port, 10016);
     assert.equal(setupPlanWithPorts({ profile: "srb-gpu", os: "windows", address: "ADDR" }).selection.address, "ADDR");
@@ -169,34 +184,38 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.deepEqual(setupHashrateDefaults("xmr-node-proxy"), { value: 128, unit: "kh" });
     assert.deepEqual(setupHashrateDefaults("srb-gpu", "intel"), { value: 128, unit: "kh" });
     assert.deepEqual(setupHashrateDefaults("srb-gpu", "intel", "c29"), { value: 1, unit: "h" });
+    assert.deepEqual(setupHashrateDefaults("srb-gpu", "gpu", "c29"), { value: 1, unit: "h" });
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).plainRunCommand, /--algorithm cryptonight_gpu/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).tlsRunCommand, /--pool gulf\.moneroocean\.stream:28192 .*--tls true/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).tlsRunNote, /Use --list-devices first/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).notes, /Use --list-devices first/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "etchash" }).plainRunCommand, /--esm 2 --nicehash true/);
-    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "amd", algo: "kawpow" }).plainRunCommand, /--disable-gpu-nvidia --disable-gpu-intel/);
+    assert.equal(setupPlanWithPorts({ profile: "srb-gpu", gpu: "amd", algo: "kawpow" }).selection.gpu, "gpu");
+    assert.equal(setupPlanWithPorts({ profile: "srb-gpu", gpu: "nvidia", algo: "kawpow" }).selection.gpu, "gpu");
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "kawpow" }).plainRunCommand, /--disable-gpu-/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).plainRunCommand, /docker-mominer\.sh mine gulf\.moneroocean\.stream:10002 .*--new\.algo_param\.c29 '\{"dev":"gpu1\*1"\}'/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).downloadCommand, /git clone https:\/\/github\.com\/MoneroOcean\/mominer\.git ~\/mominer/);
-    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "nvidia", algo: "c29" }).plainRunCommand, /\.\/lolMiner --algo CR29 --pool gulf\.moneroocean\.stream:10002 --user YOUR_XMR_ADDRESS --pass rig01~c29/);
-    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "amd", algo: "c29" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
-    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /mm\.json/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).downloadCommand, /sudo apt-get install nodejs curl/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "c29" }).plainRunCommand, /\.\/lolMiner --algo CR29 --pool gulf\.moneroocean\.stream:10002 --user YOUR_XMR_ADDRESS --pass rig01~c29/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "c29" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /mm\.json/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).downloadCommand, /sudo apt-get install nodejs curl/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
     assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "intel" }).downloadCommand, /sudo apt-get install nodejs curl git docker\.io/);
     assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "intel" }).downloadCommand, /git clone https:\/\/github\.com\/MoneroOcean\/mominer\.git ~\/meta-miner\/mominer/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /--no-config-save/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /--pool="\$POOL"/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /--pass=x/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /POOL='gulf\.moneroocean\.stream:ssl28192'/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /--algo_min_time=60/);
-    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /--watchdog=600/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).notes, /First run benchmarks\/autotunes configured algorithms/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /WALLET=/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /COMMON="\$SRB --disable-cpu \$GPU_FLAGS/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /--kawpow="\$COMMON --algorithm kawpow --password x"/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "nvidia" }).tlsRunCommand, /--c29="\$LOLMINER --algo CR29 --pool 127\.0\.0\.1:3333 --user \$WALLET --pass x"/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--no-config-save/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--pool="\$POOL"/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--pass=x/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /POOL='gulf\.moneroocean\.stream:ssl28192'/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--algo_min_time=60/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--watchdog=600/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).notes, /First run benchmarks\/autotunes configured algorithms/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /WALLET=/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /COMMON="\$SRB --disable-cpu --pool/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /GPU_FLAGS|--disable-gpu-/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--kawpow="\$COMMON --algorithm kawpow --password x"/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--c29="\$LOLMINER --algo CR29 --pool 127\.0\.0\.1:3333 --user \$WALLET --pass x"/);
     assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "intel" }).tlsRunCommand, /--c29="\$MOMINER mine 127\.0\.0\.1:3333 \$WALLET x --new\.algo_param\.c29 '\{\\"dev\\":\\"gpu1\*1\\",\\"perf\\":1\}'"/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", os: "windows", gpu: "amd" }).tlsRunCommand, /\$Common="\$Srb --disable-cpu \$GpuFlags/);
+    assert.match(setupPlanWithPorts({ profile: "meta-miner", os: "windows", gpu: "gpu" }).tlsRunCommand, /\$Common="\$Srb --disable-cpu --pool/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /xmrig-proxy/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /--bind 0\.0\.0\.0:3333/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /--mode nicehash/);
