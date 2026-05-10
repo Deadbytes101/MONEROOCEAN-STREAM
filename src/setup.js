@@ -31,12 +31,15 @@ const LOLMINER_DIR = "lolminer";
 const LOLMINER_ARCHIVE = `${LOLMINER_DIR}.tar.gz`;
 const LOLMINER_ZIP = `${LOLMINER_DIR}.zip`;
 const MOMINER_DIR = "mominer";
+const MOMINER_ARCHIVE = `${MOMINER_DIR}.tgz`;
 const MOMINER_DOCKER = "./docker-mominer.sh";
 const MULTI_MINER_DIR = "multi-miner";
+const MULTI_MINER_ARCHIVE = "mm.tar.gz";
 const GITHUB_RELEASE_API = "https://api.github.com/repos/";
 const XMRIG_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/xmrig/releases/latest`;
 const SRBMINER_RELEASE_API = `${GITHUB_RELEASE_API}doktor83/SRBMiner-Multi/releases/latest`;
 const LOLMINER_RELEASE_API = `${GITHUB_RELEASE_API}Lolliedieb/lolMiner-releases/releases/latest`;
+const MOMINER_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/mominer/releases/latest`;
 const MULTI_MINER_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/multi-miner/releases/latest`;
 const XMRIG_PROXY_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/xmrig-proxy/releases/latest`;
 export const TOR_MINING_HOST = "mo2tor2amawhphlrgyaqlrqx7o27jaj7yldnx3t6jip3ow4bujlwz6id.onion";
@@ -352,10 +355,10 @@ function multiMinerLinuxRun({ address, pool, disable, intelGpu }) {
 POOL='${pool}'
 LOCAL_PROXY='${LOCAL_PROXY}'
 SRB='${SRBMINER_BIN}'
-${intelGpu ? `MOMINER='./${MOMINER_DIR}/deploy/docker-mominer.sh'` : `LOLMINER='${LOLMINER_BIN}'`}
+${intelGpu ? `MOMINER='./${MOMINER_DIR}/docker-mominer.sh'` : `LOLMINER='${LOLMINER_BIN}'`}
 ${disable ? `GPU_FLAGS='${disable}'\n` : ""}COMMON="${srbCommon(disable ? "$GPU_FLAGS" : "", "$LOCAL_PROXY", "$WALLET", "mm", "$SRB")} --tls false"
 
-node ./mm.js --no-config-save --pool="$POOL" --user="$WALLET" --pass=x --algo_min_time=60 \\
+./mm --no-config-save --pool="$POOL" --user="$WALLET" --pass=x --algo_min_time=60 \\
 ${multiMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", intelGpu, lolminer: "$LOLMINER", mominer: "$MOMINER", wallet: "$WALLET", mominerJson: "{\\\"dev\\\":\\\"gpu1*1\\\",\\\"perf\\\":1}" })}`;
 }
 
@@ -519,17 +522,17 @@ function lolminerWindowsDownload() {
 }
 
 function mominerLinuxDownload() {
-  return `sudo apt-get install git docker.io
-git clone https://github.com/MoneroOcean/mominer.git ~/${MOMINER_DIR}
-cd ~/${MOMINER_DIR}/deploy`;
+  return `sudo apt-get install -y curl docker.io
+mkdir -p ~/${MOMINER_DIR} && cd ~/${MOMINER_DIR}
+${downloadMominer()} && chmod +x docker-mominer.sh`;
 }
 
 function multiMinerLinuxDownload(intelGpu) {
-  return `sudo apt-get install -y nodejs curl git${intelGpu ? " docker.io" : ""}
-git clone --depth 1 https://github.com/MoneroOcean/multi-miner.git ~/${MULTI_MINER_DIR}
-cd ~/${MULTI_MINER_DIR}
+  return `sudo apt-get install -y curl${intelGpu ? " docker.io" : ""}
+mkdir -p ~/${MULTI_MINER_DIR} && cd ~/${MULTI_MINER_DIR}
+${downloadMultiMinerLinux()} && chmod +x mm
 ${releaseAssetDownload(SRBMINER_RELEASE_API, srbMinerLinuxAsset(), SRBMINER_ARCHIVE)} && ${unpackSrbMinerLinux()}
-${intelGpu ? "git clone --depth 1 https://github.com/MoneroOcean/mominer.git ./mominer" : `${releaseAssetDownload(LOLMINER_RELEASE_API, lolMinerLinuxAsset(), LOLMINER_ARCHIVE)} && ${unpackLolMinerLinux()}`}`;
+${intelGpu ? `mkdir -p ${MOMINER_DIR} && (cd ${MOMINER_DIR} && ${downloadMominer()} && chmod +x docker-mominer.sh)` : `${releaseAssetDownload(LOLMINER_RELEASE_API, lolMinerLinuxAsset(), LOLMINER_ARCHIVE)} && ${unpackLolMinerLinux()}`}`;
 }
 
 function multiMinerWindowsDownload(intelGpu) {
@@ -565,6 +568,14 @@ ${releaseAssetDownload(api, grepCommand, file)}`;
 function releaseAssetDownload(api, grepCommand, file) {
   return `url=$(curl -fsSL ${api} | grep ${BROWSER_DOWNLOAD_URL} | ${grepCommand} | head -1 | cut -d '"' -f 4)
 curl -L "$url" -o ${file}`;
+}
+
+function downloadMultiMinerLinux() {
+  return `${releaseAssetDownload(MULTI_MINER_RELEASE_API, "grep 'mm-v.*-lin\\.tar\\.gz'", MULTI_MINER_ARCHIVE)} && tar xf ${MULTI_MINER_ARCHIVE}`;
+}
+
+function downloadMominer() {
+  return `${releaseAssetDownload(MOMINER_RELEASE_API, "grep 'mominer-v.*\\.tgz'", MOMINER_ARCHIVE)} && tar xf ${MOMINER_ARCHIVE}`;
 }
 
 function srbMinerLinuxAsset() {
