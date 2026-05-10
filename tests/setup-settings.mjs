@@ -203,7 +203,9 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /sudo apt-get install -y curl/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /nodejs|git clone --depth 1/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /MoneroOcean\/multi-miner\/releases\/latest/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /uname -m/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /mm-v\.\*-lin\\\.tar\\\.gz/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /mm-v\.\*-lin-arm\\\.tar\\\.gz/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /raw\.githubusercontent\.com\/MoneroOcean\/meta-miner/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /sudo apt-get install -y curl docker\.io/);

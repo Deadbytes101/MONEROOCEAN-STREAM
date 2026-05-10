@@ -571,7 +571,9 @@ curl -L "$url" -o ${file}`;
 }
 
 function downloadMultiMinerLinux() {
-  return `${releaseAssetDownload(MULTI_MINER_RELEASE_API, "grep 'mm-v.*-lin\\.tar\\.gz'", MULTI_MINER_ARCHIVE)} && tar xf ${MULTI_MINER_ARCHIVE}`;
+  return `asset='mm-v.*-lin\\.tar\\.gz'
+case "$(uname -m)" in aarch64|arm64) asset='mm-v.*-lin-arm\\.tar\\.gz';; esac
+${releaseAssetDownload(MULTI_MINER_RELEASE_API, 'grep "$asset"', MULTI_MINER_ARCHIVE)} && tar xf ${MULTI_MINER_ARCHIVE}`;
 }
 
 function downloadMominer() {
