@@ -8,7 +8,7 @@ This branch refactors the old single-file dashboard into small ES modules under 
 
 - Pool overview, coin list, blocks, payments, uptime, and profit calculator views.
 - Wallet dashboard with workers, hashrate charts, block rewards, payout history, and wallet settings helpers.
-- Miner setup command generation for MoneroOcean XMRig, SRBMiner-Multi, meta-miner, xmrig-proxy, and xmr-node-proxy.
+- Miner setup command generation for MoneroOcean XMRig, SRBMiner-Multi, Multi-Miner, xmrig-proxy, and xmr-node-proxy.
 - Hash-route navigation with SEO metadata and canonical URL updates.
 - Local display preferences for theme and explanatory text.
 - Focused Node.js tests for routing, formatting, wallet behavior, setup output, scheduler behavior, build invariants, and pool-specific calculations.

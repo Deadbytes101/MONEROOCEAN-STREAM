@@ -73,7 +73,7 @@ export async function helpView() {
     ["Workers and proxies", [
       "A proxy reduces pool connections/share spam for larger CPU fleets. Miners use NiceHash-compatible mode.",
       "Do not add a proxy for a few machines; it is mainly for fleets, one upstream per site, or throttled direct connections.",
-      "GPU fixed-algorithm miners and meta-miner switch differently, so keep routing aligned with Setup."
+      "GPU fixed-algorithm miners and Multi-Miner switch differently, so keep routing aligned with Setup."
     ]],
     ["Privacy/support", [
       `${EXPLANATIONS.privacy} Use trash on a saved wallet to clear local history.`,

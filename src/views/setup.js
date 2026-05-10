@@ -186,7 +186,7 @@ function syncSetupRoute(plan) {
 }
 
 function setupShowsGpu(profile) {
-  return profile === "srb-gpu" || profile === "meta-miner";
+  return profile === "srb-gpu" || profile === "multi-miner";
 }
 
 function setupShowsAlgo(profile) {

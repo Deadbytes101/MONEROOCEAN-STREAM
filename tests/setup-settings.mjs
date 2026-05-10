@@ -138,7 +138,7 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).downloadCommand, /Open Windows PowerShell first/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).plainRunCommand, /Open Windows PowerShell first|\.\\xmrig\.exe/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).plainRunCommand, /^xmrig\.exe/m);
-    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", os: "windows" }).plainRunCommand || "", /Open Windows PowerShell first/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", os: "windows" }).plainRunCommand || "", /Open Windows PowerShell first/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "macos" }).downloadCommand, /grep 'mac64\\\.tar\\\.gz'/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "macos" }).downloadCommand, /mac-intel|\$asset|uname -m/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "macos" }).downloadCommand, /macOS release assets are currently arm64 only/);
@@ -197,25 +197,30 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).downloadCommand, /git clone https:\/\/github\.com\/MoneroOcean\/mominer\.git ~\/mominer/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "c29" }).plainRunCommand, /\.\/lolMiner --algo CR29 --pool gulf\.moneroocean\.stream:10002 --user YOUR_XMR_ADDRESS --pass rig01~c29/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "c29" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
-    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /mm\.json/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).downloadCommand, /sudo apt-get install nodejs curl/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "intel" }).downloadCommand, /sudo apt-get install nodejs curl git docker\.io/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "intel" }).downloadCommand, /git clone https:\/\/github\.com\/MoneroOcean\/mominer\.git ~\/meta-miner\/mominer/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--no-config-save/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--pool="\$POOL"/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--pass=x/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /POOL='gulf\.moneroocean\.stream:ssl28192'/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--algo_min_time=60/);
-    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--watchdog=600/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).notes, /First run benchmarks\/autotunes configured algorithms/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /WALLET=/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /COMMON="\$SRB --disable-cpu --pool/);
-    assert.doesNotMatch(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /GPU_FLAGS|--disable-gpu-/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--kawpow="\$COMMON --algorithm kawpow --password x"/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).tlsRunCommand, /--c29="\$LOLMINER --algo CR29 --pool 127\.0\.0\.1:3333 --user \$WALLET --pass x"/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", gpu: "intel" }).tlsRunCommand, /--c29="\$MOMINER mine 127\.0\.0\.1:3333 \$WALLET x --new\.algo_param\.c29 '\{\\"dev\\":\\"gpu1\*1\\",\\"perf\\":1\}'"/);
-    assert.match(setupPlanWithPorts({ profile: "meta-miner", os: "windows", gpu: "gpu" }).tlsRunCommand, /\$Common="\$Srb --disable-cpu --pool/);
+    assert.equal(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).selection.profile, "multi-miner");
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /mm\.json/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /sudo apt-get install -y nodejs curl git/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /git clone --depth 1 https:\/\/github\.com\/MoneroOcean\/multi-miner\.git ~\/multi-miner/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /raw\.githubusercontent\.com\/MoneroOcean\/meta-miner/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /sudo apt-get install -y nodejs curl git docker\.io/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /git clone --depth 1 https:\/\/github\.com\/MoneroOcean\/mominer\.git \.\/mominer/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--no-config-save/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--pool="\$POOL"/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--pass=x/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /POOL='gulf\.moneroocean\.stream:ssl28192'/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--algo_min_time=60/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--watchdog=600/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).notes, /First run benchmarks\/autotunes configured algorithms/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /WALLET=/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /COMMON="\$SRB --disable-cpu --pool/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /GPU_FLAGS|--disable-gpu-/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--kawpow="\$COMMON --algorithm kawpow --password x"/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--c29="\$LOLMINER --algo CR29 --pool 127\.0\.0\.1:3333 --user \$WALLET --pass x"/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).tlsRunCommand, /--c29="\$MOMINER mine 127\.0\.0\.1:3333 \$WALLET x --new\.algo_param\.c29 '\{\\"dev\\":\\"gpu1\*1\\",\\"perf\\":1\}'"/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).downloadCommand, /MoneroOcean\/multi-miner\/releases\/latest/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).downloadCommand, /mm-v\.\*-win\\\.zip/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).tlsRunCommand, /\$Common="\$Srb --disable-cpu --pool/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /xmrig-proxy/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /--bind 0\.0\.0\.0:3333/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /--mode nicehash/);
@@ -264,7 +269,7 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
 
   test("setup package install commands come first in command cards", () => {
     for (const os of ["linux", "macos", "windows"]) {
-      for (const profile of ["xmrig-mo", "srb-gpu", "meta-miner", "xmrig-proxy", "xmr-node-proxy"]) {
+      for (const profile of ["xmrig-mo", "srb-gpu", "multi-miner", "xmrig-proxy", "xmr-node-proxy"]) {
         const plan = setupPlanWithPorts({ os, profile });
         for (const field of ["downloadCommand", "tlsRunCommand", "plainRunCommand", "torCommand", "localCommand"]) {
           assertPackageInstallFirst(plan[field] || "", `${os}/${profile}/${field}`);
