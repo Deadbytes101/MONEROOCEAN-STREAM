@@ -90,7 +90,11 @@ export function bindSetupEvents() {
   ["setup-algo", "setup-wallet", "setup-hashrate-input", "setup-hashrate-unit"].forEach((id) => {
     on(byId(id), "input", updateSetupCommand);
   });
-  ["setup-algo", "setup-hashrate-unit"].forEach((id) => {
+  on(byId("setup-algo"), "change", () => {
+    resetSetupHashrate();
+    updateSetupCommand();
+  });
+  ["setup-hashrate-unit"].forEach((id) => {
     on(byId(id), "change", updateSetupCommand);
   });
   on(byId("setup-gpu"), "change", () => {
@@ -193,9 +197,10 @@ function resetSetupHashrate() {
   const plan = setupPlan({
     os: byId("setup-os")?.value,
     profile: byId("setup-profile")?.value,
-    gpu: byId("setup-gpu")?.value
+    gpu: byId("setup-gpu")?.value,
+    algo: byId("setup-algo")?.value
   });
-  const defaults = setupHashrateDefaults(plan.selection.profile, plan.selection.gpu);
+  const defaults = setupHashrateDefaults(plan.selection.profile, plan.selection.gpu, plan.selection.algo);
   const hashrate = byId("setup-hashrate-input");
   const unit = byId("setup-hashrate-unit");
   if (hashrate) hashrate.value = String(defaults.value);
