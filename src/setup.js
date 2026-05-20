@@ -400,7 +400,7 @@ function xmrNodeProxyPlan({ os, address, worker, port, portRow }) {
   return {
     summary: setupPoolSummary(`${POOL_HOST}:${tlsPort}`, portRow, `; ${PROXY_HOSTS_PORT_3333}`),
     downloadCommand: macos
-      ? "brew install node git\ngit clone https://github.com/MoneroOcean/xmr-node-proxy.git ~/xmr-node-proxy\ncd ~/xmr-node-proxy\nnpm install --no-audit --no-fund"
+      ? "brew install node git\ngit clone https://github.com/MoneroOcean/xmr-node-proxy.git ~/xmr-node-proxy\ncd ~/xmr-node-proxy\nnpm install --no-audit --no-fund --min-release-age=7"
       : "sudo apt-get install git\ngit clone https://github.com/MoneroOcean/xmr-node-proxy.git ~/xmr-node-proxy\ncd ~/xmr-node-proxy\nbash install.sh",
     tlsRunCommand: `cat > config.json <<'JSON'\n${config}\nJSON\nnode proxy.js --config config.json`,
     tlsRunNote: TLS_MODE_NOTE,
