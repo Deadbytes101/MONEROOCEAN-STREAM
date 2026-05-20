@@ -73,21 +73,26 @@ const candidates = blocks.filter(({ text }) =>
 );
 
 if (candidates.length === 0) process.exit(2);
-if (candidates.length !== 1) {
-  console.error(`Refusing to update ${configPath}: found ${candidates.length} mo-pool-ui CSP server blocks`);
-  process.exit(3);
+let changed = false;
+let next = "";
+let offset = 0;
+
+for (const block of candidates) {
+  const hashes = block.text.match(/sha256-[A-Za-z0-9+/=]+/g) || [];
+  if (hashes.length !== 1) {
+    console.error(`Refusing to update ${configPath}: found ${hashes.length} sha256 hashes in a mo-pool-ui CSP block`);
+    process.exit(4);
+  }
+
+  const updatedBlock = block.text.replace(hashes[0], hash);
+  changed ||= updatedBlock !== block.text;
+  next += source.slice(offset, block.start) + updatedBlock;
+  offset = block.end;
 }
 
-const block = candidates[0];
-const hashes = block.text.match(/sha256-[A-Za-z0-9+/=]+/g) || [];
-if (hashes.length !== 1) {
-  console.error(`Refusing to update ${configPath}: found ${hashes.length} sha256 hashes in mo-pool-ui CSP block`);
-  process.exit(4);
-}
-if (hashes[0] === hash) process.exit(5);
+if (!changed) process.exit(5);
 
-const updatedBlock = block.text.replace(hashes[0], hash);
-const next = source.slice(0, block.start) + updatedBlock + source.slice(block.end);
+next += source.slice(offset);
 fs.writeFileSync(outputPath, next);
 NODE
   rc=$?
