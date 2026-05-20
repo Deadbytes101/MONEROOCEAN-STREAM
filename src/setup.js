@@ -35,7 +35,7 @@ const MOMINER_ARCHIVE = `${MOMINER_DIR}.tgz`;
 const MOMINER_ZIP = `${MOMINER_DIR}.zip`;
 const MOMINER = "mominer";
 const MOMINER_BIN = `./${MOMINER}`;
-const MOMINER_EXE = `${MOMINER}.exe`;
+const MOMINER_CMD = `${MOMINER}.cmd`;
 const MULTI_MINER_DIR = "multi-miner";
 const MULTI_MINER_ARCHIVE = "mm.tar.gz";
 const GITHUB_RELEASE_API = "https://api.github.com/repos/";
@@ -92,7 +92,7 @@ const SRB_ALGO = {
 };
 const ETCHASH_EXTRA = " --esm 2 --nicehash true";
 const MULTI_MINER_ALGOS = Object.keys(SRB_ALGO).map((name) => [name, SRB_ALGO[name], name === "etchash" ? ETCHASH_EXTRA : ""]);
-const WINDOWS_POWERSHELL_BKM = "Open Windows PowerShell first. From cmd.exe, run: powershell -NoProfile";
+const WINDOWS_POWERSHELL_BKM = "Open Windows PowerShell first. From cmd.exe, run: powershell -NoProfile. Windows Security or other antivirus may quarantine miner archives; if extraction is blocked, review the alert and allow or exclude only this mining folder if you trust the release.";
 const PORT_METADATA_UNAVAILABLE = "Pool port metadata unavailable from API.";
 const TLS_MODE_NOTE = "TLS encrypts miner-to-pool traffic. Use plain only when TLS is blocked or unsupported.";
 const PLAIN_MODE_NOTE = "Plain mode uses the non-TLS mining port for tests or restricted networks.";
@@ -208,10 +208,14 @@ function setupPoolSummary(pool, portRow, suffix = ".") {
   return `${pool} is derived from ${portRow.label}${suffix}`;
 }
 
+function windowsLocal(binary) {
+  return `.\\${binary}`;
+}
+
 function xmrigPlan({ os, address, worker, pool, portRow }) {
   const windows = os === WINDOWS;
   const macos = os === MACOS;
-  const binary = windows ? XMRIG_EXE : XMRIG_BIN;
+  const binary = windows ? windowsLocal(XMRIG_EXE) : XMRIG_BIN;
   const d = windows
     ? windowsZipDownload(XMRIG_RELEASE_API, WIN64_ZIP_ASSET, "xmrig.zip", "moneroocean")
     : macos
@@ -243,7 +247,7 @@ function srbPlan({ os, gpu, algo, address, worker, password, pool, portRow }) {
       : lolminerPlan({ os, address, password, pool, portRow });
   }
   const windows = os === WINDOWS;
-  const binary = windows ? SRBMINER_EXE : SRBMINER_BIN;
+  const binary = windows ? windowsLocal(SRBMINER_EXE) : SRBMINER_BIN;
   const srbAlgo = SRB_ALGO[algo] || GPU_ALGO_IDS[0];
   const disable = gpuDisableFlags(intelGpu);
   const ethExtra = algo === "etchash" ? ETCHASH_EXTRA : "";
@@ -297,7 +301,7 @@ function srbCommon(disable, pool, address, worker, binary = "") {
 
 function lolminerPlan({ os, address, password, pool, portRow }) {
   const windows = os === WINDOWS;
-  const binary = windows ? LOLMINER_EXE : LOLMINER_BIN;
+  const binary = windows ? windowsLocal(LOLMINER_EXE) : LOLMINER_BIN;
   return {
     summary: setupPoolSummary(pool, portRow),
     downloadCommand: windows ? lolminerWindowsDownload() : lolminerLinuxDownload(),
@@ -312,14 +316,15 @@ function lolminerPlan({ os, address, password, pool, portRow }) {
 
 function mominerPlan({ os, address, password, pool, portRow }) {
   const windows = os === WINDOWS;
-  const binary = windows ? MOMINER_EXE : MOMINER_BIN;
+  const binary = windows ? windowsLocal(MOMINER_CMD) : MOMINER_BIN;
+  const mominerJson = mominerC29Json({ escapeQuotes: windows });
   return {
     summary: setupPoolSummary(pool, portRow),
     downloadCommand: windows ? mominerWindowsDownload() : mominerLinuxDownload(),
     downloadNote: windows ? WINDOWS_POWERSHELL_BKM : "",
-    tlsRunCommand: portRow.tlsPort ? mominerRun(binary, `${POOL_HOST}:${portRow.tlsPort}tls`, address, password) : "",
+    tlsRunCommand: portRow.tlsPort ? mominerRun(binary, `${POOL_HOST}:${portRow.tlsPort}tls`, address, password, mominerJson) : "",
     tlsRunNote: TLS_MODE_NOTE,
-    plainRunCommand: mominerRun(binary, pool, address, password),
+    plainRunCommand: mominerRun(binary, pool, address, password, mominerJson),
     plainRunNote: PLAIN_MODE_NOTE,
     notes: "MoMiner is used for fixed Intel GPU C29."
   };
@@ -329,8 +334,13 @@ function lolminerRun(binary, pool, address, password, tls) {
   return `${binary} --algo CR29 --pool ${pool} --user ${address} --pass ${password}${tls ? " --tls on" : ""}`;
 }
 
-function mominerRun(binary, pool, address, password) {
-  return `${binary} mine ${pool} ${address} ${password} --new.algo_param.c29 '{"dev":"gpu1*1"}'`;
+function mominerRun(binary, pool, address, password, mominerJson = mominerC29Json()) {
+  return `${binary} mine ${pool} ${address} ${password} --new.algo_param.c29 '${mominerJson}'`;
+}
+
+function mominerC29Json({ escapeQuotes = false, perf = false } = {}) {
+  const json = JSON.stringify(perf ? { dev: "gpu1*1", perf: 1 } : { dev: "gpu1*1" });
+  return escapeQuotes ? json.replaceAll('"', '\\"') : json;
 }
 
 function multiMinerAlgoArgs({ common, lineContinuation, intelGpu, lolminer, mominer, wallet, mominerJson }) {
@@ -356,25 +366,26 @@ ${intelGpu ? `MOMINER='./${MOMINER_DIR}/${MOMINER}'` : `LOLMINER='${LOLMINER_BIN
 ${disable ? `GPU_FLAGS='${disable}'\n` : ""}COMMON="${srbCommon(disable ? "$GPU_FLAGS" : "", "$LOCAL_PROXY", "$WALLET", "mm", "$SRB")} --tls false"
 
 ./mm --no-config-save --pool="$POOL" --user="$WALLET" --pass=x --algo_min_time=60 \\
-${multiMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", intelGpu, lolminer: "$LOLMINER", mominer: "$MOMINER", wallet: "$WALLET", mominerJson: "{\\\"dev\\\":\\\"gpu1*1\\\",\\\"perf\\\":1}" })}`;
+${multiMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", intelGpu, lolminer: "$LOLMINER", mominer: "$MOMINER", wallet: "$WALLET", mominerJson: mominerC29Json({ escapeQuotes: true, perf: true }) })}`;
 }
 
 function multiMinerWindowsRun({ address, pool, disable, intelGpu }) {
   return `$Wallet="${address}"
 $Pool="${pool}"
 $LocalProxy="${LOCAL_PROXY}"
-$Srb="${SRBMINER_EXE}"
-${intelGpu ? `$Mominer=".\\${MOMINER_EXE}"` : `$Lolminer="${LOLMINER_EXE}"`}
+$Srb="${windowsLocal(SRBMINER_EXE)}"
+${intelGpu ? `$Mominer="${windowsLocal(MOMINER_CMD)}"
+$MominerJson='${mominerC29Json({ escapeQuotes: true, perf: true })}'` : `$Lolminer="${windowsLocal(LOLMINER_EXE)}"`}
 ${disable ? `$GpuFlags="${disable}"\n` : ""}$Common="${srbCommon(disable ? "$GpuFlags" : "", "$LocalProxy", "$Wallet", "mm", "$Srb")} --tls false"
 
-mm.exe --no-config-save --pool="$Pool" --user="$Wallet" --pass=x --algo_min_time=60 \`
-${multiMinerAlgoArgs({ common: "$Common", lineContinuation: "`", intelGpu, lolminer: "$Lolminer", mominer: "$Mominer", wallet: "$Wallet", mominerJson: "{`\"dev`\":`\"gpu1*1`\",`\"perf`\":1}" })}`;
+${windowsLocal("mm.exe")} --no-config-save --pool="$Pool" --user="$Wallet" --pass=x --algo_min_time=60 \`
+${multiMinerAlgoArgs({ common: "$Common", lineContinuation: "`", intelGpu, lolminer: "$Lolminer", mominer: "$Mominer", wallet: "$Wallet", mominerJson: intelGpu ? "$MominerJson" : mominerC29Json({ perf: true }) })}`;
 }
 
 function xmrigProxyPlan({ os, address, worker, pool, portRow }) {
   const windows = os === WINDOWS;
   const macos = os === MACOS;
-  const binary = windows ? "xmrig-proxy.exe" : "./xmrig-proxy";
+  const binary = windows ? windowsLocal("xmrig-proxy.exe") : "./xmrig-proxy";
   const tlsPool = portRow.tlsPort ? `${POOL_HOST}:${portRow.tlsPort}` : pool;
   const proxyRunCommand = `${binary} -o ${tlsPool} -u ${address} --bind 0.0.0.0:3333 --mode nicehash ${KEEPALIVE} --tls`;
   return {
@@ -387,7 +398,7 @@ function xmrigProxyPlan({ os, address, worker, pool, portRow }) {
     downloadNote: windows ? WINDOWS_POWERSHELL_BKM : macos ? XMRIG_PROXY_MAC_DOWNLOAD_NOTE : "",
     tlsRunCommand: proxyRunCommand,
     tlsRunNote: TLS_MODE_NOTE,
-    localCommand: `${windows ? XMRIG_EXE : XMRIG_BIN} -o PROXY_HOST:3333 -u ${worker} --nicehash --donate-over-proxy 1 ${KEEPALIVE}`,
+    localCommand: `${windows ? windowsLocal(XMRIG_EXE) : XMRIG_BIN} -o PROXY_HOST:3333 -u ${worker} --nicehash --donate-over-proxy 1 ${KEEPALIVE}`,
     localNote: `Worker miners connect to this proxy on port 3333 using NiceHash-compatible mode. ${REPLACE_PROXY_HOST}`,
     notes: `${macos ? "Intel macOS is not supported by this download. " : ""}Use when many XMRig CPU workers share one upstream pool connection. ${SMALL_PROXY_NOTE} MoneroOcean fork keeps proxy aligned with algo switching. Keep fixed GPU miners direct or behind Multi-Miner.`
   };

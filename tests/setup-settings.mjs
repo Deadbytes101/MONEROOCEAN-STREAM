@@ -135,9 +135,10 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux" }).downloadCommand, /tar xf xmrig\.tar\.gz && chmod \+x xmrig/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux" }).downloadCommand, /strip-components/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).downloadNote, /Open Windows PowerShell first/);
+    assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).downloadNote, /Windows Security.*quarantine/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).downloadCommand, /Open Windows PowerShell first/);
-    assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).plainRunCommand, /Open Windows PowerShell first|\.\\xmrig\.exe/);
-    assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).plainRunCommand, /^xmrig\.exe/m);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).plainRunCommand, /Open Windows PowerShell first/);
+    assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "windows" }).plainRunCommand, /^\.\\xmrig\.exe/m);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", os: "windows" }).plainRunCommand || "", /Open Windows PowerShell first/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "macos" }).downloadCommand, /grep 'mac64\\\.tar\\\.gz'/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "macos" }).downloadCommand, /mac-intel|\$asset|uname -m/);
@@ -187,6 +188,7 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.deepEqual(setupHashrateDefaults("srb-gpu", "gpu", "c29"), { value: 1, unit: "h" });
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).plainRunCommand, /--algorithm cryptonight_gpu/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).tlsRunCommand, /--pool gulf\.moneroocean\.stream:28192 .*--tls true/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", os: "windows", gpu: "intel", algo: "cn/gpu" }).plainRunCommand, /^\.\\SRBMiner-MULTI\.exe/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).tlsRunNote, /Use --list-devices first/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).notes, /Use --list-devices first/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "etchash" }).plainRunCommand, /--esm 2 --nicehash true/);
@@ -194,9 +196,12 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.equal(setupPlanWithPorts({ profile: "srb-gpu", gpu: "nvidia", algo: "kawpow" }).selection.gpu, "gpu");
     assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "kawpow" }).plainRunCommand, /--disable-gpu-/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).plainRunCommand, /\.\/mominer mine gulf\.moneroocean\.stream:10002 .*--new\.algo_param\.c29 '\{"dev":"gpu1\*1"\}'/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", os: "windows", gpu: "intel", algo: "c29" }).plainRunCommand, /^\.\\mominer\.cmd mine gulf\.moneroocean\.stream:10002 .*--new\.algo_param\.c29 '\{\\"dev\\":\\"gpu1\*1\\"\}'/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", os: "windows", gpu: "intel", algo: "c29" }).plainRunCommand, /mominer\.exe|'\{"dev"/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).downloadCommand, /MoneroOcean\/mominer\/releases\/latest/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).downloadCommand, /mominer-v\.\*-lin\\\.tgz/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "c29" }).plainRunCommand, /\.\/lolMiner --algo CR29 --pool gulf\.moneroocean\.stream:10002 --user YOUR_XMR_ADDRESS --pass rig01~c29/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", os: "windows", gpu: "gpu", algo: "c29" }).plainRunCommand, /^\.\\lolMiner\.exe --algo CR29/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "c29" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
     assert.equal(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).selection.profile, "multi-miner");
     assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /mm\.json/);
@@ -230,8 +235,13 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).downloadCommand, /MoneroOcean\/multi-miner\/releases\/latest/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).downloadCommand, /mm-v\.\*-win\\\.zip/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).tlsRunCommand, /\$Common="\$Srb --disable-cpu --pool/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).tlsRunCommand, /\$Srb="\.\\SRBMiner-MULTI\.exe"/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).tlsRunCommand, /\$Lolminer="\.\\lolMiner\.exe"/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).tlsRunCommand, /^\.\\mm\.exe --no-config-save/m);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "intel" }).downloadCommand, /mominer-v\.\*-win\\\.zip/);
-    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "intel" }).tlsRunCommand, /\$Mominer="\.\\mominer\.exe"/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "intel" }).tlsRunCommand, /\$Mominer="\.\\mominer\.cmd"/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "intel" }).tlsRunCommand, /\$MominerJson='\{\\"dev\\":\\"gpu1\*1\\",\\"perf\\":1\}'/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "intel" }).tlsRunCommand, /--c29="\$Mominer mine 127\.0\.0\.1:3333 \$Wallet x --new\.algo_param\.c29 '\$MominerJson'"/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /xmrig-proxy/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /--bind 0\.0\.0\.0:3333/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /--mode nicehash/);
@@ -245,6 +255,8 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).downloadCommand, /tar xf xmrig-proxy\.tar\.gz && chmod \+x xmrig-proxy/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-proxy" }).downloadCommand, /xmrig-proxy\.tar\.gz --strip-components=1/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy", os: "windows" }).downloadCommand, /win64/);
+    assert.match(setupPlanWithPorts({ profile: "xmrig-proxy", os: "windows" }).tlsRunCommand, /^\.\\xmrig-proxy\.exe/);
+    assert.match(setupPlanWithPorts({ profile: "xmrig-proxy", os: "windows" }).localCommand, /^\.\\xmrig\.exe/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).localCommand, /--nicehash/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).localNote, /Replace PROXY_HOST/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).notes, /For small proxy setups, start with 64-128 KH\/s/);
