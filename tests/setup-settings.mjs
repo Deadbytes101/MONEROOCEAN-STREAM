@@ -193,9 +193,9 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.equal(setupPlanWithPorts({ profile: "srb-gpu", gpu: "amd", algo: "kawpow" }).selection.gpu, "gpu");
     assert.equal(setupPlanWithPorts({ profile: "srb-gpu", gpu: "nvidia", algo: "kawpow" }).selection.gpu, "gpu");
     assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "kawpow" }).plainRunCommand, /--disable-gpu-/);
-    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).plainRunCommand, /docker-mominer\.sh mine gulf\.moneroocean\.stream:10002 .*--new\.algo_param\.c29 '\{"dev":"gpu1\*1"\}'/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).plainRunCommand, /\.\/mominer mine gulf\.moneroocean\.stream:10002 .*--new\.algo_param\.c29 '\{"dev":"gpu1\*1"\}'/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).downloadCommand, /MoneroOcean\/mominer\/releases\/latest/);
-    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).downloadCommand, /mominer-v\.\*\\\.tgz/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "c29" }).downloadCommand, /mominer-v\.\*-lin\\\.tgz/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "c29" }).plainRunCommand, /\.\/lolMiner --algo CR29 --pool gulf\.moneroocean\.stream:10002 --user YOUR_XMR_ADDRESS --pass rig01~c29/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "gpu", algo: "c29" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
     assert.equal(setupPlanWithPorts({ profile: "meta-miner", gpu: "gpu" }).selection.profile, "multi-miner");
@@ -208,10 +208,11 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /mm-v\.\*-lin-arm\\\.tar\\\.gz/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /raw\.githubusercontent\.com\/MoneroOcean\/meta-miner/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).downloadCommand, /Lolliedieb\/lolMiner-releases/);
-    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /sudo apt-get install -y curl docker\.io/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /sudo apt-get install -y curl/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /docker\.io/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /MoneroOcean\/mominer\/releases\/latest/);
-    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /mominer-v\.\*\\\.tgz/);
-    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).tlsRunCommand, /MOMINER='\.\/mominer\/docker-mominer\.sh'/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).downloadCommand, /mominer-v\.\*-lin\\\.tgz/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "intel" }).tlsRunCommand, /MOMINER='\.\/mominer\/mominer'/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--no-config-save/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--pool="\$POOL"/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", gpu: "gpu" }).tlsRunCommand, /--pass=x/);
@@ -229,6 +230,8 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).downloadCommand, /MoneroOcean\/multi-miner\/releases\/latest/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).downloadCommand, /mm-v\.\*-win\\\.zip/);
     assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "gpu" }).tlsRunCommand, /\$Common="\$Srb --disable-cpu --pool/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "intel" }).downloadCommand, /mominer-v\.\*-win\\\.zip/);
+    assert.match(setupPlanWithPorts({ profile: "multi-miner", os: "windows", gpu: "intel" }).tlsRunCommand, /\$Mominer="\.\\mominer\.exe"/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /xmrig-proxy/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /--bind 0\.0\.0\.0:3333/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-proxy" }).tlsRunCommand, /--mode nicehash/);

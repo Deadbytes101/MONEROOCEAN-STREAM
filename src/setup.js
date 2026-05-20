@@ -32,7 +32,10 @@ const LOLMINER_ARCHIVE = `${LOLMINER_DIR}.tar.gz`;
 const LOLMINER_ZIP = `${LOLMINER_DIR}.zip`;
 const MOMINER_DIR = "mominer";
 const MOMINER_ARCHIVE = `${MOMINER_DIR}.tgz`;
-const MOMINER_DOCKER = "./docker-mominer.sh";
+const MOMINER_ZIP = `${MOMINER_DIR}.zip`;
+const MOMINER = "mominer";
+const MOMINER_BIN = `./${MOMINER}`;
+const MOMINER_EXE = `${MOMINER}.exe`;
 const MULTI_MINER_DIR = "multi-miner";
 const MULTI_MINER_ARCHIVE = "mm.tar.gz";
 const GITHUB_RELEASE_API = "https://api.github.com/repos/";
@@ -308,21 +311,15 @@ function lolminerPlan({ os, address, password, pool, portRow }) {
 }
 
 function mominerPlan({ os, address, password, pool, portRow }) {
-  if (os === WINDOWS) {
-    return {
-      summary: setupPoolSummary(pool, portRow),
-      downloadCommand: "",
-      tlsRunCommand: "",
-      plainRunCommand: "",
-      notes: "Intel C29 setup uses MoMiner Docker on Linux."
-    };
-  }
+  const windows = os === WINDOWS;
+  const binary = windows ? MOMINER_EXE : MOMINER_BIN;
   return {
     summary: setupPoolSummary(pool, portRow),
-    downloadCommand: mominerLinuxDownload(),
-    tlsRunCommand: portRow.tlsPort ? mominerRun(`${POOL_HOST}:${portRow.tlsPort}tls`, address, password) : "",
-    tlsRunNote: `${TLS_MODE_NOTE} Intel C29 uses MoMiner Docker.`,
-    plainRunCommand: mominerRun(pool, address, password),
+    downloadCommand: windows ? mominerWindowsDownload() : mominerLinuxDownload(),
+    downloadNote: windows ? WINDOWS_POWERSHELL_BKM : "",
+    tlsRunCommand: portRow.tlsPort ? mominerRun(binary, `${POOL_HOST}:${portRow.tlsPort}tls`, address, password) : "",
+    tlsRunNote: TLS_MODE_NOTE,
+    plainRunCommand: mominerRun(binary, pool, address, password),
     plainRunNote: PLAIN_MODE_NOTE,
     notes: "MoMiner is used for fixed Intel GPU C29."
   };
@@ -332,8 +329,8 @@ function lolminerRun(binary, pool, address, password, tls) {
   return `${binary} --algo CR29 --pool ${pool} --user ${address} --pass ${password}${tls ? " --tls on" : ""}`;
 }
 
-function mominerRun(pool, address, password) {
-  return `${MOMINER_DOCKER} mine ${pool} ${address} ${password} --new.algo_param.c29 '{"dev":"gpu1*1"}'`;
+function mominerRun(binary, pool, address, password) {
+  return `${binary} mine ${pool} ${address} ${password} --new.algo_param.c29 '{"dev":"gpu1*1"}'`;
 }
 
 function multiMinerAlgoArgs({ common, lineContinuation, intelGpu, lolminer, mominer, wallet, mominerJson }) {
@@ -355,7 +352,7 @@ function multiMinerLinuxRun({ address, pool, disable, intelGpu }) {
 POOL='${pool}'
 LOCAL_PROXY='${LOCAL_PROXY}'
 SRB='${SRBMINER_BIN}'
-${intelGpu ? `MOMINER='./${MOMINER_DIR}/docker-mominer.sh'` : `LOLMINER='${LOLMINER_BIN}'`}
+${intelGpu ? `MOMINER='./${MOMINER_DIR}/${MOMINER}'` : `LOLMINER='${LOLMINER_BIN}'`}
 ${disable ? `GPU_FLAGS='${disable}'\n` : ""}COMMON="${srbCommon(disable ? "$GPU_FLAGS" : "", "$LOCAL_PROXY", "$WALLET", "mm", "$SRB")} --tls false"
 
 ./mm --no-config-save --pool="$POOL" --user="$WALLET" --pass=x --algo_min_time=60 \\
@@ -367,7 +364,7 @@ function multiMinerWindowsRun({ address, pool, disable, intelGpu }) {
 $Pool="${pool}"
 $LocalProxy="${LOCAL_PROXY}"
 $Srb="${SRBMINER_EXE}"
-${intelGpu ? `$Mominer=".\\${MOMINER_DIR}\\deploy\\docker-mominer.sh"` : `$Lolminer="${LOLMINER_EXE}"`}
+${intelGpu ? `$Mominer=".\\${MOMINER_EXE}"` : `$Lolminer="${LOLMINER_EXE}"`}
 ${disable ? `$GpuFlags="${disable}"\n` : ""}$Common="${srbCommon(disable ? "$GpuFlags" : "", "$LocalProxy", "$Wallet", "mm", "$Srb")} --tls false"
 
 mm.exe --no-config-save --pool="$Pool" --user="$Wallet" --pass=x --algo_min_time=60 \`
@@ -522,17 +519,24 @@ function lolminerWindowsDownload() {
 }
 
 function mominerLinuxDownload() {
-  return `sudo apt-get install -y curl docker.io
+  return `sudo apt-get install -y curl
 mkdir -p ~/${MOMINER_DIR} && cd ~/${MOMINER_DIR}
-${downloadMominer()} && chmod +x docker-mominer.sh`;
+${downloadMominer()} && chmod +x ${MOMINER}`;
+}
+
+function mominerWindowsDownload() {
+  return `${windowsAssetDownload(MOMINER_RELEASE_API, "mominer-v.*-win\\.zip$", MOMINER_ZIP)}
+Expand-Archive ${MOMINER_ZIP} -DestinationPath .\\${MOMINER_DIR} -Force
+$mdir=Get-ChildItem .\\${MOMINER_DIR} -Directory | ${FIRST_ASSET}
+if ($mdir) { Copy-Item "$($mdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${MOMINER_DIR}\\*" . -Recurse -Force }`;
 }
 
 function multiMinerLinuxDownload(intelGpu) {
-  return `sudo apt-get install -y curl${intelGpu ? " docker.io" : ""}
+  return `sudo apt-get install -y curl
 mkdir -p ~/${MULTI_MINER_DIR} && cd ~/${MULTI_MINER_DIR}
 ${downloadMultiMinerLinux()} && chmod +x mm
 ${releaseAssetDownload(SRBMINER_RELEASE_API, srbMinerLinuxAsset(), SRBMINER_ARCHIVE)} && ${unpackSrbMinerLinux()}
-${intelGpu ? `mkdir -p ${MOMINER_DIR} && (cd ${MOMINER_DIR} && ${downloadMominer()} && chmod +x docker-mominer.sh)` : `${releaseAssetDownload(LOLMINER_RELEASE_API, lolMinerLinuxAsset(), LOLMINER_ARCHIVE)} && ${unpackLolMinerLinux()}`}`;
+${intelGpu ? `mkdir -p ${MOMINER_DIR} && (cd ${MOMINER_DIR} && ${downloadMominer()} && chmod +x ${MOMINER})` : `${releaseAssetDownload(LOLMINER_RELEASE_API, lolMinerLinuxAsset(), LOLMINER_ARCHIVE)} && ${unpackLolMinerLinux()}`}`;
 }
 
 function multiMinerWindowsDownload(intelGpu) {
@@ -542,7 +546,7 @@ ${windowsAssetDownload(SRBMINER_RELEASE_API, WIN64_ZIP_ASSET, SRBMINER_ZIP)}
 Expand-Archive ${SRBMINER_ZIP} -DestinationPath .\\${SRBMINER_DIR} -Force
 $dir=Get-ChildItem .\\${SRBMINER_DIR} -Directory | ${FIRST_ASSET}
 if ($dir) { Copy-Item "$($dir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${SRBMINER_DIR}\\*" . -Recurse -Force }
-${intelGpu ? "" : `${windowsAssetDownload(LOLMINER_RELEASE_API, WIN64_ZIP_ASSET, LOLMINER_ZIP)}
+${intelGpu ? mominerWindowsDownload() : `${windowsAssetDownload(LOLMINER_RELEASE_API, WIN64_ZIP_ASSET, LOLMINER_ZIP)}
 Expand-Archive ${LOLMINER_ZIP} -DestinationPath .\\${LOLMINER_DIR} -Force
 $gdir=Get-ChildItem .\\${LOLMINER_DIR} -Directory | ${FIRST_ASSET}
 if ($gdir) { Copy-Item "$($gdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${LOLMINER_DIR}\\*" . -Recurse -Force }`}`;
@@ -577,7 +581,7 @@ ${releaseAssetDownload(MULTI_MINER_RELEASE_API, 'grep "$asset"', MULTI_MINER_ARC
 }
 
 function downloadMominer() {
-  return `${releaseAssetDownload(MOMINER_RELEASE_API, "grep 'mominer-v.*\\.tgz'", MOMINER_ARCHIVE)} && tar xf ${MOMINER_ARCHIVE}`;
+  return `${releaseAssetDownload(MOMINER_RELEASE_API, "grep 'mominer-v.*-lin\\.tgz'", MOMINER_ARCHIVE)} && tar xf ${MOMINER_ARCHIVE}`;
 }
 
 function srbMinerLinuxAsset() {
