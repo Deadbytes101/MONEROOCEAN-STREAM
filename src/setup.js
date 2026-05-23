@@ -30,10 +30,10 @@ const LOLMINER_BIN = `./${LOLMINER}`;
 const LOLMINER_DIR = "lolminer";
 const LOLMINER_ARCHIVE = `${LOLMINER_DIR}.tar.gz`;
 const LOLMINER_ZIP = `${LOLMINER_DIR}.zip`;
-const MOMINER_DIR = "mominer";
+const MOMINER_DIR = "mo-miner";
 const MOMINER_ARCHIVE = `${MOMINER_DIR}.tgz`;
 const MOMINER_ZIP = `${MOMINER_DIR}.zip`;
-const MOMINER = "mominer";
+const MOMINER = "mo-miner";
 const MOMINER_BIN = `./${MOMINER}`;
 const MOMINER_CMD = `${MOMINER}.cmd`;
 const MULTI_MINER_DIR = "multi-miner";
@@ -42,7 +42,7 @@ const GITHUB_RELEASE_API = "https://api.github.com/repos/";
 const XMRIG_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/xmrig/releases/latest`;
 const SRBMINER_RELEASE_API = `${GITHUB_RELEASE_API}doktor83/SRBMiner-Multi/releases/latest`;
 const LOLMINER_RELEASE_API = `${GITHUB_RELEASE_API}Lolliedieb/lolMiner-releases/releases/latest`;
-const MOMINER_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/mominer/releases/latest`;
+const MOMINER_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/mo-miner/releases/latest`;
 const MULTI_MINER_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/multi-miner/releases/latest`;
 const XMRIG_PROXY_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/xmrig-proxy/releases/latest`;
 export const TOR_MINING_HOST = "mo2tor2amawhphlrgyaqlrqx7o27jaj7yldnx3t6jip3ow4bujlwz6id.onion";
@@ -326,7 +326,7 @@ function mominerPlan({ os, address, password, pool, portRow }) {
     tlsRunNote: TLS_MODE_NOTE,
     plainRunCommand: mominerRun(binary, pool, address, password, mominerJson),
     plainRunNote: PLAIN_MODE_NOTE,
-    notes: "MoMiner is used for fixed Intel GPU C29."
+    notes: "mo-miner is used for fixed Intel GPU C29."
   };
 }
 
@@ -343,16 +343,16 @@ function mominerC29Json({ escapeQuotes = false, perf = false } = {}) {
   return escapeQuotes ? json.replaceAll('"', '\\"') : json;
 }
 
-function multiMinerAlgoArgs({ common, lineContinuation, intelGpu, lolminer, mominer, wallet, mominerJson }) {
-  return multiMinerCommands({ common, intelGpu, lolminer, mominer, wallet, mominerJson })
+function multiMinerAlgoArgs({ common, lineContinuation, intelGpu, lolminer, moMiner, wallet, mominerJson }) {
+  return multiMinerCommands({ common, intelGpu, lolminer, moMiner, wallet, mominerJson })
     .map(([name, command]) => `  --${name}="${command}"`)
     .join(` ${lineContinuation}\n`);
 }
 
-function multiMinerCommands({ common, intelGpu, lolminer, mominer, wallet, mominerJson }) {
+function multiMinerCommands({ common, intelGpu, lolminer, moMiner, wallet, mominerJson }) {
   const commands = MULTI_MINER_ALGOS.map(([name, algorithm, extra]) => [name, `${common} --algorithm ${algorithm} --password x${extra}`]);
   commands.push(intelGpu
-    ? ["c29", `${mominer} mine ${LOCAL_PROXY} ${wallet} x --new.algo_param.c29 '${mominerJson}'`]
+    ? ["c29", `${moMiner} mine ${LOCAL_PROXY} ${wallet} x --new.algo_param.c29 '${mominerJson}'`]
     : ["c29", `${lolminer} --algo CR29 --pool ${LOCAL_PROXY} --user ${wallet} --pass x`]);
   return commands;
 }
@@ -362,11 +362,11 @@ function multiMinerLinuxRun({ address, pool, disable, intelGpu }) {
 POOL='${pool}'
 LOCAL_PROXY='${LOCAL_PROXY}'
 SRB='${SRBMINER_BIN}'
-${intelGpu ? `MOMINER='./${MOMINER_DIR}/${MOMINER}'` : `LOLMINER='${LOLMINER_BIN}'`}
+${intelGpu ? `MO_MINER='./${MOMINER_DIR}/${MOMINER}'` : `LOLMINER='${LOLMINER_BIN}'`}
 ${disable ? `GPU_FLAGS='${disable}'\n` : ""}COMMON="${srbCommon(disable ? "$GPU_FLAGS" : "", "$LOCAL_PROXY", "$WALLET", "mm", "$SRB")} --tls false"
 
 ./mm --no-config-save --pool="$POOL" --user="$WALLET" --pass=x --algo_min_time=60 \\
-${multiMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", intelGpu, lolminer: "$LOLMINER", mominer: "$MOMINER", wallet: "$WALLET", mominerJson: mominerC29Json({ escapeQuotes: true, perf: true }) })}`;
+${multiMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", intelGpu, lolminer: "$LOLMINER", moMiner: "$MO_MINER", wallet: "$WALLET", mominerJson: mominerC29Json({ escapeQuotes: true, perf: true }) })}`;
 }
 
 function multiMinerWindowsRun({ address, pool, disable, intelGpu }) {
@@ -379,7 +379,7 @@ $MominerJson='${mominerC29Json({ escapeQuotes: true, perf: true })}'` : `$Lolmin
 ${disable ? `$GpuFlags="${disable}"\n` : ""}$Common="${srbCommon(disable ? "$GpuFlags" : "", "$LocalProxy", "$Wallet", "mm", "$Srb")} --tls false"
 
 ${windowsLocal("mm.exe")} --no-config-save --pool="$Pool" --user="$Wallet" --pass=x --algo_min_time=60 \`
-${multiMinerAlgoArgs({ common: "$Common", lineContinuation: "`", intelGpu, lolminer: "$Lolminer", mominer: "$Mominer", wallet: "$Wallet", mominerJson: intelGpu ? "$MominerJson" : mominerC29Json({ perf: true }) })}`;
+${multiMinerAlgoArgs({ common: "$Common", lineContinuation: "`", intelGpu, lolminer: "$Lolminer", moMiner: "$Mominer", wallet: "$Wallet", mominerJson: intelGpu ? "$MominerJson" : mominerC29Json({ perf: true }) })}`;
 }
 
 function xmrigProxyPlan({ os, address, worker, pool, portRow }) {
@@ -536,7 +536,7 @@ ${downloadMominer()} && chmod +x ${MOMINER}`;
 }
 
 function mominerWindowsDownload() {
-  return `${windowsAssetDownload(MOMINER_RELEASE_API, "mominer-v.*-win\\.zip$", MOMINER_ZIP)}
+  return `${windowsAssetDownload(MOMINER_RELEASE_API, "mo-miner-v.*-win\\.zip$", MOMINER_ZIP)}
 Expand-Archive ${MOMINER_ZIP} -DestinationPath .\\${MOMINER_DIR} -Force
 $mdir=Get-ChildItem .\\${MOMINER_DIR} -Directory | ${FIRST_ASSET}
 if ($mdir) { Copy-Item "$($mdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${MOMINER_DIR}\\*" . -Recurse -Force }`;
@@ -592,7 +592,7 @@ ${releaseAssetDownload(MULTI_MINER_RELEASE_API, 'grep "$asset"', MULTI_MINER_ARC
 }
 
 function downloadMominer() {
-  return `${releaseAssetDownload(MOMINER_RELEASE_API, "grep 'mominer-v.*-lin\\.tgz'", MOMINER_ARCHIVE)} && tar xf ${MOMINER_ARCHIVE}`;
+  return `${releaseAssetDownload(MOMINER_RELEASE_API, "grep 'mo-miner-v.*-lin\\.tgz'", MOMINER_ARCHIVE)} && tar --strip-components=1 -xf ${MOMINER_ARCHIVE}`;
 }
 
 function srbMinerLinuxAsset() {
