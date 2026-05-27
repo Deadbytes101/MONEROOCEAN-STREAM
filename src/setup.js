@@ -182,13 +182,14 @@ export function setupPlan(options = {}) {
   const hashrateHps = setupHashrateToHps(hashrate, hashrateUnit);
   const portRow = portRowForHashrate(hashrateHps, options.ports);
   const address = String(options.address || "YOUR_XMR_ADDRESS").trim() || "YOUR_XMR_ADDRESS";
+  const commandAddress = setupCommandAddress(address);
   const worker = workerName(options.worker);
   const port = portRow?.port || 0;
   const pool = `${POOL_HOST}:${port}`;
   const password = profile === XMRIG_MO || algo === AUTO_ALGO[0] ? worker : `${worker}~${algo}`;
 
   const selection = { profile, os, gpu, algo, address, hashrate, hashrateUnit, hashrateHps, port };
-  const planOptions = { os, gpu, algo, address, worker, password, pool, port, portRow };
+  const planOptions = { os, gpu, algo, address: commandAddress, worker, password, pool, port, portRow };
   if (!portRow) return withSelection(unavailablePortPlan(), selection);
   if (profile === SRB_GPU) return withSelection(srbPlan(planOptions), selection);
   if (profile === MULTI_MINER) return withSelection(multiMinerPlan(planOptions), selection);
@@ -203,6 +204,10 @@ function withSelection(plan, selection) {
 
 function unavailablePortPlan() {
   return { title: "Setup unavailable", summary: PORT_METADATA_UNAVAILABLE, notes: `${PORT_METADATA_UNAVAILABLE} Reload after the API returns configured ports.` };
+}
+
+function setupCommandAddress(address) {
+  return isXmrAddress(address) ? address : "YOUR_XMR_ADDRESS";
 }
 
 function setupPoolSummary(pool, portRow, suffix = ".") {
@@ -317,16 +322,15 @@ function lolminerPlan({ os, address, password, pool, portRow }) {
 
 function mominerPlan({ os, address, password, pool, portRow }) {
   const windows = os === WINDOWS;
-  const wallet = windows && !isXmrAddress(address) ? "YOUR_XMR_ADDRESS" : address;
   const binary = windows ? windowsLocal(MOMINER_CMD) : MOMINER_BIN;
   const mominerJson = mominerC29Json({ escapeQuotes: windows });
   return {
     summary: setupPoolSummary(pool, portRow),
     downloadCommand: windows ? mominerWindowsDownload() : mominerLinuxDownload(),
     downloadNote: windows ? WINDOWS_POWERSHELL_BKM : "",
-    tlsRunCommand: portRow.tlsPort ? mominerRun(binary, `${POOL_HOST}:${portRow.tlsPort}tls`, wallet, password, mominerJson) : "",
+    tlsRunCommand: portRow.tlsPort ? mominerRun(binary, `${POOL_HOST}:${portRow.tlsPort}tls`, address, password, mominerJson) : "",
     tlsRunNote: TLS_MODE_NOTE,
-    plainRunCommand: mominerRun(binary, pool, wallet, password, mominerJson),
+    plainRunCommand: mominerRun(binary, pool, address, password, mominerJson),
     plainRunNote: PLAIN_MODE_NOTE,
     notes: "mo-miner is used for fixed Intel GPU C29."
   };

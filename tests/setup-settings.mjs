@@ -60,6 +60,13 @@ function assertPackageInstallFirst(command, label) {
   assert.match(command, /^(?:sudo apt-get install|brew install)/, label);
 }
 
+function setupRunCommands(plan) {
+  return ["tlsRunCommand", "plainRunCommand", "torCommand", "localCommand"]
+    .map((key) => plan[key] || "")
+    .filter(Boolean)
+    .join("\n");
+}
+
 function internalHrefs(html) {
   return [...String(html).matchAll(/\bhref="(#[^"]+)"/g)].map((match) => match[1]);
 }
@@ -127,8 +134,8 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux", address: "ADDR", worker: "rig" }).torCommand, /sudo apt-get install tor && sudo systemctl enable --now tor/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "macos", address: "ADDR", worker: "rig" }).torCommand, /brew install tor && brew services start tor/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux" }).torNote, /onion host.*selected non-TLS setup port.*127\.0\.0\.1:9050.*127\.0\.0\.1:9150.*TLS does not improve security over Tor/);
-    assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux", address: "ADDR", worker: "rig" }).torCommand, /\.\/xmrig -o mo2tor2amawhphlrgyaqlrqx7o27jaj7yldnx3t6jip3ow4bujlwz6id\.onion:10016 .* -u ADDR --rig-id rig --keepalive/);
-    assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "macos", address: "ADDR", worker: "rig" }).torCommand, /\.\/xmrig -o mo2tor2amawhphlrgyaqlrqx7o27jaj7yldnx3t6jip3ow4bujlwz6id\.onion:10016 .* -u ADDR --rig-id rig --keepalive/);
+    assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux", address: "ADDR", worker: "rig" }).torCommand, /\.\/xmrig -o mo2tor2amawhphlrgyaqlrqx7o27jaj7yldnx3t6jip3ow4bujlwz6id\.onion:10016 .* -u YOUR_XMR_ADDRESS --rig-id rig --keepalive/);
+    assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "macos", address: "ADDR", worker: "rig" }).torCommand, /\.\/xmrig -o mo2tor2amawhphlrgyaqlrqx7o27jaj7yldnx3t6jip3ow4bujlwz6id\.onion:10016 .* -u YOUR_XMR_ADDRESS --rig-id rig --keepalive/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux" }).torCommand, /--coin monero| -p tor|YOUR_XMR_WALLET|9150|do not add --tls|First run may benchmark|setup-step -ltn|Use 127\.0\.0\.1:9050|:20128|--tls/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux" }).notes, /first run may benchmark for several minutes before pool jobs appear/);
     assert.match(setupPlanWithPorts({ profile: "xmrig-mo", os: "linux" }).downloadCommand, /sudo apt-get install curl/);
@@ -289,6 +296,41 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.equal(setupAddress({ activeAddress: "active", watchlist: [{ address: "tracked" }] }), "active");
     assert.equal(setupAddress({ watchlist: [{ address: "tracked" }] }), "tracked");
     assert.equal(setupAddress(), "YOUR_XMR_ADDRESS");
+  });
+
+  test("setup run commands use a safe placeholder for invalid wallet input", () => {
+    const maliciousAddress = 'ADDR"; PWNED; #';
+    const cases = [
+      { profile: "xmrig-mo" },
+      { profile: "xmrig-mo", os: "windows" },
+      { profile: "xmrig-mo", os: "macos" },
+      { profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" },
+      { profile: "srb-gpu", os: "windows", gpu: "intel", algo: "cn/gpu" },
+      { profile: "srb-gpu", gpu: "intel", algo: "c29" },
+      { profile: "srb-gpu", os: "windows", gpu: "intel", algo: "c29" },
+      { profile: "srb-gpu", gpu: "gpu", algo: "c29" },
+      { profile: "srb-gpu", os: "windows", gpu: "gpu", algo: "c29" },
+      { profile: "multi-miner", gpu: "intel" },
+      { profile: "multi-miner", os: "windows", gpu: "intel" },
+      { profile: "multi-miner", gpu: "gpu" },
+      { profile: "multi-miner", os: "windows", gpu: "gpu" },
+      { profile: "xmrig-proxy" },
+      { profile: "xmrig-proxy", os: "windows" },
+      { profile: "xmrig-proxy", os: "macos" },
+      { profile: "xmr-node-proxy" },
+      { profile: "xmr-node-proxy", os: "macos" }
+    ];
+
+    for (const options of cases) {
+      const plan = setupPlanWithPorts({ ...options, address: maliciousAddress });
+      const commands = setupRunCommands(plan);
+      assert.match(commands, /YOUR_XMR_ADDRESS/, JSON.stringify(options));
+      assert.doesNotMatch(commands, /PWNED/, JSON.stringify(options));
+      assert.equal(plan.selection.address, maliciousAddress);
+    }
+
+    const validAddress = `4${"A".repeat(94)}`;
+    assert.ok(setupRunCommands(setupPlanWithPorts({ profile: "xmrig-mo", address: validAddress })).includes(validAddress));
   });
 
   test("setup package install commands come first in command cards", () => {
