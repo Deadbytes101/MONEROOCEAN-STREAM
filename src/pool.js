@@ -1,8 +1,6 @@
 import { XMR_PORT } from "./constants.js";
 import { isFiniteNumber } from "./format.js";
 
-const coinSymbolCountsCache = new WeakMap();
-
 function byPort(values, port) {
   if (!values || typeof values !== "object") return undefined;
   if (Object.hasOwn(values, port)) return values[port];
@@ -95,26 +93,13 @@ export function coinRouteId(poolStats = {}, port) {
 
 function hasDuplicateCoinSymbol(poolStats = {}, symbol) {
   const wanted = coinRouteSlug(symbol);
-  if (!wanted) return false;
-  return getCoinSymbolCounts(poolStats).get(wanted) > 1;
-}
-
-function getCoinSymbolCounts(poolStats = {}) {
-  const coinsRef = poolStats?.coins;
-  if (!coinsRef || typeof coinsRef !== "object") return new Map();
-
-  const cached = coinSymbolCountsCache.get(poolStats);
-  if (cached?.coinsRef === coinsRef) return cached.counts;
-
-  const counts = new Map();
+  let count = 0;
   for (const coin of coinStatsRows(poolStats)) {
     const metadata = coinMetadata(poolStats, coin.p) || {};
-    const key = coinRouteSlug(metadata.symbol || coin.s);
-    if (!key) continue;
-    counts.set(key, (counts.get(key) || 0) + 1);
+    if (coinRouteSlug(metadata.symbol || coin.s) === wanted) count += 1;
+    if (count > 1) return true;
   }
-  coinSymbolCountsCache.set(poolStats, { coinsRef, counts });
-  return counts;
+  return false;
 }
 
 function routeLabel(value) {
