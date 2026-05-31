@@ -195,6 +195,10 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.deepEqual(setupHashrateDefaults("srb-gpu", "gpu", "c29"), { value: 1, unit: "h" });
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).plainRunCommand, /--algorithm cryptonight_gpu/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).tlsRunCommand, /--pool gulf\.moneroocean\.stream:28192 .*--tls true/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "kawpow" }).tlsRunCommand, /--pool gulf\.moneroocean\.stream:28192 .*--algorithm kawpow .*--tls true/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "kawpow" }).tlsRunCommand, /--tls 1\b/);
+    assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "kawpow" }).plainRunCommand, /--algorithm kawpow .*--tls false/);
+    assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "kawpow" }).plainRunCommand, /--tls 0\b/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", os: "windows", gpu: "intel", algo: "cn/gpu" }).plainRunCommand, /^\.\\SRBMiner-MULTI\.exe/);
     assert.match(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).tlsRunNote, /Use --list-devices first/);
     assert.doesNotMatch(setupPlanWithPorts({ profile: "srb-gpu", gpu: "intel", algo: "cn/gpu" }).notes, /Use --list-devices first/);

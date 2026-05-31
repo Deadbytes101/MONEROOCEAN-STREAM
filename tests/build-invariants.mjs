@@ -89,6 +89,7 @@ test.describe("build invariants", { concurrency: false }, () => {
     const css = await readFile("build/style.css");
     assert.match(script.toString("utf8"), /startApp|hashchange|visibilitychange/, "production bundle must include app startup path");
     assert.doesNotMatch(script.toString("utf8"), /support@moneroocean\.stream/, "support email must stay obfuscated");
+    assert.doesNotMatch(script.toString("utf8"), /--(?:tls|keepalive|nicehash|esm)\s+\$\{[A-Za-z_$][\w$]*\}/, "production bundle must not interpolate raw boolean option values");
     const packedSize = gzipSync(Buffer.concat([Buffer.from(index), css, script])).byteLength;
     assert.ok(packedSize <= 40_000, `deployable gzip budget exceeded: ${packedSize} bytes`);
 

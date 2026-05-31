@@ -298,7 +298,11 @@ function xmrigRun(binary, pool, address, worker, tls = false) {
 }
 
 function srbRun(binary, disable, algo, pool, address, password, worker, tls, extra = "") {
-  return `${binary} ${srbCommon(disable, pool, address, worker)} --algorithm ${algo} --password ${password} --tls ${tls}${extra}`;
+  return `${binary} ${srbCommon(disable, pool, address, worker)} --algorithm ${algo} --password ${password} --tls ${srbTlsValue(tls)}${extra}`;
+}
+
+function srbTlsValue(tls) {
+  return tls ? "true" : "false";
 }
 
 function srbCommon(disable, pool, address, worker, binary = "") {
