@@ -1,4 +1,4 @@
-import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HEIGHT_EXPLORERS, GRAPH_WINDOWS, UPTIME_URL } from "../constants.js";
+import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HASH_EXPLORERS, COIN_HEIGHT_EXPLORERS, GRAPH_WINDOWS, UPTIME_URL } from "../constants.js";
 import { PAGE_SIZES } from "../paging.js";
 import { atomicXmr, encodeUrlPart, escapeHtml, formatAge, formatDate, formatNumber, isFiniteNumber } from "../format.js";
 import { coinName } from "../pool.js";
@@ -90,6 +90,19 @@ export function blockHashLink(hash) {
   if (!hash) return "--";
   const href = `${BLOCK_SHARE_DUMP_BASE}/${encodeUrlPart(hash)}.cvs.xz`;
   return { html: `<span class=hash-cell><a href="${href}" ${EXTERNAL_LINK} title="Download share dump CSV">${escapeHtml(hash)}</a></span>` };
+}
+
+export function explorerBlockHashLink(port, hash) {
+  if (!hash) return "--";
+  const url = explorerBlockHashUrl(port, hash);
+  if (!url) return { html: `<span class=hash-cell>${escapeHtml(hash)}</span>` };
+  return { html: `<span class=hash-cell><a href="${url}" ${EXTERNAL_LINK} title="Open block on explorer">${escapeHtml(hash)}</a></span>` };
+}
+
+function explorerBlockHashUrl(port, hash) {
+  const template = COIN_HASH_EXPLORERS[port] || COIN_HASH_EXPLORERS[Number(port)];
+  if (!template) return "";
+  return template.replace("{hash}", encodeUrlPart(hash));
 }
 
 export function paymentHashLink(hash) {

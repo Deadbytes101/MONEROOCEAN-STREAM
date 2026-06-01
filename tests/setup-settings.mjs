@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HEIGHT_EXPLORERS, DONATION_XMR, GRAPH_WINDOWS, EXPLANATIONS } from "../src/constants.js";
+import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HASH_EXPLORERS, COIN_HEIGHT_EXPLORERS, DONATION_XMR, GRAPH_WINDOWS, EXPLANATIONS } from "../src/constants.js";
 import { averageVisible, chartModel, filterWindow, graphWindow, isWithinPplnsWindow, pplnsWindowRect, svgLine } from "../src/charts.js";
 import { atomicXmr, formatAge, formatHashrate, formatTinyPercent, normalizeTimestampSeconds } from "../src/format.js";
 import { averageBlockEffort, blockCoinPort, blockEffortPercent, coinAtomicUnits, coinBlockCount, coinHashScalar, coinName, coinProfitValue, coinStatsRows, effortTone, topCoinPort, currentEffort, effortPercent, hasBlockHistory, worldHashrateForPort } from "../src/pool.js";
@@ -121,6 +121,15 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.equal(COIN_HEIGHT_EXPLORERS[8766].replace("{height}", "4343926"), "https://ravencoin.atomicwallet.io/block/4343926");
     assert.equal(COIN_HEIGHT_EXPLORERS[8645].replace("{height}", "24458492"), "https://etc.blockscout.com/block/24458492");
     assert.equal(COIN_HEIGHT_EXPLORERS[17767].replace("{height}", "764069"), "https://explorer.zephyrprotocol.com/block/764069");
+    assert.equal(COIN_HASH_EXPLORERS[18081].replace("{hash}", "abc"), "https://xmrchain.net/block/abc");
+    assert.equal(COIN_HASH_EXPLORERS[18144].replace("{hash}", "abc"), "https://explore.tari.com/blocks/abc");
+    assert.equal(COIN_HASH_EXPLORERS[12211].replace("{hash}", "abc"), "https://explorer.ryo.tools/search?value=abc");
+    assert.equal(COIN_HASH_EXPLORERS[8766].replace("{hash}", "abc"), "https://ravencoin.atomicwallet.io/block/abc");
+    assert.equal(COIN_HASH_EXPLORERS[8645].replace("{hash}", "abc"), "https://etc.blockscout.com/block/abc");
+    assert.equal(COIN_HASH_EXPLORERS[10225].replace("{hash}", "abc"), "https://explorer.bitoreum.cc/block/abc");
+    for (const port of Object.keys(COIN_EXPLORERS)) {
+      assert.ok(COIN_HASH_EXPLORERS[port] || COIN_HASH_EXPLORERS[Number(port)], `missing block hash explorer for ${port}`);
+    }
     for (const brokenPort of [10225, 17750, 19281, 19734, 19950, 25182, 38081, 48782]) {
       assert.equal(COIN_HEIGHT_EXPLORERS[brokenPort], undefined);
     }

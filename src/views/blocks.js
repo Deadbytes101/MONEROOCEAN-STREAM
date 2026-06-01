@@ -4,7 +4,7 @@ import { routeCoinId } from "../routes.js";
 import { api } from "../api.js";
 import { EXPLANATIONS, XMR_PORT } from "../constants.js";
 import { atomicXmr, encodeUrlPart, formatNumber, formatPercent, isFiniteNumber } from "../format.js";
-import { blockHashLink, blockRewardAmountCell, dateCell, escapeHtml, explorerHeightLink, pageSizeSelect, pagerNav, tablePage } from "./common.js";
+import { blockRewardAmountCell, dateCell, escapeHtml, explorerBlockHashLink, pageSizeSelect, pagerNav, tablePage } from "./common.js";
 
 export async function blocksView(route) {
   let page = routePageNumber(route.q?.page);
@@ -32,9 +32,14 @@ function blockRow(block, coin, pool, network, xmrCoin) {
   const coinCells = xmrCoin ? commonCells : [...commonCells, blockNativeRewardCell(block, coin, pool)];
   return [
     ...coinCells,
-    explorerHeightLink(coin, block.height || block.blockHeight),
-    blockHashLink(block.hash || block.blockHash)
+    blockHeightCell(block),
+    explorerBlockHashLink(coin, block.hash || block.blockHash)
   ];
+}
+
+function blockHeightCell(block) {
+  const height = block.height ?? block.blockHeight;
+  return height === undefined || height === null || height === "" ? "--" : height;
 }
 
 function blockControls(pool, coin, coins, page, limit, rowCount, blocks = []) {

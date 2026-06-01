@@ -183,6 +183,29 @@ test.describe("rendered views, links, charts, and coins", { concurrency: false }
     });
   });
 
+  test("blocks table links block hashes to coin explorers and leaves heights plain", async () => {
+    await withApiStubs({
+      poolStats: async () => ({ ...LINK_TEST_POOL, totalBlocksFound: 40 }),
+      networkStats: async () => LINK_TEST_NETWORK,
+      blocks: async () => [
+        { ts: 1700000000, shares: 50, diff: 100, value: 600000000000, height: 2990, hash: "hash0" }
+      ],
+      coinBlocks: async () => [
+        { ts: 1700000000, shares: 60, diff: 100, value: 200000000, pay_value: 300000000000, height: 8980, hash: "althash0" }
+      ]
+    }, async () => {
+      const xmrHtml = await blocksView({ n: "blocks", c: "XMR", q: { page: "1", limit: "15" } });
+      assert.match(xmrHtml, /<td>2990<\/td><td><span class=hash-cell><a href="https:\/\/xmrchain\.net\/block\/hash0"/);
+      assert.equal(xmrHtml.includes(`${BLOCK_SHARE_DUMP_BASE}/hash0.cvs.xz`), false);
+      assert.equal(xmrHtml.includes('href="https://xmrchain.net/block/2990"'), false);
+
+      const altHtml = await blocksView({ n: "blocks", c: "RTM", q: { page: "1", limit: "15" } });
+      assert.match(altHtml, /<td>8980<\/td><td><span class=hash-cell><a href="https:\/\/explorer\.raptoreum\.com\/block\/althash0"/);
+      assert.equal(altHtml.includes(`${BLOCK_SHARE_DUMP_BASE}/althash0.cvs.xz`), false);
+      assert.equal(altHtml.includes('href="https://explorer.raptoreum.com/block/8980"'), false);
+    });
+  });
+
   test("coin table sort controls cover every column and preserve filter state", async () => {
     await withApiStubs({
       poolStats: async () => LINK_TEST_POOL,

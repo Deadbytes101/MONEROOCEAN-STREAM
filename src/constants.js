@@ -15,6 +15,9 @@ export const XMR_ADDRESS_RE = /^[48][1-9A-HJ-NP-Za-km-z]{94}([1-9A-HJ-NP-Za-km-z
 const XMRCHAIN_URL = "https://xmrchain.net";
 const TARI_EXPLORER_URL = "https://explore.tari.com";
 const blockHeightUrl = (base) => `${base}/block/{height}`;
+const blockHashUrl = (base) => `${base}/block/{hash}`;
+const blocksHashUrl = (base) => `${base}/blocks/{hash}`;
+const searchHashUrl = (base) => `${base}/search?value={hash}`;
 
 export const COIN_EXPLORERS = {
   18081: XMRCHAIN_URL,
@@ -31,20 +34,19 @@ export const COIN_EXPLORERS = {
   19001: "https://explorer.neurai.org",
   9998: "https://explorer.raptoreum.com",
   5110: "https://kcnxp.com",
-  10225: "https://explorer.bitoreum.org",
+  10225: "https://explorer.bitoreum.cc",
   9053: "https://explorer.ergoplatform.com/en",
   8645: "https://etcerscan.com",
   17750: "https://explorer.havenprotocol.org",
   25182: "https://explorer.bittube.cash",
   11812: "https://explorer.scalaproject.io",
-  2086: "https://bloc-explorer.com",
   19994: "https://explorer.arqma.com",
   16000: "https://explorer.conceal.network",
   17767: "https://explorer.zephyrprotocol.com",
   19081: "https://explorer.salvium.io"
 };
 
-const STANDARD_BLOCK_HEIGHT_PORTS = [19001, 9998, 5110, 11812, 2086, 19994, 17767, 19081];
+const STANDARD_BLOCK_HEIGHT_PORTS = [19001, 9998, 5110, 11812, 19994, 17767, 19081];
 const standardBlockHeightExplorers = Object.fromEntries(STANDARD_BLOCK_HEIGHT_PORTS.map((port) => [port, blockHeightUrl(COIN_EXPLORERS[port])]));
 
 export const COIN_HEIGHT_EXPLORERS = {
@@ -58,6 +60,33 @@ export const COIN_HEIGHT_EXPLORERS = {
   8645: "https://etc.blockscout.com/block/{height}",
   16000: "https://explorer.conceal.network/index.html?hash={height}",
   ...standardBlockHeightExplorers
+};
+
+export const COIN_HASH_EXPLORERS = {
+  18081: blockHashUrl(XMRCHAIN_URL),
+  18144: blocksHashUrl(TARI_EXPLORER_URL),
+  18146: blocksHashUrl(TARI_EXPLORER_URL),
+  18148: blocksHashUrl(TARI_EXPLORER_URL),
+  19734: blockHashUrl(COIN_EXPLORERS[19734]),
+  12211: searchHashUrl(COIN_EXPLORERS[12211]),
+  38081: `${COIN_EXPLORERS[38081]}/#/block/{hash}`,
+  48782: `${COIN_EXPLORERS[48782]}/#/block/{hash}`,
+  19281: `${COIN_EXPLORERS[19281]}/index.html?hash={hash}`,
+  19950: blockHashUrl(COIN_EXPLORERS[19950]),
+  8766: "https://ravencoin.atomicwallet.io/block/{hash}",
+  19001: blockHashUrl(COIN_EXPLORERS[19001]),
+  9998: blockHashUrl(COIN_EXPLORERS[9998]),
+  5110: blockHashUrl(COIN_EXPLORERS[5110]),
+  10225: blockHashUrl(COIN_EXPLORERS[10225]),
+  9053: `${COIN_EXPLORERS[9053]}/blocks/{hash}`,
+  8645: "https://etc.blockscout.com/block/{hash}",
+  17750: blockHashUrl(COIN_EXPLORERS[17750]),
+  25182: blockHashUrl(COIN_EXPLORERS[25182]),
+  11812: blockHashUrl(COIN_EXPLORERS[11812]),
+  19994: blockHashUrl(COIN_EXPLORERS[19994]),
+  16000: `${COIN_EXPLORERS[16000]}/index.html?hash={hash}`,
+  17767: blockHashUrl(COIN_EXPLORERS[17767]),
+  19081: blockHashUrl(COIN_EXPLORERS[19081])
 };
 
 export const BLOCK_SHARE_DUMP_BASE = "https://block-share-dumps.moneroocean.stream";
