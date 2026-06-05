@@ -39,7 +39,9 @@ function blockRow(block, coin, pool, network, xmrCoin) {
 
 function blockHeightCell(block) {
   const height = block.height ?? block.blockHeight;
-  return height === undefined || height === null || height === "" ? "--" : height;
+  if (height === undefined || height === null || height === "") return "--";
+  if (!["number", "string", "bigint"].includes(typeof height)) return "--";
+  return height;
 }
 
 function blockControls(pool, coin, coins, page, limit, rowCount, blocks = []) {

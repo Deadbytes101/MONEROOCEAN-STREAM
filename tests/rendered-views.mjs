@@ -206,6 +206,22 @@ test.describe("rendered views, links, charts, and coins", { concurrency: false }
     });
   });
 
+  test("blocks table rejects API-supplied HTML objects in height cells", async () => {
+    const payload = '<img src=x onerror="globalThis.__MO_POOL_UI_XSS__=1">';
+    await withApiStubs({
+      poolStats: async () => ({ ...LINK_TEST_POOL, totalBlocksFound: 40 }),
+      networkStats: async () => LINK_TEST_NETWORK,
+      blocks: async () => [
+        { ts: 1700000000, shares: 50, diff: 100, value: 600000000000, height: { html: payload }, hash: "hash0" }
+      ]
+    }, async () => {
+      const html = await blocksView({ n: "blocks", c: "XMR", q: { page: "1", limit: "15" } });
+      assert.doesNotMatch(html, /<td><img src=x onerror=/);
+      assert.equal(html.includes(payload), false);
+      assert.match(html, /<td>--<\/td><td><span class=hash-cell><a href="https:\/\/xmrchain\.net\/block\/hash0"/);
+    });
+  });
+
   test("coin table sort controls cover every column and preserve filter state", async () => {
     await withApiStubs({
       poolStats: async () => LINK_TEST_POOL,
