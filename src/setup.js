@@ -31,19 +31,19 @@ const LOLMINER_BIN = `./${LOLMINER}`;
 const LOLMINER_DIR = "lolminer";
 const LOLMINER_ARCHIVE = `${LOLMINER_DIR}.tar.gz`;
 const LOLMINER_ZIP = `${LOLMINER_DIR}.zip`;
-const MOMINER_DIR = "mo-miner";
-const MOMINER_ARCHIVE = `${MOMINER_DIR}.tgz`;
-const MOMINER_ZIP = `${MOMINER_DIR}.zip`;
-const MOMINER = "mo-miner";
-const MOMINER_BIN = `./${MOMINER}`;
-const MOMINER_CMD = `${MOMINER}.cmd`;
+const MOM_DIR = "mom";
+const MOM_ARCHIVE = `${MOM_DIR}.tgz`;
+const MOM_ZIP = `${MOM_DIR}.zip`;
+const MOM = "mom";
+const MOM_BIN = `./${MOM}`;
+const MOM_CMD = `${MOM}.cmd`;
 const MULTI_MINER_DIR = "multi-miner";
 const MULTI_MINER_ARCHIVE = "mm.tar.gz";
 const GITHUB_RELEASE_API = "https://api.github.com/repos/";
 const XMRIG_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/xmrig/releases/latest`;
 const SRBMINER_RELEASE_API = `${GITHUB_RELEASE_API}doktor83/SRBMiner-Multi/releases/latest`;
 const LOLMINER_RELEASE_API = `${GITHUB_RELEASE_API}Lolliedieb/lolMiner-releases/releases/latest`;
-const MOMINER_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/mo-miner/releases/latest`;
+const MOM_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/mo-miner/releases/latest`;
 const MULTI_MINER_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/multi-miner/releases/latest`;
 const XMRIG_PROXY_RELEASE_API = `${GITHUB_RELEASE_API}MoneroOcean/xmrig-proxy/releases/latest`;
 export const TOR_MINING_HOST = "mo2tor2amawhphlrgyaqlrqx7o27jaj7yldnx3t6jip3ow4bujlwz6id.onion";
@@ -249,7 +249,7 @@ function srbPlan({ os, gpu, algo, address, worker, password, pool, portRow }) {
   const intelGpu = isIntelGpu(gpu);
   if (algo === "c29") {
     return intelGpu
-      ? mominerPlan({ os, address, password, pool, portRow })
+      ? momPlan({ os, address, password, pool, portRow })
       : lolminerPlan({ os, address, password, pool, portRow });
   }
   const windows = os === WINDOWS;
@@ -324,19 +324,19 @@ function lolminerPlan({ os, address, password, pool, portRow }) {
   };
 }
 
-function mominerPlan({ os, address, password, pool, portRow }) {
+function momPlan({ os, address, password, pool, portRow }) {
   const windows = os === WINDOWS;
-  const binary = windows ? windowsLocal(MOMINER_CMD) : MOMINER_BIN;
-  const mominerJson = mominerC29Json({ escapeQuotes: windows });
+  const binary = windows ? windowsLocal(MOM_CMD) : MOM_BIN;
+  const momJson = momC29Json({ escapeQuotes: windows });
   return {
     summary: setupPoolSummary(pool, portRow),
-    downloadCommand: windows ? mominerWindowsDownload() : mominerLinuxDownload(),
+    downloadCommand: windows ? momWindowsDownload() : momLinuxDownload(),
     downloadNote: windows ? WINDOWS_POWERSHELL_BKM : "",
-    tlsRunCommand: portRow.tlsPort ? mominerRun(binary, `${POOL_HOST}:${portRow.tlsPort}tls`, address, password, mominerJson) : "",
+    tlsRunCommand: portRow.tlsPort ? momRun(binary, `${POOL_HOST}:${portRow.tlsPort}tls`, address, password, momJson) : "",
     tlsRunNote: TLS_MODE_NOTE,
-    plainRunCommand: mominerRun(binary, pool, address, password, mominerJson),
+    plainRunCommand: momRun(binary, pool, address, password, momJson),
     plainRunNote: PLAIN_MODE_NOTE,
-    notes: "mo-miner is used for fixed Intel GPU C29."
+    notes: "mom is used for fixed Intel GPU C29."
   };
 }
 
@@ -344,25 +344,25 @@ function lolminerRun(binary, pool, address, password, tls) {
   return `${binary} --algo CR29 --pool ${pool} --user ${address} --pass ${password}${tls ? " --tls on" : ""}`;
 }
 
-function mominerRun(binary, pool, address, password, mominerJson = mominerC29Json()) {
-  return `${binary} mine ${pool} ${address} ${password} --new.algo_param.c29 '${mominerJson}'`;
+function momRun(binary, pool, address, password, momJson = momC29Json()) {
+  return `${binary} mine ${pool} ${address} ${password} --new.algo_param.c29 '${momJson}'`;
 }
 
-function mominerC29Json({ escapeQuotes = false, perf = false } = {}) {
+function momC29Json({ escapeQuotes = false, perf = false } = {}) {
   const json = JSON.stringify(perf ? { dev: "gpu1*1", perf: 1 } : { dev: "gpu1*1" });
   return escapeQuotes ? json.replaceAll('"', '\\"') : json;
 }
 
-function multiMinerAlgoArgs({ common, lineContinuation, intelGpu, lolminer, moMiner, wallet, mominerJson }) {
-  return multiMinerCommands({ common, intelGpu, lolminer, moMiner, wallet, mominerJson })
+function multiMinerAlgoArgs({ common, lineContinuation, intelGpu, lolminer, mom, wallet, momJson }) {
+  return multiMinerCommands({ common, intelGpu, lolminer, mom, wallet, momJson })
     .map(([name, command]) => `  --${name}="${command}"`)
     .join(` ${lineContinuation}\n`);
 }
 
-function multiMinerCommands({ common, intelGpu, lolminer, moMiner, wallet, mominerJson }) {
+function multiMinerCommands({ common, intelGpu, lolminer, mom, wallet, momJson }) {
   const commands = MULTI_MINER_ALGOS.map(([name, algorithm, extra]) => [name, `${common} --algorithm ${algorithm} --password x${extra}`]);
   commands.push(intelGpu
-    ? ["c29", `${moMiner} mine ${LOCAL_PROXY} ${wallet} x --new.algo_param.c29 '${mominerJson}'`]
+    ? ["c29", `${mom} mine ${LOCAL_PROXY} ${wallet} x --new.algo_param.c29 '${momJson}'`]
     : ["c29", `${lolminer} --algo CR29 --pool ${LOCAL_PROXY} --user ${wallet} --pass x`]);
   return commands;
 }
@@ -372,11 +372,11 @@ function multiMinerLinuxRun({ address, pool, disable, intelGpu }) {
 POOL='${pool}'
 LOCAL_PROXY='${LOCAL_PROXY}'
 SRB='${SRBMINER_BIN}'
-${intelGpu ? `MO_MINER='./${MOMINER_DIR}/${MOMINER}'` : `LOLMINER='${LOLMINER_BIN}'`}
+${intelGpu ? `MOM='./${MOM_DIR}/${MOM}'` : `LOLMINER='${LOLMINER_BIN}'`}
 ${disable ? `GPU_FLAGS='${disable}'\n` : ""}COMMON="${srbCommon(disable ? "$GPU_FLAGS" : "", "$LOCAL_PROXY", "$WALLET", "mm", "$SRB")} --tls false"
 
 ./mm --no-config-save --pool="$POOL" --user="$WALLET" --pass=x --algo_min_time=60 \\
-${multiMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", intelGpu, lolminer: "$LOLMINER", moMiner: "$MO_MINER", wallet: "$WALLET", mominerJson: mominerC29Json({ escapeQuotes: true, perf: true }) })}`;
+${multiMinerAlgoArgs({ common: "$COMMON", lineContinuation: "\\", intelGpu, lolminer: "$LOLMINER", mom: "$MOM", wallet: "$WALLET", momJson: momC29Json({ escapeQuotes: true, perf: true }) })}`;
 }
 
 function multiMinerWindowsRun({ address, pool, disable, intelGpu }) {
@@ -384,12 +384,12 @@ function multiMinerWindowsRun({ address, pool, disable, intelGpu }) {
 $Pool="${pool}"
 $LocalProxy="${LOCAL_PROXY}"
 $Srb="${windowsLocal(SRBMINER_EXE)}"
-${intelGpu ? `$Mominer="${windowsLocal(MOMINER_CMD)}"
-$MominerJson='${mominerC29Json({ escapeQuotes: true, perf: true })}'` : `$Lolminer="${windowsLocal(LOLMINER_EXE)}"`}
+${intelGpu ? `$Mom="${windowsLocal(MOM_CMD)}"
+$MomJson='${momC29Json({ escapeQuotes: true, perf: true })}'` : `$Lolminer="${windowsLocal(LOLMINER_EXE)}"`}
 ${disable ? `$GpuFlags="${disable}"\n` : ""}$Common="${srbCommon(disable ? "$GpuFlags" : "", "$LocalProxy", "$Wallet", "mm", "$Srb")} --tls false"
 
 ${windowsLocal("mm.exe")} --no-config-save --pool="$Pool" --user="$Wallet" --pass=x --algo_min_time=60 \`
-${multiMinerAlgoArgs({ common: "$Common", lineContinuation: "`", intelGpu, lolminer: "$Lolminer", moMiner: "$Mominer", wallet: "$Wallet", mominerJson: intelGpu ? "$MominerJson" : mominerC29Json({ perf: true }) })}`;
+${multiMinerAlgoArgs({ common: "$Common", lineContinuation: "`", intelGpu, lolminer: "$Lolminer", mom: "$Mom", wallet: "$Wallet", momJson: intelGpu ? "$MomJson" : momC29Json({ perf: true }) })}`;
 }
 
 function xmrigProxyPlan({ os, address, worker, pool, portRow }) {
@@ -539,17 +539,17 @@ function lolminerWindowsDownload() {
   return windowsZipDownload(LOLMINER_RELEASE_API, WIN64_ZIP_ASSET, LOLMINER_ZIP, LOLMINER_DIR);
 }
 
-function mominerLinuxDownload() {
+function momLinuxDownload() {
   return `sudo apt-get install -y curl
-mkdir -p ~/${MOMINER_DIR} && cd ~/${MOMINER_DIR}
-${downloadMominer()} && chmod +x ${MOMINER}`;
+mkdir -p ~/${MOM_DIR} && cd ~/${MOM_DIR}
+${downloadMom()} && chmod +x ${MOM}`;
 }
 
-function mominerWindowsDownload() {
-  return `${windowsAssetDownload(MOMINER_RELEASE_API, "mo-miner-v.*-win\\.zip$", MOMINER_ZIP)}
-Expand-Archive ${MOMINER_ZIP} -DestinationPath .\\${MOMINER_DIR} -Force
-$mdir=Get-ChildItem .\\${MOMINER_DIR} -Directory | ${FIRST_ASSET}
-if ($mdir) { Copy-Item "$($mdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${MOMINER_DIR}\\*" . -Recurse -Force }`;
+function momWindowsDownload() {
+  return `${windowsAssetDownload(MOM_RELEASE_API, "mom-v.*-win\\.zip$", MOM_ZIP)}
+Expand-Archive ${MOM_ZIP} -DestinationPath .\\${MOM_DIR} -Force
+$mdir=Get-ChildItem .\\${MOM_DIR} -Directory | ${FIRST_ASSET}
+if ($mdir) { Copy-Item "$($mdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${MOM_DIR}\\*" . -Recurse -Force }`;
 }
 
 function multiMinerLinuxDownload(intelGpu) {
@@ -557,7 +557,7 @@ function multiMinerLinuxDownload(intelGpu) {
 mkdir -p ~/${MULTI_MINER_DIR} && cd ~/${MULTI_MINER_DIR}
 ${downloadMultiMinerLinux()} && chmod +x mm
 ${releaseAssetDownload(SRBMINER_RELEASE_API, srbMinerLinuxAsset(), SRBMINER_ARCHIVE)} && ${unpackSrbMinerLinux()}
-${intelGpu ? `mkdir -p ${MOMINER_DIR} && (cd ${MOMINER_DIR} && ${downloadMominer()} && chmod +x ${MOMINER})` : `${releaseAssetDownload(LOLMINER_RELEASE_API, lolMinerLinuxAsset(), LOLMINER_ARCHIVE)} && ${unpackLolMinerLinux()}`}`;
+${intelGpu ? `mkdir -p ${MOM_DIR} && (cd ${MOM_DIR} && ${downloadMom()} && chmod +x ${MOM})` : `${releaseAssetDownload(LOLMINER_RELEASE_API, lolMinerLinuxAsset(), LOLMINER_ARCHIVE)} && ${unpackLolMinerLinux()}`}`;
 }
 
 function multiMinerWindowsDownload(intelGpu) {
@@ -567,7 +567,7 @@ ${windowsAssetDownload(SRBMINER_RELEASE_API, WIN64_ZIP_ASSET, SRBMINER_ZIP)}
 Expand-Archive ${SRBMINER_ZIP} -DestinationPath .\\${SRBMINER_DIR} -Force
 $dir=Get-ChildItem .\\${SRBMINER_DIR} -Directory | ${FIRST_ASSET}
 if ($dir) { Copy-Item "$($dir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${SRBMINER_DIR}\\*" . -Recurse -Force }
-${intelGpu ? mominerWindowsDownload() : `${windowsAssetDownload(LOLMINER_RELEASE_API, WIN64_ZIP_ASSET, LOLMINER_ZIP)}
+${intelGpu ? momWindowsDownload() : `${windowsAssetDownload(LOLMINER_RELEASE_API, WIN64_ZIP_ASSET, LOLMINER_ZIP)}
 Expand-Archive ${LOLMINER_ZIP} -DestinationPath .\\${LOLMINER_DIR} -Force
 $gdir=Get-ChildItem .\\${LOLMINER_DIR} -Directory | ${FIRST_ASSET}
 if ($gdir) { Copy-Item "$($gdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${LOLMINER_DIR}\\*" . -Recurse -Force }`}`;
@@ -601,8 +601,8 @@ case "$(uname -m)" in aarch64|arm64) asset='mm-v.*-lin-arm\\.tar\\.gz';; esac
 ${releaseAssetDownload(MULTI_MINER_RELEASE_API, 'grep "$asset"', MULTI_MINER_ARCHIVE)} && tar xf ${MULTI_MINER_ARCHIVE}`;
 }
 
-function downloadMominer() {
-  return `${releaseAssetDownload(MOMINER_RELEASE_API, "grep 'mo-miner-v.*-lin\\.tgz'", MOMINER_ARCHIVE)} && tar --strip-components=1 -xf ${MOMINER_ARCHIVE}`;
+function downloadMom() {
+  return `${releaseAssetDownload(MOM_RELEASE_API, "grep 'mom-v.*-lin\\.tgz'", MOM_ARCHIVE)} && tar --strip-components=1 -xf ${MOM_ARCHIVE}`;
 }
 
 function srbMinerLinuxAsset() {
