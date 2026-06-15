@@ -3,7 +3,7 @@ import { encodeUrlPart } from "./format.js";
 
 const THEME_COOKIE = "mo.theme";
 const EXPLAIN_COOKIE = "mo.explain";
-const MAX_AGE = 180 * 24 * 60 * 60;
+const MAX_AGE_SECONDS = 180 * 24 * 60 * 60;
 const MULTILINE_KPI_MEDIA = "(max-width: 620px)";
 
 export function parseCookieValue(cookieText = "", key) {
@@ -25,7 +25,7 @@ function defaultExplanations() {
 
 function writePreference(key, value) {
   if (typeof document === "undefined") return;
-  document.cookie = `${key}=${encodeUrlPart(value)}; Max-Age=${MAX_AGE}; Path=/; SameSite=Lax; Secure`;
+  document.cookie = `${key}=${encodeUrlPart(value)}; Max-Age=${MAX_AGE_SECONDS}; Path=/; SameSite=Lax; Secure`;
 }
 
 function clearPreference(key) {

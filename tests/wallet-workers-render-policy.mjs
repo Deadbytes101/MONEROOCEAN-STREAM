@@ -20,7 +20,7 @@ import { formatPayoutThresholdInput, normalizePayoutThreshold, payoutFeeEstimate
 import { calcProfitRows, fiatForTimezone, formatFiat, hashrateFromInput, hashrateInputFromHashrate } from "../src/calc.js";
 import { dismissMotd, normalizeMotd, resetMotdDismissalsForTest, shouldShowMotd } from "../src/motd.js";
 import { blockPaymentStage, blockRoute, blocksView } from "../src/views/blocks.js";
-import { walletRouteWithGraph, lastShareAgeSuffix, walletWorkersSection, workerList as walletWorkerList } from "../src/views/wallet.js";
+import { annotateBlockRewards, blockRewardValueCell, walletRouteWithGraph, lastShareAgeSuffix, walletWorkersSection, workerList as walletWorkerList } from "../src/views/wallet.js";
 import { chartHtml, normalizeGraph } from "../src/views/charts.js";
 import { skel } from "../src/views/common.js";
 import { referencePortSummary } from "../src/views/help.js";
@@ -244,6 +244,10 @@ test.describe("wallet workers and render policy", { concurrency: false }, () => 
     assert.equal(blockPaymentStage({ height: 1000 }, "18081", pool, { 18081: { height: 1050 } }), "Delayed");
     assert.equal(blockPaymentStage({ pay_stage: "Pay stage" }, "9998", pool, {}), "Pay stage");
     assert.equal(blockPaymentStage({ payStatus: "Backend stage" }, "18081", pool, {}), "Backend stage");
+    // Non-XMR coins honor the same pay_status/payStatus fallbacks as the XMR branch.
+    assert.equal(blockPaymentStage({ payStatus: "Coin stage" }, "9998", pool, {}), "Coin stage");
+    assert.equal(blockPaymentStage({ pay_status: "Coin status" }, "9998", pool, {}), "Coin status");
+    assert.equal(blockPaymentStage({}, "9998", pool, {}), "Pending");
   });
 
   test("refresh scheduler dedupes timing state and can tick manually", async () => {
@@ -253,6 +257,66 @@ test.describe("wallet workers and render policy", { concurrency: false }, () => 
     await scheduler.tick();
     scheduler.stop();
     assert.equal(ticks, 1);
+  });
+
+  test("refresh scheduler backs off on failure, clamps at 5 min, and resets after success", async () => {
+    const delays = [];
+    let calls = 0;
+    const scheduler = new RefreshScheduler({ interval: 1000, jitter: 0, onTick: async () => {
+      calls += 1;
+      if (calls < 3) throw new Error("boom");
+    } });
+    scheduler.running = true;
+    scheduler.schedule = (delay) => delays.push(delay);
+    await scheduler.tick();
+    await scheduler.tick();
+    await scheduler.tick();
+    assert.deepEqual(delays, [1000, 2000, 1000]);
+    assert.equal(scheduler.failures, 0);
+
+    const clamp = new RefreshScheduler({ interval: 200_000, jitter: 0, onTick: async () => { throw new Error("boom"); } });
+    clamp.running = true;
+    clamp.failures = 4;
+    const clampDelays = [];
+    clamp.schedule = (delay) => clampDelays.push(delay);
+    await clamp.tick();
+    assert.deepEqual(clampDelays, [300_000]);
+  });
+
+  test("block reward annotation marks only the stale pruned zero tail", () => {
+    const day = 24 * 60 * 60;
+    const now = 1_000_000 * 1000;
+    const nowSec = now / 1000;
+    const rewards = [
+      { ts: nowSec - 1 * day, value: 5, value_percent: 1 },
+      { ts: nowSec - 1 * day, value: 0, value_percent: 0 },
+      { ts: nowSec - 3 * day, value: 0, value_percent: 0 },
+      { ts: nowSec - 4 * day, value: 0, value_percent: 0 }
+    ];
+    const annotated = annotateBlockRewards(rewards, now);
+    assert.deepEqual(annotated.map((row) => row.s), [false, false, true, true], "only old trailing zeros are stale");
+
+    const reset = annotateBlockRewards([
+      { ts: nowSec - 4 * day, value: 0, value_percent: 0 },
+      { ts: nowSec - 5 * day, value: 7, value_percent: 2 }
+    ], now);
+    assert.deepEqual(reset.map((row) => row.s), [false, false], "a later non-zero reward clears earlier stale zeros");
+
+    assert.equal(blockRewardValueCell(0, 8, false), "0");
+    assert.match(blockRewardValueCell(0, 8, true).html, /class=red title=.*DB-pruned/);
+    assert.equal(blockRewardValueCell(1.5, 8, true), "1.5");
+  });
+
+  test("isSameViewNavigation keeps same-name static views and same wallet tab", () => {
+    const address = `4${"A".repeat(94)}`;
+    assert.equal(isSameViewNavigation(null, { n: "home" }), false);
+    assert.equal(isSameViewNavigation({ n: "home" }, { n: "home" }), true);
+    assert.equal(isSameViewNavigation({ n: "payments" }, { n: "payments" }), true);
+    assert.equal(isSameViewNavigation({ n: "calc" }, { n: "calc" }), true);
+    assert.equal(isSameViewNavigation({ n: "setup" }, { n: "setup" }), false);
+    assert.equal(isSameViewNavigation({ n: "wallet", a: address, t: "overview" }, { n: "wallet", a: address, t: "overview" }), true);
+    assert.equal(isSameViewNavigation({ n: "wallet", a: address, t: "overview" }, { n: "wallet", a: address, t: "rewards" }), false);
+    assert.equal(isSameViewNavigation({ n: "wallet", a: address, t: "overview" }, { n: "wallet", a: "other", t: "overview" }), false);
   });
 
   test("render critical path only shows loaders for cold graph views", () => {

@@ -22,10 +22,7 @@ export async function homeView(route = state.r) {
   const graphMode = route.q?.mode || state.gm;
   state.gw = graphWindow;
   state.gm = graphMode;
-  const [pool, network] = await Promise.all([
-    api.poolStats(),
-    api.networkStats()
-  ]);
+  const [pool, network] = await Promise.all([api.poolStats(), api.networkStats()]);
   state.p = Number(pool.pplnsWindowTime) || 0;
   const poolChartRows = getCache("pool/chart/hashrate");
   const motd = normalizeMotd(getCache("pool/motd") || {});
@@ -108,7 +105,7 @@ function poolHashrateChart(rows, graphWindow) {
   if (!Array.isArray(rows) || !rows.length) return `<section id=pch class=panel><div class="card chart-placeholder">${skel("Loading pool hashrate chart")}</div></section>`;
   const graph = hashrateChart(rows, graphWindow, "hsh");
   return `<section id=pch class=panel>
-    <div class=card>${chartHtml(graph.m, graph.l, graph.r, graph.a, "Pool-wide hashrate chart")}</div>
+    <div class=card>${graph.p.length ? chartHtml(graph.m, graph.l, graph.r, graph.a, "Pool-wide hashrate chart") : `<p class=muted>No pool chart data yet.</p>`}</div>
   </section>`;
 }
 

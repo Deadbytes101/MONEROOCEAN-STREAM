@@ -1,6 +1,6 @@
 import { isFiniteNumber, normalizeTimestampSeconds } from "./format.js";
 import { isXmrAddress, walletRoute } from "./routes.js";
-import { compareValues } from "./table-sort.js";
+import { compareValues, sortDirection } from "./table-sort.js";
 
 const STALE_WORKER_SECONDS = 10 * 60;
 const WORKER_LIST_SORT_KEYS = ["name", "algo", "xmr", "raw", "avg", "avgraw", "last", "valid", "invalid", "hashes"];
@@ -16,9 +16,7 @@ export function workerSortMode(value) {
   return value === "name" ? "name" : "h";
 }
 
-export function workerSortDirection(value) {
-  return value === "asc" ? "asc" : "desc";
-}
+export const workerSortDirection = sortDirection;
 
 export function workerGraphColumns(value, width = globalThis.innerWidth || 1300) {
   const cols = Number(value);
@@ -33,17 +31,17 @@ export function workerListSortMode(value) {
   return WORKER_LIST_SORT_KEYS.includes(value) ? value : "name";
 }
 
-export function sortWorkerRows(workers, sortable = "h", direction = "desc") {
+export function sortWorkerRows(workers, sortKey = "h", direction = "desc") {
   const rows = [...workers];
   const dir = workerSortDirection(direction) === "asc" ? 1 : -1;
   const name = (row) => row.n ?? row.name;
   const rate = (row) => row.r ?? row.rate;
-  if (workerSortMode(sortable) === "name") return rows.sort((a, b) => name(a).localeCompare(name(b)) * dir);
+  if (workerSortMode(sortKey) === "name") return rows.sort((a, b) => name(a).localeCompare(name(b)) * dir);
   return rows.sort((a, b) => (rate(a) - rate(b)) * dir || name(a).localeCompare(name(b)));
 }
 
-export function sortWorkerListRows(workers, sortable = "name", direction) {
-  const key = workerListSortMode(sortable);
+export function sortWorkerListRows(workers, sortKey = "name", direction) {
+  const key = workerListSortMode(sortKey);
   const defaultDirection = key === "name" ? "asc" : "desc";
   const dir = workerSortDirection(direction || defaultDirection) === "asc" ? 1 : -1;
   return [...workers].sort((a, b) => compareValues(workerListSortValue(a, key), workerListSortValue(b, key)) * dir || compareValues(a.n, b.n));

@@ -40,7 +40,7 @@ export async function setupView() {
             ${setupSelect("setup-gpu", "GPU", SETUP_GPU_VENDORS, plan.selection.gpu, `setup-gpu-field ${showGpu ? "" : "hidden"}`)}
             ${setupSelect("setup-algo", "Algorithm", setupAlgoOptions(plan.selection.profile), plan.selection.algo, `setup-algo-field ${showAlgo ? "" : "hidden"}`)}
             <label class=setup-hashrate>XMR h/r<input id=setup-hashrate-input value="${escapeHtml(String(plan.selection.hashrate))}" inputmode=decimal autocomplete=off></label>
-            <label class="setup-unit">Unit<select id="setup-hashrate-unit">${optionMarkup(SETUP_HASHRATE_UNITS.map(([id, label]) => [id, label]), plan.selection.hashrateUnit)}</select></label>
+            <label class="setup-unit">Unit<select id="setup-hashrate-unit">${optionMarkup(SETUP_HASHRATE_UNITS, plan.selection.hashrateUnit)}</select></label>
           </div>
           <p id="setup-notes" class="explanation comments-controlled">${escapeHtml(plan.notes)}</p>
         </div>
@@ -57,8 +57,8 @@ function setupWalletAddress() {
   });
 }
 
-function setupStep(tt, id, text, note = "", wrapId = "", hidden = false) {
-  return `<section${wrapId ? ` id="${escapeHtml(wrapId)}"` : ""} class="panel setup-step ${hidden ? "hidden" : ""}"><div class=card><h2 id="${id}-tt" title="${escapeHtml(note)}">${escapeHtml(tt)}</h2><p id="${id}-note" class="explanation comments-controlled ${note ? "" : "hidden"}">${escapeHtml(note)}</p><div class=code-box><button class=copy-button data-copy-target="#${id}">Copy</button><pre id="${id}">${escapeHtml(text || "")}</pre></div></div></section>`;
+function setupStep(title, id, text, note = "", wrapId = "", hidden = false) {
+  return `<section${wrapId ? ` id="${escapeHtml(wrapId)}"` : ""} class="panel setup-step ${hidden ? "hidden" : ""}"><div class=card><h2 id="${id}-tt" title="${escapeHtml(note)}">${escapeHtml(title)}</h2><p id="${id}-note" class="explanation comments-controlled ${note ? "" : "hidden"}">${escapeHtml(note)}</p><div class=code-box><button class=copy-button data-copy-target="#${id}">Copy</button><pre id="${id}">${escapeHtml(text || "")}</pre></div></div></section>`;
 }
 
 function setupSelect(id, label, options, selected, className) {
@@ -83,7 +83,7 @@ function setupTopButtons(plan) {
 }
 
 function setupTabs(id, options, selected) {
-  return options.map(([value, text, tt = text]) => `<button class="setup-tab" data-setup-input="${id}" data-setup-value="${escapeHtml(value)}" aria-pressed="${value === selected ? "true" : "false"}" title="${escapeHtml(tt)}">${escapeHtml(text)}</button>`).join("");
+  return options.map(([value, text, tooltip = text]) => `<button class="setup-tab" data-setup-input="${id}" data-setup-value="${escapeHtml(value)}" aria-pressed="${value === selected ? "true" : "false"}" title="${escapeHtml(tooltip)}">${escapeHtml(text)}</button>`).join("");
 }
 
 export function bindSetupEvents() {
@@ -128,11 +128,11 @@ function updateSetupCommand() {
 }
 
 function syncSetupCommand(plan) {
-  const nt = byId("setup-notes");
+  const notesNode = byId("setup-notes");
   const controls = qs(".setup-controls");
   SETUP_STEPS.forEach(([, id, textKey, noteKey, wrapId]) => syncSetupStep(id, plan[textKey], plan[noteKey], wrapId));
-  if (nt) {
-    nt.textContent = plan.notes;
+  if (notesNode) {
+    notesNode.textContent = plan.notes;
   }
   if (controls) controls.title = plan.notes;
   syncSetupInputs(plan);
@@ -141,9 +141,9 @@ function syncSetupCommand(plan) {
 function syncSetupStep(id, text = "", note = "", wrapId = "") {
   const node = byId(id);
   const noteNode = byId(`${id}-note`);
-  const tt = byId(`${id}-tt`);
+  const titleNode = byId(`${id}-tt`);
   if (node) node.textContent = text || "";
-  if (tt) tt.title = note || "";
+  if (titleNode) titleNode.title = note || "";
   if (noteNode) {
     noteNode.textContent = note || "";
     tog(noteNode, "hidden", !note);

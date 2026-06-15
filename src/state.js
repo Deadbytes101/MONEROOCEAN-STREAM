@@ -1,10 +1,9 @@
 export const state = {
-  // Shared app state lives here so view modules do not each keep their own
-  // routing, cache, wallet, and graph defaults.
+  // Shared app state. Keys: r=route, c=cache Map, e=errors Map, w=watchlist wallets,
+  // a=active address, s=setup ports, p=pplns window seconds, gw=graph window, gm=graph mode.
   r: { n: "home", p: "#/" },
   c: new Map(),
   e: new Map(),
-  q: new Map(),
   w: [],
   a: "",
   s: [],

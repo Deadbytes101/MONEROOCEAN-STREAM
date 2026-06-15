@@ -5,7 +5,7 @@ import { isXmrAddress } from "./routes.js";
 const KEY = "mo.wallets.v1";
 const CONSENT = "mo.consent.v1";
 const MAX = 10;
-const MAX_AGE = 180 * 24 * 60 * 60 * 1000;
+const MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 
 // Ask only in EU/UK-like environments. Everyone else keeps the historical
 // default behavior until they explicitly change local history from Help. The
@@ -37,7 +37,7 @@ export function loadWatchlist() {
   if (!canStoreHistory()) return [];
   try {
     const rows = JSON.parse(localStorage.getItem(KEY) || "[]");
-    return rows.filter((row) => isXmrAddress(row.address) && Date.now() - row.time < MAX_AGE).slice(0, MAX);
+    return rows.filter((row) => isXmrAddress(row.address) && Date.now() - row.time < MAX_AGE_MS).slice(0, MAX);
   } catch {
     return [];
   }

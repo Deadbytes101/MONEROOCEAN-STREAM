@@ -2,9 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HEIGHT_EXPLORERS, DONATION_XMR, GRAPH_WINDOWS, EXPLANATIONS } from "../src/constants.js";
 import { averageVisible, chartModel, filterWindow, graphWindow, isWithinPplnsWindow, pplnsWindowRect, svgLine } from "../src/charts.js";
-import { atomicXmr, formatAge, formatHashrate, formatTinyPercent, normalizeTimestampSeconds } from "../src/format.js";
+import { atomicXmr, escapeHtml, formatAge, formatHashrate, formatNumber, formatPercent, formatTinyPercent, normalizeTimestampSeconds, shortAddress, trimFixed } from "../src/format.js";
+import { setTitle, updateCanonical } from "../src/seo.js";
 import { averageBlockEffort, blockCoinPort, blockEffortPercent, coinAtomicUnits, coinBlockCount, coinHashScalar, coinName, coinProfitValue, coinStatsRows, effortTone, topCoinPort, currentEffort, effortPercent, hasBlockHistory, worldHashrateForPort } from "../src/pool.js";
-import { appendWallet, loadWatchlist, localHistoryEnabled, setConsent, shouldAskConsent } from "../src/privacy.js";
+import { appendWallet, loadWatchlist, localHistoryEnabled, rmWallet, saveWallet, setConsent, shouldAskConsent } from "../src/privacy.js";
 import { isXmrAddress, parseRoute, routeCoinId, walletRoute } from "../src/routes.js";
 import { RefreshScheduler } from "../src/scheduler.js";
 import { setupAddress, setupAlgoOptions, setupConfiguredPorts, setupHashrateDefaults, setupHashrateToHps, setupPlan, setupProfileOptions } from "../src/setup.js";
@@ -13,8 +14,8 @@ import { state } from "../src/state.js";
 import { hasColdGraphLoad, isSameViewNavigation, isStaticRoute, shouldScrollToTop, shouldShowLoading } from "../src/render-policy.js";
 import { clearPreferenceStorage, parseCookieValue, readPreferences, saveExplanations, saveTheme, toggleExplanations, toggleTheme } from "../src/preferences.js";
 import { summarizeUptimeRobot } from "../src/uptime.js";
-import { blockPageSize, MAX_ROUTE_PAGE, pageCountFor, routePageNumber } from "../src/paging.js";
-import { nextSortDirection, nextSortDirectionForKey, sortDirection, sortRows } from "../src/table-sort.js";
+import { blockPageSize, MAX_ROUTE_PAGE, pageBounds, pageCountFor, pageQuery, routePageNumber } from "../src/paging.js";
+import { compareValues, nextSortDirection, nextSortDirectionForKey, sortDirection, sortRows } from "../src/table-sort.js";
 import { compactWorkerRows, sortWorkerListRows, sortWorkerRows, trackWalletState, workerDisplayMode, workerGraphColumns, workerListSortMode, workerSortDirection, workerSortMode, workerStatus } from "../src/wallet.js";
 import { formatPayoutThresholdInput, normalizePayoutThreshold, payoutFeeEstimate, payoutFeeText, payoutPolicyFromConfig, payoutThresholdFromAtomic, validatePayoutThreshold } from "../src/settings.js";
 import { calcProfitRows, fiatForTimezone, formatFiat, hashrateFromInput, hashrateInputFromHashrate } from "../src/calc.js";
@@ -135,6 +136,8 @@ test.describe("core routing, privacy, and preferences", { concurrency: false }, 
     assert.equal(routeCoinId("18144", LINK_TEST_POOL), "XTM");
     assert.equal(routeCoinId("18146", LINK_TEST_POOL), "XTM-T");
     assert.equal(routeCoinId("18148", LINK_TEST_POOL), "XTM-C");
+    assert.equal(routeCoinId("9998", LINK_TEST_POOL), "RTM");
+    assert.equal(routeCoinId("12345", {}), "12345");
     assert.equal(parseRoute("#/payments?page=3").q.page, "3");
     assert.equal(parseRoute("#/calc?rate=5&unit=mh").n, "calc");
     assert.equal(parseRoute("#/calc?rate=5&unit=mh").q.unit, "mh");
@@ -264,6 +267,10 @@ test.describe("core routing, privacy, and preferences", { concurrency: false }, 
     assert.equal(rows[0].fiat, 0.064);
     assert.equal(rows[0].fiatLabel, "USD");
     assert.equal(formatFiat(0.064, "USD"), "$0.064");
+    // Missing API price -> fiat is NaN and renders "--", not "$0.00".
+    const noPrice = calcProfitRows("2", "kh", { coins: { 18081: { port: 18081, symbol: "XMR", profit: 0.00000008 } } }, "America/New_York");
+    assert.ok(Number.isNaN(noPrice[0].fiat));
+    assert.equal(formatFiat(noPrice[0].fiat, noPrice[0].fiatLabel), "--");
   });
 
   test("block paging clamps page number and page size choices", () => {
@@ -271,6 +278,8 @@ test.describe("core routing, privacy, and preferences", { concurrency: false }, 
     assert.equal(routePageNumber("3"), 3);
     assert.equal(routePageNumber("-1"), 1);
     assert.equal(routePageNumber("999999"), MAX_ROUTE_PAGE);
+    assert.equal(routePageNumber("0.5"), 1);
+    assert.equal(routePageNumber("0.9"), 1);
     assert.equal(blockPageSize("50"), 50);
     assert.equal(blockPageSize("100"), 100);
     assert.equal(blockPageSize("25"), 15);
@@ -290,6 +299,13 @@ test.describe("core routing, privacy, and preferences", { concurrency: false }, 
     assert.deepEqual(sortRows(rows, "value", "asc").map((row) => row.name), ["b", "a"]);
     assert.deepEqual(sortRows(rows, "name", "desc").map((row) => row.name), ["b", "a"]);
     assert.deepEqual(sortRows([{ name: "low", pplns: 0.1 }, { name: "high", pplns: 12 }], "pplns").map((row) => row.name), ["high", "low"]);
+    // Tie-break on name is direction-independent (always ascending) so ordering stays stable.
+    const tied = [{ name: "z", v: 5 }, { name: "a", v: 5 }, { name: "m", v: 5 }];
+    assert.deepEqual(sortRows(tied, "v", "desc").map((row) => row.name), ["a", "m", "z"]);
+    assert.deepEqual(sortRows(tied, "v", "asc").map((row) => row.name), ["a", "m", "z"]);
+    assert.equal(Math.sign(compareValues("1,234", 1000)), 1);
+    assert.equal(Math.sign(compareValues("50%", 40)), 1);
+    assert.equal(Math.sign(compareValues(5, "abc")), -1);
   });
 
   test("XMR validation accepts primary and integrated address lengths", () => {
@@ -404,6 +420,11 @@ test.describe("core routing, privacy, and preferences", { concurrency: false }, 
     const updated = normalizeMotd({ created: "1760280722", subject: "Current status", body: "Exchange migration is underway." });
 
     assert.deepEqual(normalizeMotd({ subject: "Empty", body: "" }), null);
+    assert.equal(normalizeMotd({ message: "hi" }).body, "hi");
+    assert.equal(normalizeMotd({ text: "hi" }).body, "hi");
+    assert.equal(normalizeMotd({ body: "b", updated: "5" }).key, "5|b");
+    assert.equal(normalizeMotd({ body: "b", time: "7" }).key, "7|b");
+    assert.deepEqual(normalizeMotd({ motd: { subject: "S", body: "B", created: "1" } }), { subject: "S", body: "B", created: "1", key: "1|S|B" });
     assert.equal(motd.subject, "Current status");
     assert.equal(shouldShowMotd(motd), true);
     dismissMotd(motd.key);
@@ -436,5 +457,113 @@ test.describe("core routing, privacy, and preferences", { concurrency: false }, 
     assert.equal(toggleTheme("light"), "dark");
     assert.equal(toggleExplanations("off"), "on");
     clearPreferenceStorage();
+  });
+
+  test("formatters and escapeHtml produce stable output across boundaries", () => {
+    assert.equal(formatNumber(1234567), "1,234,567");
+    assert.equal(formatNumber("x"), "--");
+    assert.equal(formatPercent(50), "50.00%");
+    assert.equal(formatPercent(NaN), "--");
+    assert.equal(trimFixed(1.2000, 4), "1.2");
+    assert.equal(trimFixed(3, 2), "3");
+    assert.equal(trimFixed(10, 0), "10");
+    assert.equal(trimFixed(120, 0), "120");
+    assert.equal(trimFixed(100, 0), "100");
+    assert.equal(formatFiat(null), "--");
+    assert.equal(formatFiat(NaN), "--");
+    assert.equal(formatFiat(""), "--");
+    assert.equal(shortAddress(`4${"A".repeat(94)}`), "4AAAAAAA...AAAAAAAA");
+    assert.equal(shortAddress(""), "");
+    assert.equal(formatHashrate(0), "0 H/s");
+    assert.equal(formatHashrate(-5), "0 H/s");
+    assert.equal(formatHashrate(NaN), "0 H/s");
+    assert.equal(formatHashrate(12345), "12.3 KH/s");
+    assert.equal(formatHashrate(2.5e18), "2500 PH/s");
+    assert.equal(escapeHtml(`<a href="x" title='y'>&`), "&lt;a href=&quot;x&quot; title=&#039;y&#039;&gt;&amp;");
+    assert.equal(escapeHtml(null), "");
+  });
+
+  test("setTitle maps routes with a home fallback and updateCanonical syncs href", () => {
+    const previousDocument = global.document;
+    const link = { href: "" };
+    global.document = { title: "", querySelector: (selector) => selector.includes("canonical") ? link : null };
+    try {
+      setTitle({ n: "home" });
+      assert.equal(global.document.title, "MoneroOcean Pool Dashboard | XMR Mining Pool");
+      setTitle({ n: "coins" });
+      assert.equal(global.document.title, "MoneroOcean Coins | XMR Mining Pool");
+      setTitle({ n: "unknown" });
+      assert.equal(global.document.title, "MoneroOcean Pool Dashboard | XMR Mining Pool");
+      updateCanonical({ p: "#/coins" });
+      assert.equal(link.href, "https://moneroocean.stream/#/coins");
+    } finally {
+      if (previousDocument === undefined) delete global.document;
+      else global.document = previousDocument;
+    }
+  });
+
+  test("saveWallet stores newest-first with dedupe and rmWallet removes", () => {
+    const store = new Map();
+    global.localStorage = {
+      getItem: (key) => store.get(key) ?? null,
+      setItem: (key, value) => store.set(key, String(value)),
+      removeItem: (key) => store.delete(key)
+    };
+    setConsent(true);
+    const a = `4${"A".repeat(94)}`;
+    const b = `8${"B".repeat(105)}`;
+    assert.deepEqual(saveWallet(a).map((row) => row.address), [a]);
+    assert.deepEqual(saveWallet(b).map((row) => row.address), [b, a]);
+    assert.deepEqual(saveWallet(a).map((row) => row.address), [a, b]);
+    assert.deepEqual(saveWallet("bad").map((row) => row.address), [a, b]);
+    assert.deepEqual(rmWallet(a).map((row) => row.address), [b]);
+  });
+
+  test("appendWallet appends oldest-first, dedupes to the end, and caps at 10 by dropping the oldest", () => {
+    const store = new Map();
+    global.localStorage = {
+      getItem: (key) => store.get(key) ?? null,
+      setItem: (key, value) => store.set(key, String(value)),
+      removeItem: (key) => store.delete(key)
+    };
+    setConsent(true);
+    const addr = (i) => `4${String.fromCharCode(65 + i).repeat(94)}`;
+    assert.deepEqual(appendWallet(addr(0)).map((row) => row.address), [addr(0)]);
+    assert.deepEqual(appendWallet(addr(1)).map((row) => row.address), [addr(0), addr(1)]);
+    assert.deepEqual(appendWallet(addr(0)).map((row) => row.address), [addr(1), addr(0)], "re-append moves to the end");
+    let list;
+    for (let i = 2; i < 13; i += 1) list = appendWallet(addr(i));
+    assert.equal(list.length, 10);
+    assert.equal(list.at(-1).address, addr(12));
+    assert.equal(list.some((row) => row.address === addr(1)), false, "oldest entries are evicted past the cap");
+  });
+
+  test("saveTheme/saveExplanations persist with a 180-day Secure SameSite=Lax cookie", () => {
+    const previousDocument = global.document;
+    const writes = [];
+    global.document = { get cookie() { return ""; }, set cookie(value) { writes.push(value); } };
+    try {
+      saveTheme("light", { persist: true });
+      assert.match(writes.at(-1), /^mo\.theme=light; Max-Age=15552000; Path=\/; SameSite=Lax; Secure$/);
+      saveExplanations("off", { persist: true });
+      assert.match(writes.at(-1), /^mo\.explain=off; Max-Age=15552000; Path=\/; SameSite=Lax; Secure$/);
+      const count = writes.length;
+      saveTheme("dark", { persist: false });
+      assert.equal(writes.length, count, "persist:false writes no cookie");
+    } finally {
+      if (previousDocument === undefined) delete global.document;
+      else global.document = previousDocument;
+    }
+  });
+
+  test("pageQuery and pageBounds build pagination state", () => {
+    assert.equal(pageQuery(1, 15), "limit=15");
+    assert.equal(pageQuery(1), "limit=15");
+    assert.equal(pageQuery(3, 50), "page=3&limit=50");
+    assert.equal(pageQuery(2, 25), "page=2&limit=15");
+    assert.deepEqual(pageBounds(101, 50, 1, 50), { pageCount: 3, hasNext: true });
+    assert.deepEqual(pageBounds(101, 50, 3, 1), { pageCount: 3, hasNext: false });
+    assert.deepEqual(pageBounds(0, 50, 2, 50), { pageCount: 1, hasNext: true });
+    assert.deepEqual(pageBounds(0, 50, 2, 10), { pageCount: 1, hasNext: false });
   });
 });

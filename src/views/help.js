@@ -1,10 +1,9 @@
 import { api } from "../api.js";
 import { DISCORD_URL, DONATION_XMR, EXPLANATIONS, supportEmail, UPTIME_URL } from "../constants.js";
-import { formatHashrate } from "../format.js";
 import { localHistoryEnabled } from "../privacy.js";
 import { payoutFeeText, payoutPolicyFromConfig, formatPayoutThresholdInput } from "../settings.js";
 import { POOL_HOST, TOR_MINING_HOST } from "../setup.js";
-import { escapeHtml, recover } from "./common.js";
+import { EXTERNAL_LINK, escapeHtml, recover } from "./common.js";
 
 const CALC_MO_CVS_URL = "https://github.com/MoneroOcean/nodejs-pool/blob/master/block_share_dumps/calc_mo_cvs.js";
 const XMRCHAIN_URL = "https://xmrchain.net";
@@ -93,12 +92,10 @@ function helpEntry(question, answers, open = false) {
 }
 
 function helpLink(href, label) {
-  return `<a href="${escapeHtml(href)}" rel=noopener target=_blank>${escapeHtml(label)}</a>`;
+  return `<a href="${escapeHtml(href)}" ${EXTERNAL_LINK}>${escapeHtml(label)}</a>`;
 }
 
 export function referencePortSummary(ports = DEFAULT_REFERENCE_PORTS) {
-  // Public mining ports are a hashrate ladder: 100xx is KH/s, 11xxx+ is MH/s,
-  // and port 80 is a firewall-friendly alias for the first 1 KH/s tier.
   return referencePortLabels(ports).join("; ");
 }
 
@@ -107,8 +104,9 @@ export function referencePortList(ports = DEFAULT_REFERENCE_PORTS) {
 }
 
 function referencePortLabels(ports = DEFAULT_REFERENCE_PORTS) {
+  // Public mining ports are a hashrate ladder: 100xx is KH/s, 11xxx+ is MH/s, and port 80
+  // is a firewall-friendly alias for the first 1 KH/s tier (TLS port = plain + 10000, 443 for 80).
   return ports.map((port) => {
-    if (Array.isArray(port)) return `${port[0]}${port[1] ? `/${port[1]} TLS` : ""} for ${port[2] || formatHashrate(port[3])}`;
     const rate = port < 11024 ? port === 80 ? 1 : port - 10000 : (port - 10000) / 1024;
     return `${port}/${port === 80 ? 443 : port + 10000} TLS for ${rate} ${port < 11024 ? "KH/s" : "MH/s"}`;
   });

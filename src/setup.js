@@ -154,6 +154,8 @@ export function setupConfiguredPorts(source = []) {
           label: String(row[3] || "").trim()
         };
       }
+      // Global API exposes web port 80 as the 10001 plain port; TLS port = plain + 10000
+      // (20001 for 10001). targetHashrate derives from share difficulty: /10 global, /30 configured.
       const rawPort = Number(row.port);
       const port = global && rawPort === 80 ? 10001 : rawPort;
       const tlsPort = global ? port === 10001 ? 20001 : port + 10000 : Number(row.tlsPort);
@@ -222,7 +224,7 @@ function xmrigPlan({ os, address, worker, pool, portRow }) {
   const windows = os === WINDOWS;
   const macos = os === MACOS;
   const binary = windows ? windowsLocal(XMRIG_EXE) : XMRIG_BIN;
-  const d = windows
+  const download = windows
     ? windowsZipDownload(XMRIG_RELEASE_API, WIN64_ZIP_ASSET, "xmrig.zip", "moneroocean")
     : macos
       ? macXmrigDownload()
@@ -231,7 +233,7 @@ function xmrigPlan({ os, address, worker, pool, portRow }) {
   const tlsRun = portRow.tlsPort ? xmrigRun(binary, `${POOL_HOST}:${portRow.tlsPort}`, address, worker, true) : "";
   return {
     summary: setupPoolSummary(pool, portRow),
-    downloadCommand: d,
+    downloadCommand: download,
     downloadNote: windows ? WINDOWS_POWERSHELL_BKM : macos ? XMRIG_MAC_DOWNLOAD_NOTE : "",
     tlsRunCommand: tlsRun,
     tlsRunNote: TLS_MODE_NOTE,
@@ -257,12 +259,12 @@ function srbPlan({ os, gpu, algo, address, worker, password, pool, portRow }) {
   const srbAlgo = SRB_ALGO[algo] || GPU_ALGO_IDS[0];
   const disable = gpuDisableFlags(intelGpu);
   const ethExtra = algo === "etchash" ? ETCHASH_EXTRA : "";
-  const d = windows
+  const download = windows
     ? srbWindowsDownload()
     : srbLinuxDownload();
   return {
     summary: setupPoolSummary(pool, portRow),
-    downloadCommand: d,
+    downloadCommand: download,
     downloadNote: windows ? WINDOWS_POWERSHELL_BKM : "",
     tlsRunCommand: portRow.tlsPort ? srbRun(binary, disable, srbAlgo, `${POOL_HOST}:${portRow.tlsPort}`, address, password, worker, true, ethExtra) : "",
     tlsRunNote: `${TLS_MODE_NOTE} ${SRB_RUN_NOTE}`,
@@ -521,18 +523,16 @@ function macXmrigDownload() {
   return macTarDownload("moneroocean", XMRIG_RELEASE_API, XMRIG_TAR, XMRIG);
 }
 
-function srbLinuxDownload(includeCurl = true) {
-  const d = includeCurl ? linuxReleaseDownload : releaseDownload;
-  return `${d(SRBMINER_DIR, SRBMINER_RELEASE_API, srbMinerLinuxAsset(), SRBMINER_ARCHIVE)} && ${unpackSrbMinerLinux()}`;
+function srbLinuxDownload() {
+  return `${linuxReleaseDownload(SRBMINER_DIR, SRBMINER_RELEASE_API, srbMinerLinuxAsset(), SRBMINER_ARCHIVE)} && ${unpackSrbMinerLinux()}`;
 }
 
 function srbWindowsDownload() {
   return windowsZipDownload(SRBMINER_RELEASE_API, WIN64_ZIP_ASSET, SRBMINER_ZIP, SRBMINER_DIR);
 }
 
-function lolminerLinuxDownload(includeCurl = true) {
-  const d = includeCurl ? linuxReleaseDownload : releaseDownload;
-  return `${d(LOLMINER_DIR, LOLMINER_RELEASE_API, lolMinerLinuxAsset(), LOLMINER_ARCHIVE)} && ${unpackLolMinerLinux()}`;
+function lolminerLinuxDownload() {
+  return `${linuxReleaseDownload(LOLMINER_DIR, LOLMINER_RELEASE_API, lolMinerLinuxAsset(), LOLMINER_ARCHIVE)} && ${unpackLolMinerLinux()}`;
 }
 
 function lolminerWindowsDownload() {
@@ -547,9 +547,15 @@ ${downloadMom()} && chmod +x ${MOM}`;
 
 function momWindowsDownload() {
   return `${windowsAssetDownload(MOM_RELEASE_API, "mom-v.*-win\\.zip$", MOM_ZIP)}
-Expand-Archive ${MOM_ZIP} -DestinationPath .\\${MOM_DIR} -Force
-$mdir=Get-ChildItem .\\${MOM_DIR} -Directory | ${FIRST_ASSET}
-if ($mdir) { Copy-Item "$($mdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${MOM_DIR}\\*" . -Recurse -Force }`;
+${windowsExpandFlatten(MOM_ZIP, MOM_DIR, "mdir")}`;
+}
+
+// Expand a release zip and copy its single top-level subfolder's contents into the
+// current directory (some releases nest a versioned folder, some do not).
+function windowsExpandFlatten(zip, dir, varName) {
+  return `Expand-Archive ${zip} -DestinationPath .\\${dir} -Force
+$${varName}=Get-ChildItem .\\${dir} -Directory | ${FIRST_ASSET}
+if ($${varName}) { Copy-Item "$($${varName}.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${dir}\\*" . -Recurse -Force }`;
 }
 
 function multiMinerLinuxDownload(intelGpu) {
@@ -564,13 +570,9 @@ function multiMinerWindowsDownload(intelGpu) {
   return `${windowsAssetDownload(MULTI_MINER_RELEASE_API, "mm-v.*-win\\.zip$", "mm.zip")}
 ${windowsExtractZip("mm.zip", MULTI_MINER, false)}
 ${windowsAssetDownload(SRBMINER_RELEASE_API, WIN64_ZIP_ASSET, SRBMINER_ZIP)}
-Expand-Archive ${SRBMINER_ZIP} -DestinationPath .\\${SRBMINER_DIR} -Force
-$dir=Get-ChildItem .\\${SRBMINER_DIR} -Directory | ${FIRST_ASSET}
-if ($dir) { Copy-Item "$($dir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${SRBMINER_DIR}\\*" . -Recurse -Force }
+${windowsExpandFlatten(SRBMINER_ZIP, SRBMINER_DIR, "dir")}
 ${intelGpu ? momWindowsDownload() : `${windowsAssetDownload(LOLMINER_RELEASE_API, WIN64_ZIP_ASSET, LOLMINER_ZIP)}
-Expand-Archive ${LOLMINER_ZIP} -DestinationPath .\\${LOLMINER_DIR} -Force
-$gdir=Get-ChildItem .\\${LOLMINER_DIR} -Directory | ${FIRST_ASSET}
-if ($gdir) { Copy-Item "$($gdir.FullName)\\*" . -Recurse -Force } else { Copy-Item ".\\${LOLMINER_DIR}\\*" . -Recurse -Force }`}`;
+${windowsExpandFlatten(LOLMINER_ZIP, LOLMINER_DIR, "gdir")}`}`;
 }
 
 function xmrigProxyLinuxDownload() {

@@ -5,7 +5,7 @@ import { encodeUrlPart, formatXmr, isFiniteNumber } from "../format.js";
 import { coinProfitValue } from "../pool.js";
 import { averageVisible, filterWindow } from "../charts.js";
 import { state } from "../state.js";
-import { escapeHtml } from "./common.js";
+import { escapeHtml, optionMarkup } from "./common.js";
 import { normalizeGraph } from "./charts.js";
 
 const XMR_PRICE_SOURCE = "Price comes from CoinMarketCap.";
@@ -22,9 +22,9 @@ export async function calcView(route = state.r) {
   const phDay = coinProfitValue(pool, XMR_PORT);
   return `<section class=panel>
     <div class="card grid calc-grid">
-      <form id="calc-form" class="calc-form" data-profit-per-hash="${escapeHtml(phDay)}" data-price="${escapeHtml(isFiniteNumber(price) ? price : "")}" data-fiat-code="${escapeHtml(fiat.label)}">
+      <form id="calc-form" class="calc-form" data-profit-per-hash="${escapeHtml(phDay)}" data-price="${escapeHtml(isFiniteNumber(price) ? price : "")}" data-fiat-label="${escapeHtml(fiat.label)}">
         <label>Hashrate<input id=ch inputmode=decimal autocomplete=off value="${escapeHtml(value)}"></label>
-        <label>Unit<select id="cu">${HASHRATE_UNITS.map(([id, label]) => `<option value="${id}" ${id === unit ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+        <label>Unit<select id="cu">${optionMarkup(HASHRATE_UNITS, unit)}</select></label>
       </form>
       <div class="calc-results">
         ${rows.map((row) => `<article class="calc-result-card" title="${escapeHtml(row.label)} estimate">

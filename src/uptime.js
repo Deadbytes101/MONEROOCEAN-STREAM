@@ -15,7 +15,7 @@ export function summarizeUptimeRobot(payload = {}) {
   });
 
   if (!monitors.length || !active.length) {
-    return { tone: "yellow", label: "Unknown", detail: "UptimeRobot status unavailable" };
+    return { ...UNKNOWN_UPTIME, tone: "yellow" };
   }
   if (coreDown.length) {
     return { tone: "red", label: "Down", detail: `${coreDown.length} core monitor down` };

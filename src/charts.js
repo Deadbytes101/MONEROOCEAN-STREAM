@@ -94,6 +94,8 @@ export function isWithinPplnsWindow(timestamp, maxTimestamp, pplnsSeconds) {
 }
 
 function chartY(value, min, max) {
+  // Map value into the 30.8..184.8 plot band of the 700x220 viewBox (top inset 30.8,
+  // plot height 154); the remaining height below is x-axis label padding.
   const span = Math.max(1, max - min);
   return 30.8 + (1 - Math.min(1, Math.max(0, (value - min) / span))) * 154;
 }

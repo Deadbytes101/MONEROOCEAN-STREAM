@@ -10,7 +10,6 @@ export function setTitle(route) {
     blocks: `${MO}Blocks`,
     payments: `${MO}Payments`,
     calc: `${MO}Profit Calc`,
-    ports: `${MO}Ports`,
     setup: `${MO}Setup`,
     help: `${MO}Help`
   };

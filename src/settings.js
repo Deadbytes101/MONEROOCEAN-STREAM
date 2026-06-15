@@ -20,9 +20,7 @@ export function normalizePayoutPolicy(policy) {
   return {
     minimumThreshold,
     defaultThreshold,
-    exchangeMinimumThreshold: positiveNumber(source.exchangeMinimumThreshold),
     denomination,
-    maturityDepth: nonNegativeNumber(source.maturityDepth),
     feeFormula: { maxFee, zeroFeeThreshold }
   };
 }
@@ -45,6 +43,7 @@ export function payoutThresholdFromAtomic(value, policy) {
   const normalized = normalizePayoutPolicy(policy);
   if (!normalized) return 0;
   if (!isFiniteNumber(number) || number <= 0) return normalized.defaultThreshold;
+  // Values > 1 are atomic units (1 XMR = 1e12); values <= 1 are already in XMR.
   return number > 1 ? number / 1_000_000_000_000 : number;
 }
 

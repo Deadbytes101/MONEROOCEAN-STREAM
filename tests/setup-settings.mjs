@@ -12,11 +12,11 @@ import { api, endpointKey, minerEndpoint, POOL_CHART, WALLET_CHART, WALLET_WORKE
 import { state } from "../src/state.js";
 import { hasColdGraphLoad, isSameViewNavigation, isStaticRoute, shouldScrollToTop, shouldShowLoading } from "../src/render-policy.js";
 import { clearPreferenceStorage, parseCookieValue, readPreferences, saveExplanations, saveTheme, toggleExplanations, toggleTheme } from "../src/preferences.js";
-import { summarizeUptimeRobot } from "../src/uptime.js";
+import { summarizeUptimeRobot, uptimeToneClass, UNKNOWN_UPTIME } from "../src/uptime.js";
 import { blockPageSize, MAX_ROUTE_PAGE, pageCountFor, routePageNumber } from "../src/paging.js";
 import { nextSortDirection, nextSortDirectionForKey, sortDirection, sortRows } from "../src/table-sort.js";
 import { compactWorkerRows, sortWorkerListRows, sortWorkerRows, trackWalletState, workerDisplayMode, workerGraphColumns, workerListSortMode, workerSortDirection, workerSortMode, workerStatus } from "../src/wallet.js";
-import { formatPayoutThresholdInput, normalizePayoutThreshold, payoutFeeEstimate, payoutFeeText, payoutPolicyFromConfig, payoutThresholdFromAtomic, validatePayoutThreshold } from "../src/settings.js";
+import { formatPayoutThresholdInput, normalizePayoutPolicy, normalizePayoutThreshold, payoutFeeEstimate, payoutFeeText, payoutPolicyFromConfig, payoutThresholdFromAtomic, validatePayoutThreshold } from "../src/settings.js";
 import { calcProfitRows, fiatForTimezone, formatFiat, hashrateFromInput, hashrateInputFromHashrate } from "../src/calc.js";
 import { dismissMotd, normalizeMotd, resetMotdDismissalsForTest, shouldShowMotd } from "../src/motd.js";
 import { blockPaymentStage, blockRoute, blocksView } from "../src/views/blocks.js";
@@ -407,11 +407,54 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.equal(payoutFeeEstimate(2, policy).fee, 0);
   });
 
+  test("normalizePayoutPolicy rejects incomplete policies and payoutThresholdFromAtomic handles XMR units", () => {
+    assert.equal(normalizePayoutPolicy(null), null);
+    assert.equal(normalizePayoutPolicy({ minimumThreshold: 0.003, defaultThreshold: 0.3, denomination: 0, feeFormula: { maxFee: 0.0004, zeroFeeThreshold: 4 } }), null);
+    assert.equal(normalizePayoutPolicy({ minimumThreshold: 0.003, defaultThreshold: 0.3, denomination: 0.0001, feeFormula: { maxFee: 0.0004 } }), null);
+    assert.equal(payoutThresholdFromAtomic(0.5, TEST_POLICY), 0.5);
+    assert.equal(payoutThresholdFromAtomic(-5, TEST_POLICY), TEST_POLICY.defaultThreshold);
+    assert.equal(payoutThresholdFromAtomic(2, TEST_POLICY), 2 / 1_000_000_000_000);
+    const sci = normalizePayoutPolicy({ minimumThreshold: 0.003, defaultThreshold: 0.3, denomination: 1e-7, feeFormula: { maxFee: 0.0004, zeroFeeThreshold: 4 } });
+    assert.equal(formatPayoutThresholdInput(0.123456789, sci), "0.1234568");
+  });
+
   test("uptimerobot status makes core outages red and coin node outages yellow", () => {
     assert.equal(summarizeUptimeRobot({ data: [{ name: "Backend: API server", statusClass: "success" }, { name: "Backend: Node XMR", statusClass: "paused" }] }).tone, "green");
     assert.equal(summarizeUptimeRobot({ data: [{ name: "Backend: Node WOWNERO", statusClass: "danger" }] }).tone, "yellow");
     assert.equal(summarizeUptimeRobot({ data: [{ name: "Backend: Node XMR", statusClass: "danger" }] }).tone, "red");
     assert.equal(summarizeUptimeRobot({ data: [{ name: "Backend: API server", statusClass: "danger" }] }).tone, "red");
+  });
+
+  test("uptimerobot covers empty, degraded, operational, and tone-class mapping", () => {
+    assert.deepEqual(summarizeUptimeRobot({}), { tone: "yellow", label: "Unknown", detail: "UptimeRobot status unavailable" });
+    assert.equal(summarizeUptimeRobot({ data: [] }).label, "Unknown");
+    assert.equal(summarizeUptimeRobot({ data: [{ name: "Backend: API server", statusClass: "paused" }] }).label, "Unknown");
+    const warn = summarizeUptimeRobot({ data: [{ name: "Backend: API server", statusClass: "seen-up" }] });
+    assert.equal(warn.label, "Degraded");
+    assert.equal(warn.tone, "yellow");
+    assert.deepEqual(summarizeUptimeRobot({ data: [{ name: "Backend: API server", statusClass: "success" }, { name: "Backend: Node XMR", statusClass: "up" }] }), { tone: "green", label: "Operational", detail: "2 active monitors up" });
+    assert.equal(uptimeToneClass("green"), "status-green");
+    assert.equal(uptimeToneClass("gray"), "status-unknown");
+    assert.equal(uptimeToneClass("bogus"), "status-yellow");
+    // "yellow" is a real tone (Unknown/Degraded/coin-node), not just the catch-all fallback.
+    assert.equal(uptimeToneClass("yellow"), "status-yellow");
+    assert.equal(uptimeToneClass("red"), "status-red");
+    assert.deepEqual(UNKNOWN_UPTIME, { tone: "gray", label: "Unknown", detail: "UptimeRobot status unavailable" });
+  });
+
+  test("effortPercent uses network difficulty and falls back for raw share counts", () => {
+    assert.equal(effortPercent({ currentEfforts: { 18081: 120 } }, { 18081: { difficulty: 240 } }, "18081"), 50);
+    assert.equal(effortPercent({ currentEfforts: { 18081: 42 } }, {}, "18081"), 42);
+    assert.ok(Number.isNaN(effortPercent({ currentEfforts: { 18081: 54_120_000_000 } }, {}, "18081")));
+    assert.ok(Number.isNaN(effortPercent({ currentEfforts: { 18081: 0 } }, {}, "18081")));
+    assert.equal(effortPercent({ currentEfforts: { 18081: 42 } }, { 18081: { difficulty: 0 } }, "18081"), 42);
+  });
+
+  test("payout fee is reported unavailable for empty input or missing policy", () => {
+    assert.equal(payoutFeeText("", TEST_POLICY), "XMR tx fee unavailable");
+    assert.equal(payoutFeeText("0.05", null), "XMR tx fee unavailable");
+    assert.ok(Number.isNaN(payoutFeeEstimate("", TEST_POLICY).fee));
+    assert.ok(Number.isNaN(payoutFeeEstimate("0.05", null).percent));
   });
 
   test("tracking a wallet opens first wallet details then stays on dashboard for later wallets", () => {
@@ -426,6 +469,15 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.equal(result.nextHash, "#/?tracked=123");
     assert.equal(result.clearInput, true);
     assert.deepEqual(result.watchlist.map((row) => row.address), [existing, address]);
+
+    const invalid = trackWalletState([{ address, time: 1 }], "not-an-address", 999);
+    assert.deepEqual(invalid, { watchlist: [{ address, time: 1 }], nextHash: null, clearInput: false });
+
+    const many = Array.from({ length: 12 }, (_, i) => ({ address: `4${String.fromCharCode(66 + i).repeat(94)}`, time: i }));
+    const capped = trackWalletState(many, address, 500);
+    assert.equal(capped.watchlist.length, 10);
+    assert.equal(capped.watchlist.at(-1).address, address);
+    assert.equal(capped.watchlist[0].address, many[3].address);
   });
 
   test("worker controls sortable by name or hashrate", () => {
@@ -436,6 +488,10 @@ test.describe("setup, settings, uptime, and copy", { concurrency: false }, () =>
     assert.deepEqual(sortWorkerRows(workers, "name", "asc").map((row) => row.name), ["alpha", "beta", "zeta"]);
     assert.deepEqual(sortWorkerRows(workers, "hashrate").map((row) => row.name), ["alpha", "beta", "zeta"]);
     assert.deepEqual(sortWorkerRows(workers, "hashrate", "asc").map((row) => row.name), ["zeta", "alpha", "beta"]);
+    // Equal-rate workers tie-break name-ascending regardless of sort direction.
+    const tie = [{ name: "b", rate: 50 }, { name: "a", rate: 50 }];
+    assert.deepEqual(sortWorkerRows(tie, "hashrate", "desc").map((row) => row.name), ["a", "b"]);
+    assert.deepEqual(sortWorkerRows(tie, "hashrate", "asc").map((row) => row.name), ["a", "b"]);
 
     const address = `4${"A".repeat(94)}`;
     const controls = walletWorkersSection(address, [], {}, "6h", "raw", "h", "desc", false, 2, false);

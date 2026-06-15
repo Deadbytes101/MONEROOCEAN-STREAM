@@ -8,7 +8,7 @@ export function formatNumber(value, digits = 0) {
   return number.toLocaleString("en-US", { maximumFractionDigits: digits });
 }
 
-export function formatHashrate(value, unit = "H/s") {
+export function formatHashrate(value) {
   const number = Number(value);
   if (!isFiniteNumber(number) || number <= 0) return "0 H/s";
   const units = ["H/s", "KH/s", "MH/s", "GH/s", "TH/s", "PH/s"];
@@ -18,7 +18,7 @@ export function formatHashrate(value, unit = "H/s") {
     scaled /= 1000;
     index += 1;
   }
-  return `${scaled >= 100 ? scaled.toFixed(0) : scaled >= 10 ? scaled.toFixed(1) : scaled.toFixed(2)} ${unit === "H/s" ? units[index] : unit}`;
+  return `${scaled >= 100 ? scaled.toFixed(0) : scaled >= 10 ? scaled.toFixed(1) : scaled.toFixed(2)} ${units[index]}`;
 }
 
 export function formatXmr(value, digits = 6) {
@@ -47,7 +47,9 @@ export function formatTinyPercent(value, digits = 2, maxDigits = 8) {
 }
 
 export function trimFixed(value, digits) {
-  return Number(value).toFixed(digits).replace(/\.?0+$/, "");
+  // Strip trailing zeros only after a decimal point ("1.20"->"1.2", "3.00"->"3"),
+  // never from a whole number ("10" must stay "10", not "1").
+  return Number(value).toFixed(digits).replace(/\.0+$|(\.\d*?)0+$/, "$1");
 }
 
 export function formatAge(timestampSeconds, now = Date.now()) {
@@ -71,6 +73,10 @@ export function normalizeTimestampSeconds(value) {
   const number = Number(value);
   if (!isFiniteNumber(number)) return 0;
   return number > 10_000_000_000 ? Math.floor(number / 1000) : number;
+}
+
+export function recordTimestamp(record) {
+  return record?.ts || record?.time || record?.timestamp;
 }
 
 export function escapeHtml(value) {

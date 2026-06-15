@@ -12,14 +12,6 @@ export const WALLET_CHART = "chart/hashrate";
 export const WALLET_WORKER_CHARTS = `${WALLET_CHART}/allWorkers`;
 const POOL_PAYMENTS = "pool/payments";
 const DEFAULT_TTL = 45_000;
-const TTL = {
-  [CONFIG]: 300_000,
-  [POOL_PORTS]: 60_000,
-  [POOL_STATS]: 60_000,
-  [POOL_MOTD]: 120_000,
-  [NETWORK_STATS]: 180_000,
-  [`${POOL_PAYMENTS}?page=0&limit=15`]: 120_000
-};
 
 export function endpointKey(path) {
   return path.replace(/^\/+/, "");
@@ -29,14 +21,13 @@ async function fetchJson(path, { ttl } = {}) {
   const key = endpointKey(path);
   return cachedJsonRequest({
     key,
-    ttl: ttl ?? TTL[key] ?? DEFAULT_TTL,
+    ttl: ttl ?? DEFAULT_TTL,
     start: () => ({ promise: fetch(`${API_BASE}${key}`, jsonRequestOptions()) })
   });
 }
 
 async function postJson(path, body = {}) {
   const key = endpointKey(path);
-  state.q.set(key, Date.now());
   const response = await fetch(`${API_BASE}${key}`, {
     method: "POST",
     headers: { accept: "application/json", "content-type": "application/json" },
@@ -72,7 +63,6 @@ function cachedJsonRequest({ key, ttl, start }) {
   const cached = freshCacheEntry(key, ttl);
   if (cached.hit) return cached.value;
   if (inflight.has(key)) return inflight.get(key);
-  state.q.set(key, Date.now());
   const { promise, cleanup } = start();
   const request = promise
     .then(jsonResponse)
@@ -126,7 +116,7 @@ export function minerEndpoint(address, suffix) {
 export const api = {
   config: (options) => cachedEndpoint(CONFIG, options, 300_000),
   poolStats: async (options) => {
-    const data = await fetchJson(POOL_STATS, options);
+    const data = await fetchJson(POOL_STATS, { ttl: 60_000, ...options });
     return data.pool_statistics || data || {};
   },
   poolPorts: (options) => cachedEndpoint(POOL_PORTS, options, 60_000),

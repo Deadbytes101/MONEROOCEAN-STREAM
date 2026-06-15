@@ -1,16 +1,18 @@
 import { XMR_PORT } from "./constants.js";
 import { isFiniteNumber } from "./format.js";
 
+export function isXmrPort(port) {
+  return String(port) === String(XMR_PORT);
+}
+
 function byPort(values, port) {
   if (!values || typeof values !== "object") return undefined;
-  if (Object.hasOwn(values, port)) return values[port];
-  if (Object.hasOwn(values, String(port))) return values[String(port)];
-  if (Object.hasOwn(values, Number(port))) return values[Number(port)];
-  return undefined;
+  // Object keys are always strings, so one lookup covers both numeric and string port forms.
+  return Object.hasOwn(values, port) ? values[port] : undefined;
 }
 
 function coinMetadata(poolStats = {}, port) {
-  return byPort(poolStats.coins, port) || null;
+  return byPort(poolStats.coins, port);
 }
 
 function normalizedCoinRow(key, coin = {}) {
@@ -24,7 +26,7 @@ function normalizedCoinRow(key, coin = {}) {
     ac: coin.active === true,
     c: coin.comment || "",
     dr: coin.disabledReason || "",
-    ec: String(port) === String(XMR_PORT) || coin.exchangeConfigured === true,
+    ec: isXmrPort(port) || coin.exchangeConfigured === true,
     h: Number(coin.hashrate) || 0,
     m: Number(coin.miners) || 0,
     ps: Number(coin.pplnsShare) || 0
@@ -111,11 +113,6 @@ export function coinName(poolStats = {}, port) {
   return coin?.displayName || coin?.symbol || String(port);
 }
 
-export function coinSymbol(poolStats = {}, port) {
-  const coin = coinMetadata(poolStats, port);
-  return coin?.symbol || coin?.displayName || String(port);
-}
-
 export function coinHashScalar(poolStats = {}, port, basePort = XMR_PORT) {
   const profit = coinProfitValue(poolStats, port);
   const base = coinProfitValue(poolStats, basePort);
@@ -131,17 +128,17 @@ export function hasBlockHistory(poolStats = {}, port) {
 }
 
 export function coinBlockCount(poolStats = {}, port) {
-  if (String(port) === String(XMR_PORT)) return Number(poolStats.totalBlocksFound) || 0;
+  if (isXmrPort(port)) return Number(poolStats.totalBlocksFound) || 0;
   return Number(coinMetadata(poolStats, port)?.altBlocksFound) || 0;
 }
 
 export function currentEffort(poolStats = {}, port) {
-  return Number(poolStats.currentEfforts?.[port] ?? poolStats.currentEfforts?.[Number(port)] ?? 0);
+  return Number(byPort(poolStats.currentEfforts, port) ?? 0);
 }
 
 export function effortPercent(poolStats = {}, networkStats = {}, port) {
   const effort = currentEffort(poolStats, port);
-  const network = networkStats?.[port] || networkStats?.[Number(port)] || {};
+  const network = byPort(networkStats, port) || {};
   const difficulty = Number(network.difficulty);
   if (isFiniteNumber(effort) && isFiniteNumber(difficulty) && difficulty > 0) return effort / difficulty * 100;
   return effort > 0 && effort < 10_000 ? effort : NaN;
@@ -166,8 +163,10 @@ export function coinAtomicUnits(poolStats = {}, port) {
   return Number(coinMetadata(poolStats, port)?.atomicUnits) || 0;
 }
 
-export function worldHashrateForPort(networkStats = {}, port, poolStats = {}) {
-  const network = byPort(networkStats, port) || networkStats || {};
+export function worldHashrateForPort(networkOrEntry = {}, port, poolStats = {}) {
+  // Callers pass either the full port-keyed network map or a single per-port entry;
+  // byPort misses on the entry shape and the bare `|| networkOrEntry` handles it.
+  const network = byPort(networkOrEntry, port) || networkOrEntry || {};
   const difficulty = Number(network.difficulty);
   const time = Number(network.time || network.value?.time || coinMetadata(poolStats, port)?.blockTime || 0);
   return isFiniteNumber(difficulty) && difficulty > 0 && isFiniteNumber(time) && time > 0 ? difficulty / time : 0;

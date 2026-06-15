@@ -1,6 +1,6 @@
 import { api } from "../api.js";
 import { EXPLANATIONS, GRAPH_WINDOWS, XMR_PORT } from "../constants.js";
-import { atomicXmr, formatAge, formatDate, formatHashrate, formatNumber, normalizeTimestampSeconds, shortAddress } from "../format.js";
+import { formatAge, formatDate, formatHashrate, formatNumber, normalizeTimestampSeconds, recordTimestamp, shortAddress } from "../format.js";
 import { coinName } from "../pool.js";
 import { walletRoute, isXmrAddress } from "../routes.js";
 import { formatPayoutThresholdInput, normalizePayoutPolicy, payoutFeeText, payoutPolicyFromConfig, payoutThresholdFromAtomic, validatePayoutThreshold } from "../settings.js";
@@ -8,10 +8,10 @@ import { state } from "../state.js";
 import { UNKNOWN_UPTIME, summarizeUptimeRobot } from "../uptime.js";
 import { saveWallet } from "../privacy.js";
 import { compactWorkerRows, sortWorkerListRows, sortWorkerRows, workerDisplayMode, workerGraphColumns, workerListSortMode, workerSortDirection, workerSortMode } from "../wallet.js";
-import { MAX_ROUTE_PAGE, blockPageSize, pageCountFor, routePageNumber } from "../paging.js";
-import { nextSortDirection, nextSortDirectionForKey } from "../table-sort.js";
+import { MAX_ROUTE_PAGE, blockPageSize, pageBounds, routePageNumber } from "../paging.js";
+import { nextSortDirection } from "../table-sort.js";
 import { attr, on, qs } from "../dom.js";
-import { activeAttr, blockHashLink, cellHtml, chipLink, coinCell, dateCell, escapeHtml, formatAtomicXmrValue, graphControls, kpi, linkLabel, pageSizeSelect, pagerNav, paymentHashLink, recover, tablePage } from "./common.js";
+import { activeAttr, blockHashLink, cellHtml, chipLink, coinCell, dateCell, escapeHtml, formatAtomicXmrValue, graphControls, kpi, linkLabel, pageSizeSelect, pagerNav, paymentHashLink, recover, sortableHeading, tablePage } from "./common.js";
 import { chartHtml, hashrateChart, normalizeGraph } from "./charts.js";
 import { poolDashboard } from "./pool-dashboard.js";
 
@@ -23,6 +23,7 @@ const BLOCK_REWARDS_TAB = "rewards";
 const WITHDRAWALS_TAB = "withdrawals";
 const THRESHOLD_TAB = "payout";
 const EMAIL_ALERTS_TAB = "alerts";
+const WORKER_FIRST_SORT_DIRECTION = { name: "asc", algo: "asc" };
 const WORKER_COLUMNS = [
   ["Worker", "name"],
   ["Algo", "algo"],
@@ -144,7 +145,7 @@ function walletDetailBody(tab, data, address, graphWindow, graphMode, workerSort
   return walletOverview(data.walletStats, data.workers, graph, address, graphWindow, graphMode, workerSort, workerDir, graphDetails);
 }
 
-function walletDetailTabs(address, activeTab, graphWindow, graphMode, workerSort, workerDir, graphDetails) {
+function walletDetailTabs(address, active, graphWindow, graphMode, workerSort, workerDir, graphDetails) {
   const tabs = [
     [OVERVIEW_TAB, "Overview", "Wallet balance, pool-side hashrate, total graph, worker graphs."],
     [BLOCK_REWARDS_TAB, "Rewards", BLOCK_REWARD_HELP],
@@ -152,7 +153,6 @@ function walletDetailTabs(address, activeTab, graphWindow, graphMode, workerSort
     [THRESHOLD_TAB, "Payout", EXPLANATIONS.payoutPolicy],
     [EMAIL_ALERTS_TAB, "Alerts", "Manage email notices."]
   ];
-  const active = activeTab;
   // The magnifier is visually paired with Overview because the extra total
   // hashes/share lines only exist on overview graphs. On other wallet tabs inline-tabs
   // still links back to Overview with details enabled, instead of implying that
@@ -225,11 +225,8 @@ function workerTableHeadings(address, graphWindow, graphMode, active, direction,
 }
 
 function sortableWorkerHeading(label, key, address, graphWindow, graphMode, active, direction, graphDetails, showDead = workerShowDead) {
-  const selected = active === key;
-  const firstDirection = { name: "asc", algo: "asc" };
-  const next = nextSortDirectionForKey(active, direction, key, firstDirection);
-  const arrow = selected ? (direction === "asc" ? " ↑" : " ↓") : "";
-  return { html: `<a class="sortable" href="${walletRouteWithGraph(address, OVERVIEW_TAB, graphWindow, graphMode, key, next, graphDetails, "list", showDead)}">${escapeHtml(label)}${escapeHtml(arrow)}</a>` };
+  return sortableHeading(label, key, active, direction, WORKER_FIRST_SORT_DIRECTION, (sortKey, next) =>
+    walletRouteWithGraph(address, OVERVIEW_TAB, graphWindow, graphMode, sortKey, next, graphDetails, "list", showDead));
 }
 
 function workerTableRow(worker) {
@@ -286,8 +283,8 @@ function normalizeGraphMode(value) {
 function walletWithdrawalsPanel(address, stats, graphWindow, graphMode, workerSort, workerDir, graphDetails, withdrawals, withdrawalPage, withdrawalLimit, blockRewardPage, blockRewardLimit) {
   const withdrawalCount = Number(stats.txnCount) || 0;
   const withdrawalRows = withdrawals.map((pay) => [
-    dateCell(pay.ts || pay.time || pay.timestamp),
-    formatNumber(atomicXmr(pay.amount ?? pay.value ?? 0), 8),
+    dateCell(recordTimestamp(pay)),
+    formatAtomicXmrValue(pay.amount ?? pay.value ?? 0),
     paymentHashLink(pay.txnHash || pay.hash || pay.txHash)
   ]);
   return walletPaymentTable("Withdrawals", ["Sent time","Amount (XMR)","Tx hash"], withdrawalRows, walletWithdrawalControls(address, graphWindow, graphMode, workerSort, workerDir, graphDetails, withdrawalPage, withdrawalLimit, withdrawals.length, withdrawalCount, blockRewardPage, blockRewardLimit));
@@ -296,7 +293,7 @@ function walletWithdrawalsPanel(address, stats, graphWindow, graphMode, workerSo
 function walletBlockRewardsPanel(address, pool, graphWindow, graphMode, workerSort, workerDir, graphDetails, blockRewards, blockRewardPage, blockRewardLimit, withdrawalPage, withdrawalLimit) {
   const annotatedRewards = annotateBlockRewards(blockRewards);
   const blockRewardRows = annotatedRewards.map((row) => [
-    dateCell(row.p.ts || row.p.time || row.p.timestamp),
+    dateCell(recordTimestamp(row.p)),
     dateCell(row.p.ts_found || row.p.found || row.p.ts || row.p.timestamp),
     blockRewardValueCell(row.p.value ?? row.p.xmr ?? 0, 8, row.s),
     blockRewardValueCell(row.p.value_percent ?? row.p.percent ?? 0, 8, row.s),
@@ -310,7 +307,7 @@ function walletBlockRewardsPanel(address, pool, graphWindow, graphMode, workerSo
 const BLOCK_REWARD_DETAIL_RETENTION_SECONDS = 2 * 24 * 60 * 60;
 const STALE_BLOCK_REWARD_TITLE = "Old block detail likely DB-pruned; credited rewards are OK.";
 
-function annotateBlockRewards(blockRewards, now = Date.now()) {
+export function annotateBlockRewards(blockRewards, now = Date.now()) {
   // Backend block-balance detail is retained briefly. A trailing run of old
   // zero rows can mean detail was pruned rather than that the wallet got exactly
   // zero reward; mark only that stale tail so fresh zero rewards remain normal
@@ -318,7 +315,7 @@ function annotateBlockRewards(blockRewards, now = Date.now()) {
   const annotated = blockRewards.map((pay) => {
     const amount = Number(pay.value ?? pay.xmr ?? 0);
     const share = Number(pay.value_percent ?? pay.percent ?? 0);
-    const payTime = normalizeTimestampSeconds(pay.ts || pay.time || pay.timestamp);
+    const payTime = normalizeTimestampSeconds(recordTimestamp(pay));
     const isOld = payTime > 0 && now / 1000 - payTime > BLOCK_REWARD_DETAIL_RETENTION_SECONDS;
     return { p: pay, n: amount !== 0 || share !== 0, o: isOld, s: false };
   });
@@ -331,7 +328,7 @@ function annotateBlockRewards(blockRewards, now = Date.now()) {
   return annotated;
 }
 
-function blockRewardValueCell(value, digits, stalePruned) {
+export function blockRewardValueCell(value, digits, stalePruned) {
   const number = Number(value);
   const text = formatNumber(number, digits);
   if (number !== 0) return text;
@@ -344,8 +341,7 @@ function walletPaymentTable(title, headings, rows, controls) {
 }
 
 function walletWithdrawalControls(address, graphWindow, graphMode, workerSort, workerDir, graphDetails, page, limit, rowCount, totalCount, blockRewardPage, blockRewardLimit) {
-  const pageCount = pageCountFor(totalCount, limit);
-  const hasNext = page < pageCount || (!totalCount && rowCount >= limit);
+  const { pageCount, hasNext } = pageBounds(totalCount, limit, page, rowCount);
   return walletPager("ww", page, limit, pageCount, hasNext, (nextPage, nextLimit) => walletPaymentRouteFor(address, WITHDRAWALS_TAB, graphWindow, graphMode, workerSort, workerDir, graphDetails, nextPage, nextLimit, blockRewardPage, blockRewardLimit), true, EXPLANATIONS.payoutPolicy);
 }
 
@@ -422,11 +418,11 @@ function paymentThresholdPanel(address, settings, payoutPolicy) {
 }
 
 function emailAlertsPanel(address, settings) {
-  const ee = Number(settings.email_enabled) === 1;
+  const emailEnabled = Number(settings.email_enabled) === 1;
   return `<section class="panel settings-grid">
     <form id="email-form" class="card settings-card" data-wallet-address="${escapeHtml(address)}" title="${EMAIL_ALERTS_HELP}">
       <div class="settings-row payout-row">
-        <button id=email-toggle class=state-button type=submit data-email-action=toggle data-email-enabled="${ee ? "0" : "1"}" aria-pressed="${ee}" title="${ee ? "Disable email alerts" : "Enable email alerts"}">Email alerts: ${ee ? "Enabled" : "Disabled"}</button>
+        <button id=email-toggle class=state-button type=submit data-email-action=toggle data-email-enabled="${emailEnabled ? "0" : "1"}" aria-pressed="${emailEnabled}" title="${emailEnabled ? "Disable email alerts" : "Enable email alerts"}">Email alerts: ${emailEnabled ? "Enabled" : "Disabled"}</button>
       </div>
       <label for="email-current">Current email</label>
       <input id=email-current type=email autocomplete=email placeholder=old@example.com>

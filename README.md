@@ -19,7 +19,7 @@ This branch refactors the old single-file dashboard into small ES modules under 
 - `style.css` - full UI styling, bundled and minified during build.
 - `script.js` - browser/build entry point that starts the app.
 - `src/` - application modules for API calls, routing, views, formatting, charting, state, preferences, setup helpers, and wallet logic.
-- `test/` - Node.js test suite.
+- `tests/` - Node.js and Playwright test suite.
 - `build.sh` - production build and deploy script.
 
 ## Development
@@ -46,7 +46,7 @@ The build script removes and recreates `build/`, bundles `script.js` with esbuil
 
 ## Compatibility
 
-The source now uses modern JavaScript modules during development and esbuild produces an ES2019 IIFE for deployment. The runtime UI has no third-party browser framework dependency.
+The source uses modern JavaScript modules during development and esbuild produces an ES2022 IIFE for deployment. The runtime UI has no third-party browser framework dependency.
 
 ## Contributors
 

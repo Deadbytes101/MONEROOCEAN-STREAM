@@ -1,5 +1,5 @@
 import { averageVisible, chartModel, filterWindow, isWithinPplnsWindow, pplnsWindowRect } from "../charts.js";
-import { formatDate, formatHashrate, normalizeTimestampSeconds } from "../format.js";
+import { formatDate, formatHashrate, isFiniteNumber, normalizeTimestampSeconds } from "../format.js";
 import { state } from "../state.js";
 import { escapeHtml } from "./common.js";
 import { attr, on, qs, qsa, tog } from "../dom.js";
@@ -13,7 +13,7 @@ export function chartHtml(model, line, raw, average, label, detail = "") {
   const pointData = escapeHtml(JSON.stringify(model.r.map((row) => ({ x: row.x, y: row.z, t: row.tme, v: row.v }))));
   const pplns = pplnsWindowRect(model, state.p);
   const pplnsRect = pplns ? `<rect class="pplns-window" x="${pplns.x.toFixed(1)}" width="${pplns.width.toFixed(1)}" height="${pplns.height}"></rect>` : "";
-  const detailLine = (Array.isArray(detail) ? detail : detail ? [detail] : []).map((line) => `<small>${escapeHtml(line)}</small>`).join("");
+  const detailLine = (Array.isArray(detail) ? detail : detail ? [detail] : []).map((text) => `<small>${escapeHtml(text)}</small>`).join("");
   return `<div class="chart-shell"><div class="y-axis">${scaleRows(model.n, model.x).map((value) => `<span>${formatHashrate(value)}</span>`).join("")}</div><div class="chart-area"><div class="chart-wrap"><div class="chart-overlay"><span class=chart-summary><span>Average ${formatHashrate(average)} · PPLNS ${formatHashrate(pplnsAverage(model))}</span>${detailLine}</span><span class=chart-readout>Point: move over graph</span></div><svg class="chart-svg hashrate-chart" viewBox="0 0 700 220" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(label)}" data-chart-points="${pointData}">${pplnsRect}<path class="raw-line" d="${raw}"></path><path class="smoothed-line" d="${line}"></path><line class="cursor-line cursor-vertical" x1="0" x2="0" y1="0" y2="220"></line><line class="cursor-line cursor-horizontal" x1="0" x2="700" y1="0" y2="0"></line></svg></div><div class="x-axis">${timeTicks(model.s, model.e).map((tick) => `<span>${escapeHtml(tick)}</span>`).join("")}</div></div></div>`;
 }
 
@@ -40,7 +40,7 @@ function chartPath(rows, smooth = false) {
     if (key === "z") {
       const previous = rows[index - 1];
       if (point.g || previous.g) return `L${point.x},${point.y}`;
-      const mid = (rows[index - 1].x + point.x) / 2;
+      const mid = (previous.x + point.x) / 2;
       return `C${mid},${point.z} ${mid},${point.z} ${point.x},${point.z}`;
     }
     return `L${point.x},${point.y}`;
@@ -63,6 +63,9 @@ function scaleRows(min, max) {
 
 function timeTicks(minTime, maxTime) {
   const ticks = 3;
+  // An empty point set yields non-finite bounds (Infinity/-Infinity); bail rather than
+  // render "Invalid Date" labels.
+  if (!isFiniteNumber(minTime) || !isFiniteNumber(maxTime)) return Array.from({ length: ticks }, () => "");
   const span = Math.max(1, maxTime - minTime);
   return Array.from({ length: ticks }, (_, index) => {
     const ts = minTime + span * (index / (ticks - 1));

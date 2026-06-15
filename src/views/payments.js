@@ -1,8 +1,8 @@
 import { api } from "../api.js";
-import { PAGE_SIZES, blockPageSize, pageCountFor, pageQuery, routePageNumber } from "../paging.js";
+import { PAGE_SIZES, blockPageSize, pageBounds, pageCountFor, pageQuery, routePageNumber } from "../paging.js";
 import { state } from "../state.js";
-import { atomicXmr, formatNumber } from "../format.js";
-import { dateCell, pageSizeSelect, pagerNav, paymentHashLink, tablePage } from "./common.js";
+import { formatNumber, recordTimestamp } from "../format.js";
+import { dateCell, formatAtomicXmrValue, pageSizeSelect, pagerNav, paymentHashLink, tablePage } from "./common.js";
 
 export async function paymentsView(route = state.r) {
   let page = routePageNumber(route.q?.page);
@@ -10,19 +10,19 @@ export async function paymentsView(route = state.r) {
   const pool = await api.poolStats();
   page = Math.min(page, pageCountFor(Number(pool.totalPayments) || 0, limit));
   const payments = await api.payments(page - 1, limit);
+  // Legacy payout rows carry the recipient count under `mixin`; newer rows use `payees`.
   const rows = (payments || []).map((pay) => [
-    dateCell(pay.ts || pay.time || pay.timestamp),
+    dateCell(recordTimestamp(pay)),
     formatNumber(pay.payees || pay.mixin || 0),
-    formatNumber(atomicXmr(pay.value ?? pay.amount ?? 0), 8),
-    formatNumber(atomicXmr(pay.fee || 0), 8),
+    formatAtomicXmrValue(pay.value ?? pay.amount ?? 0),
+    formatAtomicXmrValue(pay.fee || 0),
     paymentHashLink(pay.hash || pay.txHash)
   ]);
   return tablePage("", "", ["Sent time","Payees","Amount (XMR)","Fee (XMR)","Tx hash"], rows, paymentControls(page, limit, payments?.length || 0, Number(pool.totalPayments) || 0));
 }
 
 function paymentControls(page, limit, rowCount, totalCount = 0) {
-  const pageCount = pageCountFor(totalCount, limit);
-  const hasNext = page < pageCount || (!totalCount && rowCount >= limit);
+  const { pageCount, hasNext } = pageBounds(totalCount, limit, page, rowCount);
   return `<div class=block-controls>
     <span></span>
     <div class="page-tools">

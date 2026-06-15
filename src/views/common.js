@@ -3,8 +3,9 @@ import { PAGE_SIZES } from "../paging.js";
 import { atomicXmr, encodeUrlPart, escapeHtml, formatAge, formatDate, formatNumber, isFiniteNumber } from "../format.js";
 import { coinName } from "../pool.js";
 import { uptimeToneClass } from "../uptime.js";
+import { nextSortDirectionForKey } from "../table-sort.js";
 
-const EXTERNAL_LINK = "rel=noopener target=_blank";
+export const EXTERNAL_LINK = "rel=noopener target=_blank";
 
 export function skel(label = "Loading") {
   return `<div class=skeleton role=status aria-label="${escapeHtml(label)}"><span class=skeleton-text aria-hidden=true>${glyphLines()}</span></div>`;
@@ -149,6 +150,12 @@ export function blockRewardAmountCell(label, unlocked) {
 
 export function optionMarkup(options, selected = "") {
   return options.map(([value, text]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(text)}</option>`).join("");
+}
+
+export function sortableHeading(label, key, active, direction, firstDirection, hrefFor) {
+  const next = nextSortDirectionForKey(active, direction, key, firstDirection);
+  const arrow = active === key ? (direction === "asc" ? " ↑" : " ↓") : "";
+  return { html: `<a class="sortable" href="${hrefFor(key, next)}">${cellHtml(label)}${escapeHtml(arrow)}</a>` };
 }
 
 export { escapeHtml };

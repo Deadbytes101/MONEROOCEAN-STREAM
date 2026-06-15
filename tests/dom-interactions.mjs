@@ -209,7 +209,7 @@ test.describe("DOM interactions and controls", { concurrency: false }, () => {
     input.value = "2";
     const unit = el("select", { id: "cu" });
     unit.value = "kh";
-    const form = el("form", { id: "calc-form", "data-profit-per-hash": "0.00000008", "data-price": "400", "data-fiat-code": "USD" }, [input, unit]);
+    const form = el("form", { id: "calc-form", "data-profit-per-hash": "0.00000008", "data-price": "400", "data-fiat-label": "USD" }, [input, unit]);
     const xmr = el("span", { class: "xmr-output", "data-period": "1" });
     const fiat = el("span", { class: "fiat-output", "data-period": "1" });
     document.body.append(form, xmr, fiat);

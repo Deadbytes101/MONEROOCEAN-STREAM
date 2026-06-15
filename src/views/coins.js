@@ -3,8 +3,8 @@ import { EXPLANATIONS, XMR_PORT } from "../constants.js";
 import { formatHashrate, formatNumber, formatPercent, formatTinyPercent } from "../format.js";
 import { coinHashScalar, coinStatsRows, effortPercent, worldHashrateForPort } from "../pool.js";
 import { state } from "../state.js";
-import { nextSortDirectionForKey, sortDirection, sortRows } from "../table-sort.js";
-import { cellHtml, chipLink, coinCell, escapeHtml, explorerHeightLink, tablePage } from "./common.js";
+import { sortDirection, sortRows } from "../table-sort.js";
+import { cellHtml, chipLink, coinCell, escapeHtml, explorerHeightLink, sortableHeading, tablePage } from "./common.js";
 import { blockRoute, effortCell } from "./blocks.js";
 
 const COIN_COLUMNS = [
@@ -98,10 +98,7 @@ function coinHeadings(active, direction, showIssues, hideDisabled) {
 }
 
 function sortableCoinHeading(label, key, active, direction, showIssues, hideDisabled) {
-  const selected = active === key;
-  const next = nextSortDirectionForKey(active, direction, key, COIN_TEXT_SORT_KEYS);
-  const arrow = selected ? (direction === "asc" ? " ↑" : " ↓") : "";
-  return { html: `<a class="sortable" href="${coinsRoute(key, next, showIssues, hideDisabled)}">${cellHtml(label)}${escapeHtml(arrow)}</a>` };
+  return sortableHeading(label, key, active, direction, COIN_TEXT_SORT_KEYS, (sortKey, next) => coinsRoute(sortKey, next, showIssues, hideDisabled));
 }
 
 function coinsRoute(sortable, dir, showIssues = false, hideDisabled = false) {

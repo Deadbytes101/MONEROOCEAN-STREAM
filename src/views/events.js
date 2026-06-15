@@ -101,8 +101,9 @@ function bindCalcEvents() {
   on(form, "submit", (event) => event.preventDefault());
   const update = () => {
     const phDay = Number(form.dataset.profitPerHash);
-    const price = Number(form.dataset.price);
-    const fiatLabel = form.dataset.fiatCode || "USD";
+    // An empty data-price means the API gave no price; keep it non-finite (Number("") is 0).
+    const price = form.dataset.price === "" ? NaN : Number(form.dataset.price);
+    const fiatLabel = form.dataset.fiatLabel || "USD";
     const rows = calcRowsForDisplay(hashrate.value, unit.value, phDay, price, fiatLabel);
     qsa(".xmr-output").forEach((node) => {
       const row = rows.find((item) => String(item.days) === node.dataset.period);
@@ -136,7 +137,7 @@ function bindLocalHistoryControls() {
   });
 }
 
-function bindPageInput(selector, routeForPage) {
+function bindPageInput(selector, routeFor) {
   const input = qs(selector);
   if (!input) return;
   const go = () => {
@@ -144,7 +145,7 @@ function bindPageInput(selector, routeForPage) {
     const max = input.hasAttribute("max") ? Number(input.max) || 1 : Infinity;
     if (!isFiniteNumber(value) || value < 1) return;
     const page = Math.max(1, Math.floor(value));
-    location.hash = routeForPage(isFiniteNumber(max) ? Math.min(max, page) : page);
+    location.hash = routeFor(isFiniteNumber(max) ? Math.min(max, page) : page);
   };
   on(input, "change", go);
   on(input, "keydown", (event) => {

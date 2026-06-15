@@ -47,13 +47,15 @@ export function calcRowsForDisplay(value, unit, phDay, price, fiatLabel) {
       label,
       days,
       xmr: isFiniteNumber(xmr) ? xmr : 0,
-      fiat: isFiniteNumber(xmr) && isFiniteNumber(price) ? xmr * price : null,
+      // NaN (not null/0) marks an unavailable fiat value so formatFiat renders "--".
+      fiat: isFiniteNumber(xmr) && isFiniteNumber(price) ? xmr * price : NaN,
       fiatLabel
     };
   });
 }
 
 export function formatFiat(value, code = "USD") {
+  if (value === null || value === "") return "--";
   const number = Number(value);
   if (!isFiniteNumber(number)) return "--";
   return number.toLocaleString("en-US", { style: "currency", currency: code.toUpperCase(), maximumFractionDigits: number >= 1 ? 2 : 4 });
