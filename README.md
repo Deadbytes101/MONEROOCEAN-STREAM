@@ -1,10 +1,28 @@
-# MoneroOcean Pool UI
+<div align="center">
 
-MoneroOcean Pool UI is a static dashboard for the MoneroOcean mining pool. It talks directly to the public MoneroOcean pool API, lets miners inspect pool and wallet state, and keeps the deployed surface to three files: `index.html`, `script.js`, and `style.css`.
+# mo-pool-ui
 
-This branch refactors the old single-file dashboard into small ES modules under `src/`, with `script.js` kept as the stable browser and build entry point. The production build bundles the modules back into `build/script.js`, minifies CSS, and adds a git-based cache key to the generated HTML.
+Static, framework-free web dashboard for the MoneroOcean mining pool.
 
-## Current Features
+<p>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A522.9-brightgreen.svg" alt="Node >=22.9">
+  <img src="https://img.shields.io/badge/platform-browser-lightgrey.svg" alt="Platform: browser">
+  <img src="https://img.shields.io/badge/focus-frontend-d29922.svg" alt="Focus: frontend">
+  <a href="https://github.com/MoneroOcean"><img src="https://img.shields.io/badge/MoneroOcean-ecosystem-6f42c1.svg" alt="MoneroOcean ecosystem"></a>
+</p>
+
+</div>
+
+## Overview
+
+mo-pool-ui is a static dashboard for the MoneroOcean mining pool. It talks directly to the public MoneroOcean pool API, lets miners inspect pool and wallet state, and keeps the deployed surface to three files: `index.html`, `script.js`, and `style.css`.
+
+Internally the dashboard is split into small ES modules under `src/`, with `script.js` kept as the stable browser and build entry point. The production build bundles those modules back into `build/script.js`, minifies CSS, and adds a git-based cache key to the generated HTML.
+
+The UI is the frontend companion to [nodejs-pool](https://github.com/MoneroOcean/nodejs-pool), the pool backend whose API it consumes. It has no third-party browser framework dependency.
+
+## Features
 
 - Pool overview, coin list, blocks, payments, uptime, and profit calculator views.
 - Wallet dashboard with workers, hashrate charts, block rewards, payout history, and wallet settings helpers.
@@ -13,28 +31,31 @@ This branch refactors the old single-file dashboard into small ES modules under 
 - Local display preferences for theme and explanatory text.
 - Focused Node.js tests for routing, formatting, wallet behavior, setup output, scheduler behavior, build invariants, and pool-specific calculations.
 
-## Project Layout
+## Architecture
 
-- `index.html` - static shell and crawler-visible metadata.
-- `style.css` - full UI styling, bundled and minified during build.
-- `script.js` - browser/build entry point that starts the app.
-- `src/` - application modules for API calls, routing, views, formatting, charting, state, preferences, setup helpers, and wallet logic.
-- `tests/` - Node.js and Playwright test suite.
-- `build.sh` - production build and deploy script.
+| Path | Role |
+| --- | --- |
+| `index.html` | Static shell and crawler-visible metadata. |
+| `style.css` | Full UI styling, bundled and minified during build. |
+| `script.js` | Browser/build entry point that starts the app (`startApp` from `src/main.js`). |
+| `src/` | Application modules: API calls, routing, views, formatting, charting, state, preferences, setup helpers, and wallet logic. |
+| `src/views/` | Rendered page views. |
+| `src/styles/` | Style sources used by the build. |
+| `tests/` | Node.js test suite plus Playwright end-to-end tests. |
+| `scripts/build-static.sh` | Static bundling helper. |
+| `build.sh` | Production build and deploy script. |
 
-## Development
+The source uses modern JavaScript modules during development, and esbuild produces an ES2022 IIFE for deployment.
 
-Install dependencies:
+## Install
 
 ```sh
 npm install
 ```
 
-Run tests:
+Requires Node.js `>=22.9.0` and npm `>=11.10.0` (see `engines` in `package.json`).
 
-```sh
-npm test
-```
+## Usage
 
 Build and deploy to `/var/www/mo-pool-ui`:
 
@@ -44,9 +65,28 @@ npm run build
 
 The build script removes and recreates `build/`, bundles `script.js` with esbuild, bundles `style.css`, rewrites cache-busted asset URLs in `build/index.html`, runs the test suite, and copies the result to `/var/www/mo-pool-ui`.
 
-## Compatibility
+To produce only the static bundle without deploying:
 
-The source uses modern JavaScript modules during development and esbuild produces an ES2022 IIFE for deployment. The runtime UI has no third-party browser framework dependency.
+```sh
+npm run build:static
+```
+
+## Testing
+
+```sh
+npm test
+```
+
+Runs the Node.js unit and integration suite (`tests/all.mjs`) using the built-in `node --test` runner with a single-concurrency spec reporter.
+
+Additional targets:
+
+```sh
+npm run test:unit   # focused Node.js unit suite
+npm run test:e2e    # builds the static bundle, then runs Playwright e2e tests
+```
+
+The end-to-end target builds the static output first and drives a real browser via Playwright, so it requires the Playwright browser binaries to be installed (`npx playwright install`) and is heavier than the default unit run.
 
 ## Contributors
 
@@ -62,3 +102,21 @@ The source uses modern JavaScript modules during development and esbuild produce
 This UI is based on MoneroOcean's legacy `moneroocean-gui`, which was forked from `M5M400/supportxmr-gui`. It is designed for MoneroOcean's `nodejs-pool` API, whose history traces through Snipa22's `nodejs-pool`, Mesh00's AngularJS `poolui` / XMRPoolUI frontend, and Zone117x's original `node-cryptonote-pool`.
 
 Based on work of [Thunderosa](https://github.com/Thunderosa) and [mesh0000](https://github.com/mesh0000).
+
+## MoneroOcean ecosystem
+
+| Component | Role |
+| --- | --- |
+| [nodejs-pool](https://github.com/MoneroOcean/nodejs-pool) | Pool backend — stratum, share storage, payments |
+| [mo-pool-ui](https://github.com/MoneroOcean/mo-pool-ui) | Static web frontend for the pool |
+| [xmr-node-proxy](https://github.com/MoneroOcean/xmr-node-proxy) | Stratum proxy / share aggregator |
+| [mo-miner](https://github.com/MoneroOcean/mo-miner) | MoneroOcean end-user CPU/GPU mining client (multi-algo) |
+| [multi-miner](https://github.com/MoneroOcean/multi-miner) | Multi-algo miner manager |
+| [node-powhash](https://github.com/MoneroOcean/node-powhash) | Native multi-algo PoW hashing addon |
+| [node-randomx](https://github.com/MoneroOcean/node-randomx) | Native RandomX hashing addon |
+| [node-blocktemplate](https://github.com/MoneroOcean/node-blocktemplate) | Native block-template & serialization addon |
+| [grpc-json-proxy](https://github.com/MoneroOcean/grpc-json-proxy) | gRPC ↔ JSON-RPC proxy (Tari base node) |
+
+## License
+
+MIT — see [LICENSE](LICENSE).
