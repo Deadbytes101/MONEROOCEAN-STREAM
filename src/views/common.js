@@ -16,7 +16,7 @@ function glyphLines() {
   // Generate matrix-like crawl text instead of shipping a long hard-coded art
   // string. The animation cares about motion and density, not exact characters,
   // and random base36 chunks keep the source and build smaller.
-  const run = length => Math.random().toString(36).slice(2, length + 2).toUpperCase();
+  const run = (length) => Math.random().toString(36).slice(2, length + 2).toUpperCase();
   for (let index = 0; index < 4; index += 1) html += `<span>${run(2)}/${run(4)} :: ${run(6)}-${run(4)} ${run(4)}</span>`;
   return html;
 }
