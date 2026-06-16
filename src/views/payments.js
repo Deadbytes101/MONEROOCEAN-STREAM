@@ -8,7 +8,8 @@ export async function paymentsView(route = state.r) {
   let page = routePageNumber(route.q?.page);
   const limit = blockPageSize(route.q?.limit);
   const pool = await api.poolStats();
-  page = Math.min(page, pageCountFor(Number(pool.totalPayments) || 0, limit));
+  const totalPayments = Number(pool.totalPayments) || 0;
+  page = Math.min(page, pageCountFor(totalPayments, limit));
   const payments = await api.payments(page - 1, limit);
   // Legacy payout rows carry the recipient count under `mixin`; newer rows use `payees`.
   const rows = (payments || []).map((pay) => [
@@ -18,7 +19,7 @@ export async function paymentsView(route = state.r) {
     formatAtomicXmrValue(pay.fee || 0),
     paymentHashLink(pay.hash || pay.txHash)
   ]);
-  return tablePage("", "", ["Sent time","Payees","Amount (XMR)","Fee (XMR)","Tx hash"], rows, paymentControls(page, limit, payments?.length || 0, Number(pool.totalPayments) || 0));
+  return tablePage("", "", ["Sent time","Payees","Amount (XMR)","Fee (XMR)","Tx hash"], rows, paymentControls(page, limit, payments?.length || 0, totalPayments));
 }
 
 function paymentControls(page, limit, rowCount, totalCount = 0) {
