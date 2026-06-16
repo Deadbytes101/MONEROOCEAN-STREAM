@@ -158,7 +158,7 @@ export function setupConfiguredPorts(source = []) {
       // (20001 for 10001). targetHashrate derives from share difficulty: /10 global, /30 configured.
       const rawPort = Number(row.port);
       const port = global && rawPort === 80 ? 10001 : rawPort;
-      const tlsPort = global ? port === 10001 ? 20001 : port + 10000 : Number(row.tlsPort);
+      const tlsPort = global ? port + 10000 : Number(row.tlsPort);
       const difficulty = Number(row.difficulty);
       const targetHashrate = Number(row.targetHashrate) || (isFiniteNumber(difficulty) && difficulty > 0 ? difficulty / (global ? 10 : 30) : 0);
       return {
