@@ -22,7 +22,7 @@ export function svgLine(points, key, width = 700, height = 220, smooth = false) 
   const bounds = chartBounds(points, key);
   const rows = points.map((point) => {
     const x = ((point.tme - bounds.minTime) / bounds.span) * width;
-    const y = chartY(Number(point[key]) || 0, bounds.min, bounds.max, height);
+    const y = chartY(Number(point[key]) || 0, bounds.min, bounds.max);
     return { x, y };
   });
   if (smooth && rows.length > 2) return smoothLine(rows);
