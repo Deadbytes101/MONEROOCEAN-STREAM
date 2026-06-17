@@ -1,79 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HEIGHT_EXPLORERS, DONATION_XMR, GRAPH_WINDOWS, EXPLANATIONS } from "../src/constants.js";
-import { averageVisible, chartModel, filterWindow, graphWindow, isWithinPplnsWindow, pplnsWindowRect, svgLine } from "../src/charts.js";
-import { atomicXmr, escapeHtml, formatAge, formatHashrate, formatNumber, formatPercent, formatTinyPercent, normalizeTimestampSeconds, shortAddress, trimFixed } from "../src/format.js";
+import { escapeHtml, formatHashrate, formatNumber, formatPercent, shortAddress, trimFixed } from "../src/format.js";
 import { setTitle, updateCanonical } from "../src/seo.js";
-import { averageBlockEffort, blockCoinPort, blockEffortPercent, coinAtomicUnits, coinBlockCount, coinHashScalar, coinName, coinProfitValue, coinStatsRows, effortTone, topCoinPort, currentEffort, effortPercent, hasBlockHistory, worldHashrateForPort } from "../src/pool.js";
 import { appendWallet, loadWatchlist, localHistoryEnabled, rmWallet, saveWallet, setConsent, shouldAskConsent } from "../src/privacy.js";
 import { isXmrAddress, parseRoute, routeCoinId, walletRoute } from "../src/routes.js";
-import { RefreshScheduler } from "../src/scheduler.js";
-import { setupAddress, setupAlgoOptions, setupConfiguredPorts, setupHashrateDefaults, setupHashrateToHps, setupPlan, setupProfileOptions } from "../src/setup.js";
-import { api, endpointKey, minerEndpoint, POOL_CHART, WALLET_CHART, WALLET_WORKER_CHARTS } from "../src/api.js";
-import { state } from "../src/state.js";
-import { hasColdGraphLoad, isSameViewNavigation, isStaticRoute, shouldScrollToTop, shouldShowLoading } from "../src/render-policy.js";
 import { clearPreferenceStorage, parseCookieValue, readPreferences, saveExplanations, saveTheme, toggleExplanations, toggleTheme } from "../src/preferences.js";
-import { summarizeUptimeRobot } from "../src/uptime.js";
 import { blockPageSize, MAX_ROUTE_PAGE, pageBounds, pageCountFor, pageQuery, routePageNumber } from "../src/paging.js";
 import { compareValues, nextSortDirection, nextSortDirectionForKey, sortDirection, sortRows } from "../src/table-sort.js";
-import { compactWorkerRows, sortWorkerListRows, sortWorkerRows, trackWalletState, workerDisplayMode, workerGraphColumns, workerListSortMode, workerSortDirection, workerSortMode, workerStatus } from "../src/wallet.js";
-import { formatPayoutThresholdInput, normalizePayoutThreshold, payoutFeeEstimate, payoutFeeText, payoutPolicyFromConfig, payoutThresholdFromAtomic, validatePayoutThreshold } from "../src/settings.js";
 import { calcProfitRows, fiatForTimezone, formatFiat, hashrateFromInput, hashrateInputFromHashrate } from "../src/calc.js";
 import { dismissMotd, normalizeMotd, resetMotdDismissalsForTest, shouldShowMotd } from "../src/motd.js";
-import { blockPaymentStage, blockRoute, blocksView } from "../src/views/blocks.js";
-import { walletRouteWithGraph, lastShareAgeSuffix, walletWorkersSection, workerList as walletWorkerList } from "../src/views/wallet.js";
-import { chartHtml, normalizeGraph } from "../src/views/charts.js";
-import { skel } from "../src/views/common.js";
-import { referencePortSummary } from "../src/views/help.js";
-import { homeView, walletTrackButtonLabel } from "../src/views/home.js";
-import { poolDashboard } from "../src/views/pool-dashboard.js";
-import { coinsView } from "../src/views/coins.js";
-import { paymentsView, paymentRoute } from "../src/views/payments.js";
-
-const TEST_POLICY = payoutPolicyFromConfig({
-  payout_policy: {
-    minimumThreshold: 0.003,
-    defaultThreshold: 0.3,
-    denomination: 0.0001,
-    feeFormula: { maxFee: 0.0004, zeroFeeThreshold: 4 }
-  }
-});
-
-const TEST_PORTS = setupConfiguredPorts({
-  configured: [
-    { port: 10002, tlsPort: 20002, difficulty: 20_000, targetHashrate: 700, description: "Small CPU" },
-    { port: 10008, tlsPort: 20008, difficulty: 80_000, targetHashrate: 2500, description: "Desktop CPU" },
-    { port: 10016, tlsPort: 20016, difficulty: 160_000, targetHashrate: 5000, description: "Fast CPU" },
-    { port: 18192, tlsPort: 28192, difficulty: 81_920_000, targetHashrate: 1_000_000, description: "Proxy/farm" }
-  ]
-});
-
-function setupPlanWithPorts(options = {}) {
-  return setupPlan({ ...options, ports: options.ports || TEST_PORTS });
-}
-
-function setupCommandWithPorts(options = {}) {
-  return setupPlanWithPorts(options).plainRunCommand;
-}
-
-function assertPackageInstallFirst(command, label) {
-  if (!/(?:sudo apt-get install|brew install)/.test(command)) return;
-  assert.match(command, /^(?:sudo apt-get install|brew install)/, label);
-}
-
-function internalHrefs(html) {
-  return [...String(html).matchAll(/\bhref="(#[^"]+)"/g)].map((match) => match[1]);
-}
-
-function assertInternalLinksResolve(html, label, { allowHome = false } = {}) {
-  const hrefs = internalHrefs(html);
-  assert.ok(hrefs.length > 0, `${label} should expose internal links`);
-  for (const href of hrefs) {
-    const route = parseRoute(href);
-    if (!allowHome && href !== "#/") assert.notEqual(route.n, "home", `${label} generated unresolved route ${href}`);
-    assert.equal(route.p.startsWith("#/"), true, `${label} route ${href} must have canonical hash`);
-  }
-}
+import { walletTrackButtonLabel } from "../src/views/home.js";
 
 function routePublicShape(route) {
   const shape = { n: route.n, p: route.p, q: route.q };
@@ -81,19 +17,6 @@ function routePublicShape(route) {
   if (route.t !== undefined) shape.t = route.t;
   if (route.c !== undefined) shape.c = route.c;
   return shape;
-}
-
-async function withApiStubs(stubs, callback) {
-  const originals = new Map();
-  for (const [name, value] of Object.entries(stubs)) {
-    originals.set(name, api[name]);
-    api[name] = value;
-  }
-  try {
-    return await callback();
-  } finally {
-    for (const [name, value] of originals) api[name] = value;
-  }
 }
 
 const LINK_TEST_POOL = {
@@ -111,14 +34,6 @@ const LINK_TEST_POOL = {
     18148: { port: 18148, symbol: "XTM", displayName: "XTM-C", algo: "c29", profit: 0.6, pplnsShare: 0.05, active: true, exchangeConfigured: true, hashrate: 100, miners: 1, blockTime: 120, atomicUnits: 1000000, altBlocksFound: 2 },
     9998: { port: 9998, symbol: "RTM", displayName: "Raptoreum", algo: "ghostrider", profit: 0.5, pplnsShare: 0.3, active: false, exchangeConfigured: false, disabledReason: "no exchange", hashrate: 20000, miners: 1, blockTime: 60, atomicUnits: 100000000, altBlocksFound: 2 }
   }
-};
-
-const LINK_TEST_NETWORK = {
-  18081: { difficulty: 240000, time: 120, height: 3000 },
-  18144: { difficulty: 180000, time: 120, height: 7000 },
-  18146: { difficulty: 160000, time: 120, height: 7000 },
-  18148: { difficulty: 140000, time: 120, height: 7000 },
-  9998: { difficulty: 120000, time: 60, height: 9000 }
 };
 
 test.describe("core routing, privacy, and preferences", { concurrency: false }, () => {

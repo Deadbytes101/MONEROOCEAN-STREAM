@@ -47,10 +47,9 @@ export default [
       globals: { ...globals.node, ...globals.browser }
     },
     rules: {
-      // Test files intentionally import the full module surface for coverage,
-      // so a large number of imports are unused per file. Keep the rule strict
-      // for first-party src/ code and relax it for tests only.
-      "no-unused-vars": "off"
+      // Strict like the rest of the repo. The underscore-ignore convention
+      // (argsIgnorePattern/varsIgnorePattern "^_") still applies.
+      "no-unused-vars": unusedVars
     }
   },
   {

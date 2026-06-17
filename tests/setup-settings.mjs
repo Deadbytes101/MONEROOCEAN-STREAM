@@ -1,33 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HASH_EXPLORERS, COIN_HEIGHT_EXPLORERS, DONATION_XMR, GRAPH_WINDOWS, EXPLANATIONS } from "../src/constants.js";
-import { averageVisible, chartModel, filterWindow, graphWindow, isWithinPplnsWindow, pplnsWindowRect, svgLine } from "../src/charts.js";
-import { atomicXmr, formatAge, formatHashrate, formatTinyPercent, normalizeTimestampSeconds } from "../src/format.js";
-import { averageBlockEffort, blockCoinPort, blockEffortPercent, coinAtomicUnits, coinBlockCount, coinHashScalar, coinName, coinProfitValue, coinStatsRows, effortTone, topCoinPort, currentEffort, effortPercent, hasBlockHistory, worldHashrateForPort } from "../src/pool.js";
-import { appendWallet, loadWatchlist, localHistoryEnabled, setConsent, shouldAskConsent } from "../src/privacy.js";
-import { isXmrAddress, parseRoute, routeCoinId } from "../src/routes.js";
-import { RefreshScheduler } from "../src/scheduler.js";
+import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HASH_EXPLORERS, COIN_HEIGHT_EXPLORERS, DONATION_XMR, EXPLANATIONS } from "../src/constants.js";
+import { effortPercent } from "../src/pool.js";
 import { setupAddress, setupAlgoOptions, setupConfiguredPorts, setupHashrateDefaults, setupHashrateToHps, setupPlan, setupProfileOptions } from "../src/setup.js";
-import { api, endpointKey, minerEndpoint, POOL_CHART, WALLET_CHART, WALLET_WORKER_CHARTS } from "../src/api.js";
-import { state } from "../src/state.js";
-import { hasColdGraphLoad, isSameViewNavigation, isStaticRoute, shouldScrollToTop, shouldShowLoading } from "../src/render-policy.js";
-import { clearPreferenceStorage, parseCookieValue, readPreferences, saveExplanations, saveTheme, toggleExplanations, toggleTheme } from "../src/preferences.js";
+import { endpointKey } from "../src/api.js";
 import { summarizeUptimeRobot, uptimeToneClass, UNKNOWN_UPTIME } from "../src/uptime.js";
-import { blockPageSize, MAX_ROUTE_PAGE, pageCountFor, routePageNumber } from "../src/paging.js";
-import { nextSortDirection, nextSortDirectionForKey, sortDirection, sortRows } from "../src/table-sort.js";
-import { compactWorkerRows, sortWorkerListRows, sortWorkerRows, trackWalletState, workerDisplayMode, workerGraphColumns, workerListSortMode, workerSortDirection, workerSortMode, workerStatus } from "../src/wallet.js";
+import { sortWorkerRows, trackWalletState, workerSortDirection, workerSortMode } from "../src/wallet.js";
 import { formatPayoutThresholdInput, normalizePayoutPolicy, normalizePayoutThreshold, payoutFeeEstimate, payoutFeeText, payoutPolicyFromConfig, payoutThresholdFromAtomic, validatePayoutThreshold } from "../src/settings.js";
-import { calcProfitRows, fiatForTimezone, formatFiat, hashrateFromInput, hashrateInputFromHashrate } from "../src/calc.js";
-import { dismissMotd, normalizeMotd, resetMotdDismissalsForTest, shouldShowMotd } from "../src/motd.js";
-import { blockPaymentStage, blockRoute, blocksView } from "../src/views/blocks.js";
-import { walletRouteWithGraph, lastShareAgeSuffix, walletWorkersSection, workerList as walletWorkerList } from "../src/views/wallet.js";
-import { chartHtml, normalizeGraph } from "../src/views/charts.js";
-import { skel } from "../src/views/common.js";
+import { walletWorkersSection } from "../src/views/wallet.js";
 import { referencePortList, referencePortSummary } from "../src/views/help.js";
-import { homeView, walletTrackButtonLabel } from "../src/views/home.js";
-import { poolDashboard } from "../src/views/pool-dashboard.js";
-import { coinsView } from "../src/views/coins.js";
-import { paymentsView, paymentRoute } from "../src/views/payments.js";
 
 const TEST_POLICY = payoutPolicyFromConfig({
   payout_policy: {
@@ -66,52 +47,6 @@ function setupRunCommands(plan) {
     .filter(Boolean)
     .join("\n");
 }
-
-function internalHrefs(html) {
-  return [...String(html).matchAll(/\bhref="(#[^"]+)"/g)].map((match) => match[1]);
-}
-
-function assertInternalLinksResolve(html, label, { allowHome = false } = {}) {
-  const hrefs = internalHrefs(html);
-  assert.ok(hrefs.length > 0, `${label} should expose internal links`);
-  for (const href of hrefs) {
-    const route = parseRoute(href);
-    if (!allowHome && href !== "#/") assert.notEqual(route.n, "home", `${label} generated unresolved route ${href}`);
-    assert.equal(route.p.startsWith("#/"), true, `${label} route ${href} must have canonical hash`);
-  }
-}
-
-async function withApiStubs(stubs, callback) {
-  const originals = new Map();
-  for (const [name, value] of Object.entries(stubs)) {
-    originals.set(name, api[name]);
-    api[name] = value;
-  }
-  try {
-    return await callback();
-  } finally {
-    for (const [name, value] of originals) api[name] = value;
-  }
-}
-
-const LINK_TEST_POOL = {
-  miners: 4,
-  hashRate: 220000,
-  totalPayments: 42,
-  totalBlocksFound: 3,
-  pplnsWindowTime: 7200,
-  currentEfforts: { 18081: 72, 9998: 125 },
-  minBlockRewards: { 18081: 600000000000, 9998: 200000000 },
-  coins: {
-    18081: { port: 18081, symbol: "XMR", displayName: "XMR", algo: "rx/0", profit: 1, pplnsShare: 0.7, active: true, exchangeConfigured: true, hashrate: 200000, miners: 3, blockTime: 120, atomicUnits: 1000000000000 },
-    9998: { port: 9998, symbol: "RTM", displayName: "Raptoreum", algo: "ghostrider", profit: 0.5, pplnsShare: 0.3, active: false, exchangeConfigured: false, disabledReason: "no exchange", hashrate: 20000, miners: 1, blockTime: 60, atomicUnits: 100000000, altBlocksFound: 2 }
-  }
-};
-
-const LINK_TEST_NETWORK = {
-  18081: { difficulty: 240000, time: 120, height: 3000 },
-  9998: { difficulty: 120000, time: 60, height: 9000 }
-};
 
 test.describe("setup, settings, uptime, and copy", { concurrency: false }, () => {
   test("setup output and ports mapping include required miners and ports", () => {

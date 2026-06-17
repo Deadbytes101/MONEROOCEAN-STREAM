@@ -1,67 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HEIGHT_EXPLORERS, DONATION_XMR, GRAPH_WINDOWS, EXPLANATIONS } from "../src/constants.js";
+import { BLOCK_SHARE_DUMP_BASE, DONATION_XMR, GRAPH_WINDOWS, EXPLANATIONS } from "../src/constants.js";
 import { averageVisible, chartModel, filterWindow, graphWindow, isWithinPplnsWindow, pplnsWindowRect, svgLine } from "../src/charts.js";
 import { atomicXmr, formatAge, formatHashrate, formatTinyPercent, normalizeTimestampSeconds } from "../src/format.js";
 import { averageBlockEffort, blockCoinPort, blockEffortPercent, coinAtomicUnits, coinBlockCount, coinHashScalar, coinName, coinProfitValue, coinStatsRows, effortTone, topCoinPort, currentEffort, effortPercent, hasBlockHistory, worldHashrateForPort } from "../src/pool.js";
-import { appendWallet, loadWatchlist, localHistoryEnabled, setConsent, shouldAskConsent } from "../src/privacy.js";
-import { isXmrAddress, parseRoute, routeCoinId } from "../src/routes.js";
-import { RefreshScheduler } from "../src/scheduler.js";
-import { setupAddress, setupAlgoOptions, setupConfiguredPorts, setupHashrateDefaults, setupHashrateToHps, setupPlan, setupProfileOptions } from "../src/setup.js";
-import { api, endpointKey, minerEndpoint, POOL_CHART, WALLET_CHART, WALLET_WORKER_CHARTS } from "../src/api.js";
+import { parseRoute } from "../src/routes.js";
+import { api } from "../src/api.js";
 import { state } from "../src/state.js";
-import { hasColdGraphLoad, isSameViewNavigation, isStaticRoute, shouldScrollToTop, shouldShowLoading } from "../src/render-policy.js";
-import { clearPreferenceStorage, parseCookieValue, readPreferences, saveExplanations, saveTheme, toggleExplanations, toggleTheme } from "../src/preferences.js";
-import { summarizeUptimeRobot } from "../src/uptime.js";
-import { blockPageSize, MAX_ROUTE_PAGE, pageCountFor, routePageNumber } from "../src/paging.js";
-import { nextSortDirection, nextSortDirectionForKey, sortDirection, sortRows } from "../src/table-sort.js";
-import { compactWorkerRows, sortWorkerListRows, sortWorkerRows, trackWalletState, workerDisplayMode, workerGraphColumns, workerListSortMode, workerSortDirection, workerSortMode, workerStatus } from "../src/wallet.js";
-import { formatPayoutThresholdInput, normalizePayoutThreshold, payoutFeeEstimate, payoutFeeText, payoutPolicyFromConfig, payoutThresholdFromAtomic, validatePayoutThreshold } from "../src/settings.js";
-import { calcProfitRows, fiatForTimezone, formatFiat, hashrateFromInput, hashrateInputFromHashrate } from "../src/calc.js";
-import { dismissMotd, normalizeMotd, resetMotdDismissalsForTest, shouldShowMotd } from "../src/motd.js";
-import { blockPaymentStage, blockRoute, blocksView } from "../src/views/blocks.js";
+import { workerDisplayMode, workerGraphColumns } from "../src/wallet.js";
+import { blockRoute, blocksView } from "../src/views/blocks.js";
 import { walletRouteWithGraph, lastShareAgeSuffix, walletView, walletWorkersSection, workerList as walletWorkerList } from "../src/views/wallet.js";
 import { setupView } from "../src/views/setup.js";
 import { helpView } from "../src/views/help.js";
 import { chartHtml, hashrateChart, normalizeGraph } from "../src/views/charts.js";
 import { skel } from "../src/views/common.js";
-import { referencePortSummary } from "../src/views/help.js";
-import { homeView, walletTrackButtonLabel } from "../src/views/home.js";
+import { homeView } from "../src/views/home.js";
 import { poolDashboard } from "../src/views/pool-dashboard.js";
 import { coinsView } from "../src/views/coins.js";
 import { paymentsView, paymentRoute } from "../src/views/payments.js";
 import { calcView } from "../src/views/calc.js";
-
-const TEST_POLICY = payoutPolicyFromConfig({
-  payout_policy: {
-    minimumThreshold: 0.003,
-    defaultThreshold: 0.3,
-    denomination: 0.0001,
-    feeFormula: { maxFee: 0.0004, zeroFeeThreshold: 4 }
-  }
-});
-
-const TEST_PORTS = setupConfiguredPorts({
-  configured: [
-    { port: 10002, tlsPort: 20002, difficulty: 20_000, targetHashrate: 700, description: "Small CPU" },
-    { port: 10008, tlsPort: 20008, difficulty: 80_000, targetHashrate: 2500, description: "Desktop CPU" },
-    { port: 10016, tlsPort: 20016, difficulty: 160_000, targetHashrate: 5000, description: "Fast CPU" },
-    { port: 18192, tlsPort: 28192, difficulty: 81_920_000, targetHashrate: 1_000_000, description: "Proxy/farm" }
-  ]
-});
-
-function setupPlanWithPorts(options = {}) {
-  return setupPlan({ ...options, ports: options.ports || TEST_PORTS });
-}
-
-function setupCommandWithPorts(options = {}) {
-  return setupPlanWithPorts(options).plainRunCommand;
-}
-
-function assertPackageInstallFirst(command, label) {
-  if (!/(?:sudo apt-get install|brew install)/.test(command)) return;
-  assert.match(command, /^(?:sudo apt-get install|brew install)/, label);
-}
 
 function internalHrefs(html) {
   return [...String(html).matchAll(/\bhref="(#[^"]+)"/g)].map((match) => match[1]);

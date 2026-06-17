@@ -1,17 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatFiat } from "../src/calc.js";
-import { DONATION_XMR } from "../src/constants.js";
-import { formatXmr } from "../src/format.js";
 import { payoutPolicyFromConfig } from "../src/settings.js";
 import { api } from "../src/api.js";
 import { state } from "../src/state.js";
 import { setupConfiguredPorts } from "../src/setup.js";
 import { bindSettingsForms } from "../src/views/wallet.js";
 import { bindSetupEvents } from "../src/views/setup.js";
-import { bindChartHover } from "../src/views/charts.js";
-import { pagerNav } from "../src/views/common.js";
-import { applyPreferences, saveExplanations, saveTheme, toggleExplanations, toggleTheme } from "../src/preferences.js";
 
 class TestEvent {
   constructor(type, options = {}) {
@@ -200,8 +194,6 @@ function mediaMatches(query, width) {
   const min = query.match(/min-width:\s*(\d+)px/);
   return (!max || width <= Number(max[1])) && (!min || width >= Number(min[1]));
 }
-
-const VALID_WALLET = DONATION_XMR;
 
 async function bindViewEvents() {
   return (await import(`../src/views/events.js?interaction=${Date.now()}-${Math.random()}`)).bindViewEvents;
