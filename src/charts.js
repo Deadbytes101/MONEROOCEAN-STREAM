@@ -36,9 +36,9 @@ function smoothLine(rows) {
     if (!index) return `M${px},${py}`;
     const y = py += (point.y - py) * 0.2;
     const mid = (px + point.x) / 2;
-    path += ` C${mid},${y} ${mid},${y} ${point.x},${y}`;
+    const next = `${path} C${mid},${y} ${mid},${y} ${point.x},${y}`;
     px = point.x;
-    return path;
+    return next;
   }, "");
 }
 

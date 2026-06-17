@@ -189,8 +189,8 @@ test.describe("wallet workers and render policy", { concurrency: false }, () => 
     const now = 1_000_000 * 1000;
     const nowSec = now / 1000;
     const rewards = [
-      { ts: nowSec - 1 * day, value: 5, value_percent: 1 },
-      { ts: nowSec - 1 * day, value: 0, value_percent: 0 },
+      { ts: nowSec - day, value: 5, value_percent: 1 },
+      { ts: nowSec - day, value: 0, value_percent: 0 },
       { ts: nowSec - 3 * day, value: 0, value_percent: 0 },
       { ts: nowSec - 4 * day, value: 0, value_percent: 0 }
     ];

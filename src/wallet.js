@@ -48,13 +48,13 @@ export function sortWorkerListRows(workers, sortKey = "name", direction) {
 }
 
 export function compactWorkerRows(data, charts = {}, now = Date.now()) {
-  if (!data || typeof data !== "object") data = {};
-  if (!charts || typeof charts !== "object") charts = {};
+  const dataMap = (data && typeof data === "object") ? data : {};
+  const chartMap = (charts && typeof charts === "object") ? charts : {};
   const names = new Set([
-    ...Object.keys(data).filter((name) => name !== "global"),
-    ...Object.keys(charts).filter((name) => name !== "global")
+    ...Object.keys(dataMap).filter((name) => name !== "global"),
+    ...Object.keys(chartMap).filter((name) => name !== "global")
   ]);
-  return [...names].map((name) => compactWorkerRow(name, data[name], charts[name], now)).sort((a, b) => b.r - a.r || a.n.localeCompare(b.n));
+  return [...names].map((name) => compactWorkerRow(name, dataMap[name], chartMap[name], now)).sort((a, b) => b.r - a.r || a.n.localeCompare(b.n));
 }
 
 export function workerStatus(hasCurrent, currentHashrate, lastSeen, now = Date.now()) {
@@ -63,10 +63,10 @@ export function workerStatus(hasCurrent, currentHashrate, lastSeen, now = Date.n
   return now / 1000 - last > STALE_WORKER_SECONDS ? "Stale" : "Active";
 }
 
-function compactWorkerRow(name, stats, chartRows, now) {
+function compactWorkerRow(name, stats, chartSource, now) {
   const stat = latestWorkerStat(stats);
   const hasCurrent = Boolean(stat);
-  const chart = workerChartSummary(chartRows);
+  const chart = workerChartSummary(chartSource);
   const raw = statValue(stat?.row, stats, ["hsh", "hs", "hash"]);
   const xmr = statValue(stat?.row, stats, ["hsh2", "hs2", "hash2"]);
   const current = xmr || raw;

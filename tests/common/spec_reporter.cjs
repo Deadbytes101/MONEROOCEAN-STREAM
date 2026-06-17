@@ -21,7 +21,7 @@ class SpacedSpecReporter extends Transform {
     let output = "";
     let newlineIndex = this.pendingText.indexOf("\n");
     while (newlineIndex !== -1) {
-      let line = this.pendingText.slice(0, newlineIndex + 1);
+      const line = this.pendingText.slice(0, newlineIndex + 1);
       this.pendingText = this.pendingText.slice(newlineIndex + 1);
       output += this.rewriteLine(line);
       newlineIndex = this.pendingText.indexOf("\n");

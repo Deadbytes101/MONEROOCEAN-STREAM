@@ -172,11 +172,11 @@ function installDom({ width = 800 } = {}) {
   global.document = document;
   global.window = {
     innerWidth: width,
-    matchMedia: (query) => ({ matches: mediaMatches(query, width) })
+    matchMedia: (mediaQuery) => ({ matches: mediaMatches(mediaQuery, width) })
   };
   global.matchMedia = global.window.matchMedia;
   global.location = { hash: "#/" };
-  global.history = { replaceState: (state, title, url) => { global.location.hash = String(url); } };
+  global.history = { replaceState: (historyState, title, url) => { global.location.hash = String(url); } };
   Object.defineProperty(global, "navigator", {
     configurable: true,
     value: { clipboard: { writeText: (text) => { writes.push(text); return Promise.resolve(); } } }
@@ -189,9 +189,9 @@ function installDom({ width = 800 } = {}) {
   return { document, writes, storage };
 }
 
-function mediaMatches(query, width) {
-  const max = query.match(/max-width:\s*(\d+)px/);
-  const min = query.match(/min-width:\s*(\d+)px/);
+function mediaMatches(mediaQuery, width) {
+  const max = mediaQuery.match(/max-width:\s*(\d+)px/);
+  const min = mediaQuery.match(/min-width:\s*(\d+)px/);
   return (!max || width <= Number(max[1])) && (!min || width >= Number(min[1]));
 }
 

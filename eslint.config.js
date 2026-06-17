@@ -25,6 +25,26 @@ export default [
   },
   js.configs.recommended,
   {
+    // Stricter shared ruleset applied across all first-party linted files
+    // (frontend source, root scripts, and Node test/tooling code). Vendored,
+    // build, and ignored paths are excluded via the top-level `ignores`.
+    files: ["src/**/*.js", "script.js", "tests/**/*.mjs", "tests/**/*.cjs"],
+    rules: {
+      "no-throw-literal": "error",
+      "default-case-last": "error",
+      "no-unused-expressions": "error",
+      "no-var": "error",
+      "no-else-return": "error",
+      "prefer-const": "error",
+      "eqeqeq": ["error", "always", { "null": "ignore" }],
+      "no-implicit-coercion": "error",
+      "object-shorthand": "error",
+      "prefer-template": "error",
+      "no-shadow": "error",
+      "no-param-reassign": "error"
+    }
+  },
+  {
     // Frontend (browser) ESM source.
     files: ["src/**/*.js", "script.js"],
     languageOptions: {

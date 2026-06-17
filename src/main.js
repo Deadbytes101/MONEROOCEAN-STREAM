@@ -21,7 +21,7 @@ import { attr, byId, on, qs, qsa } from "./dom.js";
 const view = byId("view");
 const themeToggle = byId("theme-toggle");
 const commentsToggle = byId("comments-toggle");
-let preferences = readPreferences();
+const preferences = readPreferences();
 let lastRefreshAt = 0;
 
 const routeViews = {
