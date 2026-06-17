@@ -12,12 +12,15 @@
     "build:static": "./scripts/build-static.sh",
     "test:e2e": "npm run build:static && playwright test --config=tests/playwright.config.mjs",
     "test:all": "npm test",
-    "build": "./build.sh"
+    "build": "./build.sh",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "csso-cli": "^4.0.2",
     "esbuild": "^0.25.12",
+    "eslint": "^9.39.4",
+    "globals": "^17.6.0",
     "html-minifier-terser": "^7.2.0",
     "terser": "^5.46.2"
   },

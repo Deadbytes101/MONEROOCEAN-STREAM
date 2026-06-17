@@ -44,7 +44,7 @@ export class RefreshScheduler {
       await this.onTick();
       this.failures = 0;
       this.schedule(this.interval);
-    } catch (error) {
+    } catch (_error) {
       this.failures += 1;
       const backoff = Math.min(5 * 60_000, this.interval * this.failures);
       this.schedule(backoff);

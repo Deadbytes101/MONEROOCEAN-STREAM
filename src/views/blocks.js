@@ -123,7 +123,7 @@ export function blockRoute(coin, page = 1, pageSize = PAGE_SIZES[0], pool) {
   return `#/blocks${suffix}?${pageQuery(page, pageSize)}`;
 }
 
-function blockCoinOptions(pool, selectedCoin) {
+function blockCoinOptions(pool, _selectedCoin) {
   const ports = new Set(coinStatsRows(pool).map((coin) => coin.p));
   if (Number(pool.totalBlocksFound) > 0) ports.add(String(XMR_PORT));
   return [...ports]

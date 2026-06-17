@@ -18,7 +18,7 @@ export function averageVisible(points, key = "hsh2") {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-export function svgLine(points, key, width = 700, height = 220, smooth = false) {
+export function svgLine(points, key, width = 700, _height = 220, smooth = false) {
   const bounds = chartBounds(points, key);
   const rows = points.map((point) => {
     const x = ((point.tme - bounds.minTime) / bounds.span) * width;
