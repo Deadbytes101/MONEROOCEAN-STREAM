@@ -3,7 +3,6 @@ import "dotenv/config";
 import {
   Client,
   DiscordAPIError,
-  EmbedBuilder,
   Events,
   GatewayIntentBits,
   REST,
@@ -12,15 +11,16 @@ import {
 } from "discord.js";
 
 import {
-  atomicToXmr,
-  formatHashrate,
   getMinerStats,
   getPayments,
   getWorkers,
-  readNumber,
-  readString,
-  shortWallet,
 } from "./moneroocean.js";
+
+import {
+  buildPaymentsReply,
+  buildStatsReply,
+  buildWorkersReply,
+} from "./discord-ui.js";
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -82,7 +82,7 @@ function inviteUrl(): string {
   return `https://discord.com/oauth2/authorize?${params.toString()}`;
 }
 
-function dumpDiscordShape(): void {
+function dumpDiscordShape(client: Client): void {
   console.log("discord env");
   console.log(`  client id: ${clientId}`);
   console.log(`  guild id:  ${guildId ?? "none"}`);
@@ -154,7 +154,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once(Events.ClientReady, async () => {
   console.log(`MoneroOcean bot online as ${client.user?.tag ?? "unknown"}`);
-  dumpDiscordShape();
+  dumpDiscordShape(client);
 
   try {
     await registerCommands();
@@ -172,79 +172,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (interaction.commandName === "mo-stats") {
       await interaction.deferReply();
-
       const stats = await getMinerStats(wallet);
-      const rawHashrate = stats.hash ?? stats.lastHash ?? 0;
-      const xmrHashrate = stats.hash2 ?? stats.hash ?? 0;
-
-      const embed = new EmbedBuilder()
-        .setTitle("MoneroOcean Steam")
-        .setDescription(`Read-only pool status for \`${shortWallet(wallet)}\``)
-        .addFields(
-          { name: "Current Hashrate", value: formatHashrate(rawHashrate), inline: true },
-          { name: "XMR Hashrate", value: formatHashrate(xmrHashrate), inline: true },
-          { name: "Pending", value: `${atomicToXmr(stats.amtDue ?? stats.due)} XMR`, inline: true },
-          { name: "Total Paid", value: `${atomicToXmr(stats.amtPaid ?? stats.paid)} XMR`, inline: true },
-          { name: "Last Share", value: String(stats.lastShare ?? "unknown"), inline: true },
-          { name: "Transactions", value: String(stats.txnCount ?? 0), inline: true },
-        )
-        .setFooter({ text: "monitoring only" })
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(buildStatsReply(wallet, stats));
       return;
     }
 
     if (interaction.commandName === "mo-workers") {
       await interaction.deferReply();
-
       const workers = await getWorkers(wallet);
-      const entries = Object.entries(workers);
-      const onlineCount = entries.filter(([, record]) => {
-        const rate = readNumber(record, ["hash2", "hash", "h", "r"]);
-        return Number(rate ?? 0) > 0;
-      }).length;
-
-      const lines = entries.slice(0, 15).map(([name, record]) => {
-        const hashrate = readNumber(record, ["hash2", "hash", "h", "r"]);
-        const algo = readString(record, ["algo", "algorithm", "coin", "ticker"]);
-        const online = Number(hashrate ?? 0) > 0;
-        const state = online ? "online" : "offline";
-        const algoSuffix = algo ? ` · ${algo}` : "";
-
-        return `\`${name}\` — ${state} — ${formatHashrate(hashrate)}${algoSuffix}`;
-      });
-
-      const embed = new EmbedBuilder()
-        .setTitle("Workers")
-        .setDescription(lines.length > 0 ? lines.join("\n") : "No workers found.")
-        .addFields({ name: "Online", value: `${onlineCount} / ${entries.length}`, inline: true })
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(buildWorkersReply(workers));
       return;
     }
 
     if (interaction.commandName === "mo-payments") {
       await interaction.deferReply();
-
       const payments = await getPayments(wallet);
-      const lines = payments.slice(0, 10).map((payment, index) => {
-        const amount = readNumber(payment, ["amount", "amt", "value", "paid"]);
-        const txid = readString(payment, ["txid", "tx", "hash"]);
-        const time = readString(payment, ["ts", "time", "date", "timestamp"]);
-        const tx = txid ? ` · ${txid.slice(0, 8)}...${txid.slice(-8)}` : "";
-        const stamp = time ? ` · ${time}` : "";
-
-        return `${index + 1}. ${atomicToXmr(amount)} XMR${stamp}${tx}`;
-      });
-
-      const embed = new EmbedBuilder()
-        .setTitle("Payments")
-        .setDescription(lines.length > 0 ? lines.join("\n") : "No payments found.")
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply(buildPaymentsReply(payments));
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
