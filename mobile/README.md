@@ -2,34 +2,63 @@
 
 This is the Windows-first phone build.
 
-The SwiftUI/Xcode source stays in `ios/`, but a real iPhone build cannot be signed locally from Windows. This Expo app is the practical path:
+The goal is personal use, not App Store release.
 
-- run on real iPhone now through Expo Go
-- build signed iOS binaries through EAS cloud later
-- keep the same MoneroOcean API and visual direction
+## What works from Windows
 
-## Run on a real iPhone from Windows
+Use Expo Go on the iPhone. This runs the app on the real phone without App Store submission and without a Mac.
 
-Install Node LTS, then:
+You still need the iPhone and Windows machine on the same Wi-Fi for the clean LAN path.
+
+## Clean run on a real iPhone
+
+Do not run `npm audit fix --force` on Expo projects. It can jump Expo across incompatible SDK lines.
+
+From Windows PowerShell:
 
 ```powershell
 cd mobile
 npm install
-npx expo start --tunnel
+npm run phone
 ```
 
 On iPhone:
 
 ```text
 Install Expo Go
-Scan the QR code
+Scan the LAN QR code
 Open MoneroOcean Steam
 Settings -> paste wallet -> Save and refresh
 ```
 
-## Build a signed iOS app from Windows
+## If tunnel is needed
 
-This needs an Apple Developer Program account because Apple signing is still required.
+LAN is the first path. Tunnel is only for broken Wi-Fi or separate networks.
+
+```powershell
+cd mobile
+npm install --save-dev @expo/ngrok@^4.1.0
+npm run tunnel
+```
+
+If ngrok was just installed globally and Expo still says to install it, close PowerShell, open a new PowerShell, then run again.
+
+## Repair after npm audit force
+
+If `npm audit fix --force` was run:
+
+```powershell
+cd mobile
+git restore package.json
+if (Test-Path package-lock.json) { del package-lock.json }
+if (Test-Path node_modules) { rmdir /s /q node_modules }
+npm install
+npm run phone
+```
+
+## Standalone iOS app without App Store
+
+For an installable standalone iOS build from Windows, use EAS internal distribution. This still needs Apple signing/provisioning.
 
 ```powershell
 cd mobile
@@ -40,8 +69,4 @@ eas device:create
 eas build --platform ios --profile preview
 ```
 
-The `preview` profile is internal distribution. EAS will create a cloud iOS build and provide an install link for registered devices.
-
-## Android side
-
-Android can be built locally or with EAS later. The current priority is the iPhone-facing app shape.
+If you only need it for yourself right now, use Expo Go first.
