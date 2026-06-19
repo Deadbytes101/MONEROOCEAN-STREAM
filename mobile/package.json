@@ -1,0 +1,25 @@
+{
+  "name": "moneroocean-steam-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start --tunnel",
+    "web": "expo start --web",
+    "android": "expo start --android",
+    "ios:cloud": "eas build --platform ios --profile preview",
+    "ios:store": "eas build --platform ios --profile production",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "latest",
+    "expo": "latest",
+    "expo-status-bar": "latest",
+    "react": "latest",
+    "react-native": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "typescript": "latest"
+  }
+}
