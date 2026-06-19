@@ -1,5 +1,3 @@
-# MONEROOCEAN.STREAM
-
 MoneroOcean Steam is a read-only MoneroOcean mining pool monitor planned for iOS and Discord.
 
 The product direction is simple: the mobile clarity of a SupportXMR-style pool monitor mixed with the deeper data model of the MoneroOcean web dashboard.
