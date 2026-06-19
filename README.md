@@ -1,7 +1,4 @@
 **MoneroOcean** Steam is a read-only MoneroOcean mining pool monitor planned for iOS and Discord.
-
-The product direction is simple: the mobile clarity of a SupportXMR-style pool monitor mixed with the deeper data model of the MoneroOcean web dashboard.
-
 ## Status
 
 Initial scaffold is being built around API validation first. The Discord bot comes before the iOS app because it lets us prove the MoneroOcean JSON shape quickly with real wallet data.
