@@ -4,6 +4,7 @@ import {
   Client,
   DiscordAPIError,
   EmbedBuilder,
+  Events,
   GatewayIntentBits,
   REST,
   Routes,
@@ -151,7 +152,7 @@ async function registerCommands(): Promise<void> {
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-client.once("ready", async () => {
+client.once(Events.ClientReady, async () => {
   console.log(`MoneroOcean bot online as ${client.user?.tag ?? "unknown"}`);
   dumpDiscordShape();
 
@@ -163,7 +164,7 @@ client.once("ready", async () => {
   }
 });
 
-client.on("interactionCreate", async (interaction) => {
+client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   try {
