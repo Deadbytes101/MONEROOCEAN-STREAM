@@ -4,6 +4,11 @@
   "private": true,
   "scripts": {
     "build": "npm --prefix pwa install && npm --prefix pwa run build",
-    "dev:pwa": "npm --prefix pwa run dev"
+    "dev:pwa": "npm --prefix pwa run dev",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.103.0"
   }
 }
