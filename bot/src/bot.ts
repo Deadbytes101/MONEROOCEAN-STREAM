@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import {
   Client,
+  DiscordAPIError,
   EmbedBuilder,
   GatewayIntentBits,
   REST,
@@ -24,9 +25,14 @@ const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
 const guildId = process.env.DISCORD_GUILD_ID;
 const defaultWallet = process.env.DEFAULT_WALLET;
+const commandScope = process.env.COMMAND_SCOPE?.trim().toLowerCase() || "guild";
 
-if (!token || !clientId || !guildId) {
-  throw new Error("Missing DISCORD_TOKEN, DISCORD_CLIENT_ID, or DISCORD_GUILD_ID");
+if (!token || !clientId) {
+  throw new Error("Missing DISCORD_TOKEN or DISCORD_CLIENT_ID");
+}
+
+if (commandScope === "guild" && !guildId) {
+  throw new Error("Missing DISCORD_GUILD_ID while COMMAND_SCOPE=guild");
 }
 
 const walletOption = (builder: SlashCommandBuilder): SlashCommandBuilder =>
@@ -65,12 +71,59 @@ function resolveWallet(input: string | null): string {
   return wallet;
 }
 
+function inviteUrl(): string {
+  const params = new URLSearchParams({
+    client_id: clientId as string,
+    scope: "bot applications.commands",
+    permissions: "2147485696",
+  });
+
+  return `https://discord.com/oauth2/authorize?${params.toString()}`;
+}
+
+function explainDiscordRegisterError(error: unknown): never {
+  if (error instanceof DiscordAPIError && error.code === 50001) {
+    throw new Error(
+      [
+        "Discord denied command registration: Missing Access.",
+        "",
+        "Fix it:",
+        "1. Re-invite the bot with BOTH scopes: bot + applications.commands.",
+        "2. Confirm DISCORD_CLIENT_ID is the Application ID from the same bot token.",
+        "3. Confirm DISCORD_GUILD_ID is the server where that bot is installed.",
+        "",
+        `Invite URL: ${inviteUrl()}`,
+      ].join("\n"),
+    );
+  }
+
+  throw error;
+}
+
 async function registerCommands(): Promise<void> {
+  if (commandScope === "skip") {
+    console.log("command registration skipped");
+    return;
+  }
+
   const rest = new REST({ version: "10" }).setToken(token as string);
 
-  await rest.put(Routes.applicationGuildCommands(clientId as string, guildId as string), {
-    body: commands,
-  });
+  try {
+    if (commandScope === "global") {
+      await rest.put(Routes.applicationCommands(clientId as string), {
+        body: commands,
+      });
+      console.log("global commands registered");
+      return;
+    }
+
+    await rest.put(Routes.applicationGuildCommands(clientId as string, guildId as string), {
+      body: commands,
+    });
+    console.log(`guild commands registered for ${guildId}`);
+  } catch (error) {
+    explainDiscordRegisterError(error);
+  }
 }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -103,7 +156,7 @@ client.on("interactionCreate", async (interaction) => {
           { name: "Last Share", value: String(stats.lastShare ?? "unknown"), inline: true },
           { name: "Transactions", value: String(stats.txnCount ?? 0), inline: true },
         )
-        .setFooter({ text: "monitoring only · no mining · no wallet actions" })
+        .setFooter({ text: "monitoring only" })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
@@ -172,5 +225,11 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-await registerCommands();
-await client.login(token);
+try {
+  await registerCommands();
+  await client.login(token);
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(message);
+  process.exit(1);
+}
