@@ -4,7 +4,9 @@
   "private": true,
   "main": "expo/AppEntry.js",
   "scripts": {
-    "start": "expo start --tunnel",
+    "start": "expo start --lan",
+    "phone": "expo start --lan --clear",
+    "tunnel": "expo start --tunnel --clear",
     "web": "expo start --web",
     "android": "expo start --android",
     "ios:cloud": "eas build --platform ios --profile preview",
