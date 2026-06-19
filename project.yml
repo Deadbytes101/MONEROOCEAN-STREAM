@@ -29,8 +29,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.deadbyte.monerooceansteam
         PRODUCT_NAME: MoneroOcean Steam
         INFOPLIST_FILE: ios/MoneroOceanSteam/Info.plist
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        DEVELOPMENT_ASSET_PATHS: ios/MoneroOceanSteam/Preview Content
         CODE_SIGN_STYLE: Automatic
     info:
       path: ios/MoneroOceanSteam/Info.plist
