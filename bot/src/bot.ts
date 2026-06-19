@@ -81,16 +81,39 @@ function inviteUrl(): string {
   return `https://discord.com/oauth2/authorize?${params.toString()}`;
 }
 
+function dumpDiscordShape(): void {
+  console.log("discord env");
+  console.log(`  client id: ${clientId}`);
+  console.log(`  guild id:  ${guildId ?? "none"}`);
+  console.log(`  scope:     ${commandScope}`);
+  console.log(`  bot user:  ${client.user?.tag ?? "unknown"} (${client.user?.id ?? "unknown"})`);
+
+  const guilds = client.guilds.cache.map((guild) => `${guild.name} (${guild.id})`);
+  console.log("  guilds:");
+
+  if (guilds.length === 0) {
+    console.log("    none visible to this token");
+    return;
+  }
+
+  for (const guild of guilds) {
+    console.log(`    ${guild}`);
+  }
+}
+
 function explainDiscordRegisterError(error: unknown): never {
   if (error instanceof DiscordAPIError && error.code === 50001) {
     throw new Error(
       [
         "Discord denied command registration: Missing Access.",
         "",
+        "This means the token/client/guild triangle is wrong, or the app was installed without slash-command access.",
+        "",
         "Fix it:",
         "1. Re-invite the bot with BOTH scopes: bot + applications.commands.",
-        "2. Confirm DISCORD_CLIENT_ID is the Application ID from the same bot token.",
-        "3. Confirm DISCORD_GUILD_ID is the server where that bot is installed.",
+        "2. Use the Application ID as DISCORD_CLIENT_ID, not the public key.",
+        "3. Use the bot token from that same application.",
+        "4. Set DISCORD_GUILD_ID to one of the guild IDs printed above.",
         "",
         `Invite URL: ${inviteUrl()}`,
       ].join("\n"),
@@ -128,8 +151,16 @@ async function registerCommands(): Promise<void> {
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-client.once("ready", () => {
+client.once("ready", async () => {
   console.log(`MoneroOcean bot online as ${client.user?.tag ?? "unknown"}`);
+  dumpDiscordShape();
+
+  try {
+    await registerCommands();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+  }
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -226,7 +257,6 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 try {
-  await registerCommands();
   await client.login(token);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
