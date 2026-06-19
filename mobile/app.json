@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "MoneroOcean Steam",
+    "slug": "moneroocean-steam",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "com.deadbyte.monerooceansteam"
+    },
+    "android": {
+      "package": "com.deadbyte.monerooceansteam"
+    }
+  }
+}
