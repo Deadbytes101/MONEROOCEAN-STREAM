@@ -4,3 +4,45 @@
 @import "./src/styles/wallet.css";
 @import "./src/styles/tools.css";
 @import "./src/styles/responsive.css";
+
+/* local private skin: operator view */
+.hero,
+.marketing,
+.footer {
+  display: none !important;
+}
+
+body {
+  background: #050707 !important;
+}
+
+a {
+  text-decoration: none;
+}
+
+.card,
+.panel,
+.view,
+section {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+button,
+input,
+select,
+textarea {
+  border-radius: 0 !important;
+}
+
+.logo,
+.brand {
+  letter-spacing: 0 !important;
+}
+
+.header,
+.nav,
+.topbar {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
