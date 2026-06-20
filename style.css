@@ -5,10 +5,15 @@
 @import "./src/styles/tools.css";
 @import "./src/styles/responsive.css";
 
-/* local private skin: operator view */
+/* private operator view */
+.crawl-copy,
+.footer,
 .hero,
 .marketing,
-.footer {
+.comments-controlled,
+#comments-toggle,
+#mtd,
+.motd-card {
   display: none !important;
 }
 
@@ -16,23 +21,18 @@ body {
   background: #050707 !important;
 }
 
-a {
-  text-decoration: none;
-}
+a { text-decoration: none; }
 
 .card,
 .panel,
 .view,
-section {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
+section,
 button,
 input,
 select,
 textarea {
   border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .logo,
@@ -45,4 +45,33 @@ textarea {
 .topbar {
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+.pool-kpi-grid .explanation {
+  display: none !important;
+}
+
+.pool-kpi-grid > div {
+  padding-block: 10px !important;
+}
+
+.panel-header h1,
+.panel-header h2,
+.panel-header p {
+  margin-bottom: 0 !important;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: none !important;
+}
+
+.nav a[href="#/coins"],
+.nav a[href="#/blocks"],
+.nav a[href="#/calc"],
+.nav a[href="#/setup"],
+.nav a[href="#/help"] {
+  display: none !important;
 }
