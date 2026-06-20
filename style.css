@@ -4,6 +4,7 @@
 @import "./src/styles/wallet.css";
 @import "./src/styles/tools.css";
 @import "./src/styles/responsive.css";
+@import "./src/styles/old-wallet.css";
 
 /* private old-style operator view */
 .crawl-copy,
