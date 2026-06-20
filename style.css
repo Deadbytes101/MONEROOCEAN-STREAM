@@ -5,26 +5,121 @@
 @import "./src/styles/tools.css";
 @import "./src/styles/responsive.css";
 
-/* private operator view */
+/* private old-style operator view */
 .crawl-copy,
 .footer,
 .hero,
 .marketing,
 .comments-controlled,
 #comments-toggle,
-#mtd,
-.motd-card {
+.setup-card,
+.help-donation {
   display: none !important;
 }
 
-body {
-  background: #050707 !important;
+:root {
+  --accent-color: #078f8f !important;
+  --success-color: #078f8f !important;
+  --text-color: #d2d2d2 !important;
+  --muted-color: #008f8f !important;
+  --panel-bg: #101010 !important;
+  --body-bg: #101010 !important;
+  --border-color: rgba(0, 143, 143, .20) !important;
+  --shadow-elevation: none !important;
 }
 
-a { text-decoration: none; }
+html,
+body,
+#app {
+  background: #101010 !important;
+}
 
-.card,
+body {
+  color: #d2d2d2 !important;
+  font-family: "Arial Narrow", "Roboto Condensed", "Segoe UI Condensed", Arial, sans-serif !important;
+  letter-spacing: -.02em;
+}
+
+a { color: #078f8f !important; text-decoration: none; }
+a:hover { color: #00b3b3 !important; }
+
+.topbar {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 58px !important;
+  padding: 0 9px !important;
+  border: 0 !important;
+  background: #101010 !important;
+  box-shadow: none !important;
+}
+
+.brand {
+  margin-right: auto !important;
+  gap: 0 !important;
+  color: #078f8f !important;
+  text-transform: none !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+}
+
+.brand-mark { display: none !important; }
+.brand span { color: #078f8f !important; font-weight: 400 !important; }
+
+.nav {
+  margin-left: auto !important;
+  justify-content: flex-end !important;
+  gap: 18px !important;
+}
+
+.nav a {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #078f8f !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+}
+
+.nav a[aria-current="page"] {
+  border: 0 !important;
+  background: transparent !important;
+  color: #12a3a3 !important;
+}
+
+.nav a[href="#/coins"],
+.nav a[href="#/blocks"],
+.nav a[href="#/calc"],
+.nav a[href="#/setup"],
+.nav a[href="#/help"] {
+  display: none !important;
+}
+
+.top-actions { margin-left: 18px !important; }
+.icon-button {
+  width: auto !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #078f8f !important;
+  box-shadow: none !important;
+}
+
+.shell {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 18px 8px 90px !important;
+}
+
+.grid {
+  gap: 22px !important;
+}
+
 .panel,
+.card,
 .view,
 section,
 button,
@@ -35,43 +130,162 @@ textarea {
   box-shadow: none !important;
 }
 
-.logo,
-.brand {
-  letter-spacing: 0 !important;
+.panel {
+  border: 0 !important;
+  background: transparent !important;
 }
 
-.header,
-.nav,
-.topbar {
-  border-radius: 0 !important;
-  box-shadow: none !important;
+.card {
+  background: transparent !important;
+  border: 0 !important;
 }
 
-.pool-kpi-grid .explanation {
-  display: none !important;
+.pool-overview .card {
+  padding: 0 !important;
+}
+
+.pool-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(120px, 1fr)) !important;
+  gap: 6px !important;
+  padding: 0 0 24px !important;
+  border-bottom: 1px solid rgba(255,255,255,.035) !important;
 }
 
 .pool-kpi-grid > div {
-  padding-block: 10px !important;
+  padding: 0 6px !important;
+  text-align: center !important;
 }
 
-.panel-header h1,
-.panel-header h2,
-.panel-header p {
-  margin-bottom: 0 !important;
+.value {
+  color: #d2d2d2 !important;
+  font-size: clamp(23px, 1.7vw, 34px) !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  text-shadow: none !important;
 }
 
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  backdrop-filter: none !important;
+.label {
+  color: #078f8f !important;
+  margin-top: 8px !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
 }
 
-.nav a[href="#/coins"],
-.nav a[href="#/blocks"],
-.nav a[href="#/calc"],
-.nav a[href="#/setup"],
-.nav a[href="#/help"] {
-  display: none !important;
+.status-link {
+  justify-content: center !important;
+  color: #078f8f !important;
+}
+.status-dot {
+  background: #078f8f !important;
+  box-shadow: none !important;
+}
+
+.chart-panel,
+#pch,
+.chart-card {
+  width: calc(100vw - 16px) !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#pch .card,
+.chart-panel .card {
+  padding: 0 !important;
+}
+
+.chart,
+svg.chart {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.graph-switches,
+.graph-controls,
+.sbr {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.chip,
+button,
+input,
+select,
+textarea {
+  border-color: rgba(7,143,143,.8) !important;
+  background: #101010 !important;
+  color: #078f8f !important;
+}
+
+.chip[aria-current="page"],
+.chip.active,
+button[type="submit"] {
+  background: #168f8f !important;
+  color: #050707 !important;
+  border-color: #168f8f !important;
+}
+
+#mtd,
+.motd-card {
+  margin: 12px 7vw !important;
+}
+
+.motd-card {
+  border: 1px solid rgba(255,255,255,.025) !important;
+  background: rgba(255,255,255,.012) !important;
+}
+
+.motd-card .panel-header,
+.motd-card .card {
+  padding: 10px !important;
+}
+
+.motd-card h2 {
+  color: #d2d2d2 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 16px !important;
+}
+
+.wallet-list,
+.wallet-track-card {
+  width: min(84vw, 1520px) !important;
+  margin: 0 auto !important;
+}
+
+.wallet-track-card {
+  border: 1px solid rgba(7,143,143,.24) !important;
+  background: rgba(255,255,255,.01) !important;
+}
+
+.address-bar {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+}
+
+input,
+textarea,
+select {
+  color: #d2d2d2 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(210,210,210,.55) !important;
+}
+
+.explanation { display: none !important; }
+
+@media (max-width: 900px) {
+  .topbar { align-items: flex-start !important; flex-wrap: wrap !important; padding: 10px 8px !important; }
+  .nav { width: 100% !important; justify-content: flex-start !important; margin-left: 0 !important; }
+  .pool-kpi-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)) !important; }
+  .wallet-list,
+  .wallet-track-card { width: calc(100vw - 16px) !important; }
 }
