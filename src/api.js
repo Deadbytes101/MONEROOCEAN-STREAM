@@ -1,7 +1,8 @@
-import { API_BASE, UPTIME_API } from "./constants.js";
+import { UPTIME_API } from "./constants.js";
 import { setCache, getCache, setError, state } from "./state.js";
 
 const inflight = new Map();
+const CLIENT_API_BASE = "/api/";
 const CONFIG = "config";
 const POOL_PORTS = "pool/ports";
 const POOL_STATS = "pool/stats";
@@ -17,18 +18,22 @@ export function endpointKey(path) {
   return path.replace(/^\/+/, "");
 }
 
+function localApiUrl(key) {
+  return `${CLIENT_API_BASE}${key}`;
+}
+
 async function fetchJson(path, { ttl } = {}) {
   const key = endpointKey(path);
   return cachedJsonRequest({
     key,
     ttl: ttl ?? DEFAULT_TTL,
-    start: () => ({ promise: fetch(`${API_BASE}${key}`, jsonRequestOptions()) })
+    start: () => ({ promise: fetch(localApiUrl(key), jsonRequestOptions()) })
   });
 }
 
 async function postJson(path, body = {}) {
   const key = endpointKey(path);
-  const response = await fetch(`${API_BASE}${key}`, {
+  const response = await fetch(localApiUrl(key), {
     method: "POST",
     headers: { accept: "application/json", "content-type": "application/json" },
     body: JSON.stringify(body)
