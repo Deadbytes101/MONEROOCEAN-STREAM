@@ -3,6 +3,7 @@
 # mo-pool-ui
 
 Static, framework-free web dashboard for the MoneroOcean mining pool.
+<img width="911" height="912" alt="ICON" src="https://github.com/user-attachments/assets/022b871c-9bf3-4f42-b88c-ed55a227624f" />
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
