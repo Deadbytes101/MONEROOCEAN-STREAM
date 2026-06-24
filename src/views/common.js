@@ -28,7 +28,11 @@ export function recover(promise, fallback) {
 }
 
 export function kpi(label, value, explain) {
-  return `<div title="${escapeHtml(explain)}"><span class=value>${escapeHtml(valueWithThb(label, value))}</span><span class=label>${cellHtml(label)}</span><p class="explanation comments-controlled">${escapeHtml(explain)}</p></div>`;
+  return `<div title="${escapeHtml(explain)}"><span class=value>${valueCellHtml(valueWithThb(label, value))}</span><span class=label>${cellHtml(label)}</span><p class="explanation comments-controlled">${escapeHtml(explain)}</p></div>`;
+}
+
+function valueCellHtml(value) {
+  return value && typeof value === "object" && "html" in value ? value.html : escapeHtml(value);
 }
 
 function valueWithThb(label, value) {
@@ -38,7 +42,7 @@ function valueWithThb(label, value) {
   const xmrUsd = Number(state.xmrUsdPrice);
   const usdThb = Number(state.usdThbRate);
   if (!Number.isFinite(xmr) || !Number.isFinite(xmrUsd) || !Number.isFinite(usdThb) || xmrUsd <= 0 || usdThb <= 0) return value;
-  return `${value} approx THB ${formatNumber(xmr * xmrUsd * usdThb, 2)}`;
+  return { html: `<span class="kpi-stack"><span class="kpi-main">${escapeHtml(value)} XMR</span><span class="kpi-sub">≈ ${escapeHtml(formatNumber(xmr * xmrUsd * usdThb, 2))} THB</span></span>` };
 }
 
 export function linkLabel(label, href) {
