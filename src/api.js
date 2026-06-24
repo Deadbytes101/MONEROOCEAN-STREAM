@@ -8,6 +8,7 @@ const POOL_PORTS = "pool/ports";
 const POOL_STATS = "pool/stats";
 const POOL_MOTD = "pool/motd";
 const NETWORK_STATS = "network/stats";
+const USD_THB = "fx/usd-thb";
 export const POOL_CHART = "pool/chart/hashrate";
 export const WALLET_CHART = "chart/hashrate";
 export const WALLET_WORKER_CHARTS = `${WALLET_CHART}/allWorkers`;
@@ -114,6 +115,27 @@ function pagedEndpoint(path, page, limit, options) {
   return cachedEndpoint(`${path}?page=${page}&limit=${limit}`, options);
 }
 
+function xmrUsdFromPool(pool = {}) {
+  const candidates = [
+    pool.price?.usd,
+    pool.price?.USD,
+    pool.xmrPrice,
+    pool.xmr_price,
+    pool.price_usd,
+    pool.coinPrice?.usd,
+    pool.coinPrice
+  ];
+  const value = candidates.map(Number).find(Number.isFinite);
+  return value || 0;
+}
+
+async function cacheUsdThb(options) {
+  const data = await fetchJson(USD_THB, { ttl: 30 * 60_000, ...options });
+  const rate = Number(data?.rates?.THB ?? data?.THB ?? data?.thb);
+  if (Number.isFinite(rate) && rate > 0) state.usdThbRate = rate;
+  return data;
+}
+
 export function minerEndpoint(address, suffix) {
   return `miner/${address}/${suffix}`;
 }
@@ -122,8 +144,12 @@ export const api = {
   config: (options) => cachedEndpoint(CONFIG, options, 300_000),
   poolStats: async (options) => {
     const data = await fetchJson(POOL_STATS, { ttl: 60_000, ...options });
-    return data.pool_statistics || data || {};
+    const pool = data.pool_statistics || data || {};
+    const xmrUsd = xmrUsdFromPool(pool);
+    if (xmrUsd > 0) state.xmrUsdPrice = xmrUsd;
+    return pool;
   },
+  usdThb: (options) => cacheUsdThb(options),
   poolPorts: (options) => cachedEndpoint(POOL_PORTS, options, 60_000),
   networkStats: (options) => cachedEndpoint(NETWORK_STATS, options, 180_000),
   poolChart: (options) => cachedEndpoint(POOL_CHART, options),
@@ -131,7 +157,13 @@ export const api = {
   payments: (page = 0, limit = 15, options) => pagedEndpoint(POOL_PAYMENTS, page, limit, options),
   blocks: (page = 0, limit = 15, options) => pagedEndpoint("pool/blocks", page, limit, options),
   coinBlocks: (port, page = 0, limit = 15, options) => pagedEndpoint(`pool/coin_altblocks/${port}`, page, limit, options),
-  wallet: (address, options) => cachedEndpoint(minerEndpoint(address, "stats"), options, 30_000),
+  wallet: async (address, options) => {
+    const [wallet] = await Promise.all([
+      cachedEndpoint(minerEndpoint(address, "stats"), options, 30_000),
+      cacheUsdThb(options).catch(() => null)
+    ]);
+    return wallet;
+  },
   walletChart: (address, options) => cachedEndpoint(minerEndpoint(address, WALLET_CHART), options),
   walletWorkerCharts: (address, options) => cachedEndpoint(minerEndpoint(address, WALLET_WORKER_CHARTS), options),
   walletWorkers: (address, options) => cachedEndpoint(minerEndpoint(address, "stats/allWorkers"), options, 60_000),
