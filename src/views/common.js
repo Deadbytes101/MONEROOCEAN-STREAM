@@ -28,8 +28,7 @@ export function recover(promise, fallback) {
 }
 
 export function kpi(label, value, explain) {
-  const displayValue = valueWithThb(label, value);
-  return `<div title="${escapeHtml(explain)}"><span class=value>${escapeHtml(displayValue)}</span><span class=label>${cellHtml(label)}</span><p class="explanation comments-controlled">${escapeHtml(explain)}</p></div>`;
+  return `<div title="${escapeHtml(explain)}"><span class=value>${escapeHtml(valueWithThb(label, value))}</span><span class=label>${cellHtml(label)}</span><p class="explanation comments-controlled">${escapeHtml(explain)}</p></div>`;
 }
 
 function valueWithThb(label, value) {
@@ -125,3 +124,41 @@ export function dateCell(timestamp) {
 export function formatAtomicXmrValue(value, digits = 8) {
   return formatNumber(atomicXmr(value), digits);
 }
+
+function pagePicker(id, page, pageCount = 0) {
+  const hasTotal = isFiniteNumber(Number(pageCount)) && Number(pageCount) > 0;
+  const value = hasTotal ? Math.min(page, pageCount) : page;
+  return `<label class=page-picker><span class=muted>Page</span><input id="${id}" type=number min=1 ${hasTotal ? `max=${pageCount}` : ""} value="${value}" inputmode=numeric autocomplete=off>${hasTotal ? `<span class=muted>of ${formatNumber(pageCount)}</span>` : ""}</label>`;
+}
+
+export function pageSizeSelect(id, limit) {
+  return `<label class=field>Rows<select id="${id}">${PAGE_SIZES.map((size) => `<option value=${size} ${size === limit ? "selected" : ""}>${size}</option>`).join("")}</select></label>`;
+}
+
+function pagerArrow(label, href, enabled, ariaLabel) {
+  return `<a class="chip pager-arrow" aria-label="${ariaLabel}" ${enabled ? `href="${href}"` : `aria-disabled=true`}>${label}</a>`;
+}
+
+export function pagerNav(ariaLabel, inputId, page, pageCount, hasNext, routeFor, limit, canEditPage = true) {
+  return `<nav class=bar aria-label="${ariaLabel}">
+        ${pagerArrow("‹", routeFor(page - 1, limit), page > 1, "Previous page")}
+        ${canEditPage ? pagePicker(inputId, page, pageCount) : `<span class=muted>Page ${formatNumber(page)}</span>`}
+        ${pagerArrow("›", routeFor(page + 1, limit), hasNext, "Next page")}
+      </nav>`;
+}
+
+export function blockRewardAmountCell(label, unlocked) {
+  return { html: `<span class="${unlocked ? "green" : ""}" title="${unlocked ? "Unlocked" : "Pending or unlocking"}">${escapeHtml(label)}</span>` };
+}
+
+export function optionMarkup(options, selected = "") {
+  return options.map(([value, text]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(text)}</option>`).join("");
+}
+
+export function sortableHeading(label, key, active, direction, firstDirection, hrefFor) {
+  const next = nextSortDirectionForKey(active, direction, key, firstDirection);
+  const arrow = active === key ? (direction === "asc" ? " ↑" : " ↓") : "";
+  return { html: `<a class="sortable" href="${hrefFor(key, next)}">${cellHtml(label)}${escapeHtml(arrow)}</a>` };
+}
+
+export { escapeHtml };
