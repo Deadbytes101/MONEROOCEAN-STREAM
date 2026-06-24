@@ -2,6 +2,7 @@ import { BLOCK_SHARE_DUMP_BASE, COIN_EXPLORERS, COIN_HASH_EXPLORERS, COIN_HEIGHT
 import { PAGE_SIZES } from "../paging.js";
 import { atomicXmr, encodeUrlPart, escapeHtml, formatAge, formatDate, formatNumber, isFiniteNumber } from "../format.js";
 import { coinName } from "../pool.js";
+import { state } from "../state.js";
 import { uptimeToneClass } from "../uptime.js";
 import { nextSortDirectionForKey } from "../table-sort.js";
 
@@ -13,9 +14,6 @@ export function skel(label = "Loading") {
 
 function glyphLines() {
   let html = "";
-  // Generate matrix-like crawl text instead of shipping a long hard-coded art
-  // string. The animation cares about motion and density, not exact characters,
-  // and random base36 chunks keep the source and build smaller.
   const run = (length) => Math.random().toString(36).slice(2, length + 2).toUpperCase();
   for (let index = 0; index < 4; index += 1) html += `<span>${run(2)}/${run(4)} :: ${run(6)}-${run(4)} ${run(4)}</span>`;
   return html;
@@ -30,7 +28,18 @@ export function recover(promise, fallback) {
 }
 
 export function kpi(label, value, explain) {
-  return `<div title="${escapeHtml(explain)}"><span class=value>${escapeHtml(value)}</span><span class=label>${cellHtml(label)}</span><p class="explanation comments-controlled">${escapeHtml(explain)}</p></div>`;
+  const displayValue = valueWithThb(label, value);
+  return `<div title="${escapeHtml(explain)}"><span class=value>${escapeHtml(displayValue)}</span><span class=label>${cellHtml(label)}</span><p class="explanation comments-controlled">${escapeHtml(explain)}</p></div>`;
+}
+
+function valueWithThb(label, value) {
+  const labelHtml = typeof label === "object" && label && "html" in label ? label.html : String(label ?? "");
+  if (!labelHtml.includes("XMR total due")) return value;
+  const xmr = Number(String(value).replace(/,/g, ""));
+  const xmrUsd = Number(state.xmrUsdPrice);
+  const usdThb = Number(state.usdThbRate);
+  if (!Number.isFinite(xmr) || !Number.isFinite(xmrUsd) || !Number.isFinite(usdThb) || xmrUsd <= 0 || usdThb <= 0) return value;
+  return `${value} approx THB ${formatNumber(xmr * xmrUsd * usdThb, 2)}`;
 }
 
 export function linkLabel(label, href) {
@@ -50,8 +59,6 @@ export function graphControls(routeFor, graphWindow, graphMode, className = "bar
 }
 
 export function uptimeLabel(label, uptime) {
-  // summarizeUptimeRobot returns semantic tones; this view maps them to status
-  // dot classes so tests can stay focused on the tone contract.
   return { html: `<a id=up class="status-link ${uptimeToneClass(uptime.tone)}" href="${UPTIME_URL}" ${EXTERNAL_LINK} title="${escapeHtml(uptime.detail)}"><span class=status-dot aria-hidden=true></span><span>${escapeHtml(label)}</span></a>` };
 }
 
@@ -118,44 +125,3 @@ export function dateCell(timestamp) {
 export function formatAtomicXmrValue(value, digits = 8) {
   return formatNumber(atomicXmr(value), digits);
 }
-
-function pagePicker(id, page, pageCount = 0) {
-  const hasTotal = isFiniteNumber(Number(pageCount)) && Number(pageCount) > 0;
-  const value = hasTotal ? Math.min(page, pageCount) : page;
-  // The page input is intentionally capped only when the backend gives a known
-  // total. Wallet block rewards can have an unknown/stale tail, so those views
-  // use non-editable page text or an open-ended next arrow instead.
-  return `<label class=page-picker><span class=muted>Page</span><input id="${id}" type=number min=1 ${hasTotal ? `max=${pageCount}` : ""} value="${value}" inputmode=numeric autocomplete=off>${hasTotal ? `<span class=muted>of ${formatNumber(pageCount)}</span>` : ""}</label>`;
-}
-
-export function pageSizeSelect(id, limit) {
-  return `<label class=field>Rows<select id="${id}">${PAGE_SIZES.map((size) => `<option value=${size} ${size === limit ? "selected" : ""}>${size}</option>`).join("")}</select></label>`;
-}
-
-function pagerArrow(label, href, enabled, ariaLabel) {
-  return `<a class="chip pager-arrow" aria-label="${ariaLabel}" ${enabled ? `href="${href}"` : `aria-disabled=true`}>${label}</a>`;
-}
-
-export function pagerNav(ariaLabel, inputId, page, pageCount, hasNext, routeFor, limit, canEditPage = true) {
-  return `<nav class=bar aria-label="${ariaLabel}">
-        ${pagerArrow("‹", routeFor(page - 1, limit), page > 1, "Previous page")}
-        ${canEditPage ? pagePicker(inputId, page, pageCount) : `<span class=muted>Page ${formatNumber(page)}</span>`}
-        ${pagerArrow("›", routeFor(page + 1, limit), hasNext, "Next page")}
-      </nav>`;
-}
-
-export function blockRewardAmountCell(label, unlocked) {
-  return { html: `<span class="${unlocked ? "green" : ""}" title="${unlocked ? "Unlocked" : "Pending or unlocking"}">${escapeHtml(label)}</span>` };
-}
-
-export function optionMarkup(options, selected = "") {
-  return options.map(([value, text]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(text)}</option>`).join("");
-}
-
-export function sortableHeading(label, key, active, direction, firstDirection, hrefFor) {
-  const next = nextSortDirectionForKey(active, direction, key, firstDirection);
-  const arrow = active === key ? (direction === "asc" ? " ↑" : " ↓") : "";
-  return { html: `<a class="sortable" href="${hrefFor(key, next)}">${cellHtml(label)}${escapeHtml(arrow)}</a>` };
-}
-
-export { escapeHtml };
