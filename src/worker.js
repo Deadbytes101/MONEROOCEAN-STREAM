@@ -1,6 +1,8 @@
 const API_ORIGIN = "https://api.moneroocean.stream/";
 const UPTIME_ORIGIN = "https://stats.uptimerobot.com/api/getMonitorList/BrD44hEJx";
+const USD_THB_ORIGIN = "https://api.frankfurter.app/latest?from=USD&to=THB";
 const API_CACHE_SECONDS = 20;
+const FX_CACHE_SECONDS = 1800;
 const STATIC_CACHE_SECONDS = 604800;
 const API_RE = /^\/api\//;
 
@@ -30,6 +32,7 @@ async function relayApi(request, url, ctx) {
   const cacheKey = new Request(target.toString(), { method: "GET" });
   const canCache = request.method === "GET";
   const cache = caches.default;
+  const maxAge = cacheSecondsFor(url);
 
   if (canCache) {
     const cached = await cache.match(cacheKey);
@@ -41,7 +44,7 @@ async function relayApi(request, url, ctx) {
   const response = new Response(body, {
     status: upstream.status,
     statusText: upstream.statusText,
-    headers: upstreamHeaders(upstream, canCache ? API_CACHE_SECONDS : 0)
+    headers: upstreamHeaders(upstream, canCache ? maxAge : 0)
   });
 
   if (canCache && upstream.ok) {
@@ -53,6 +56,7 @@ async function relayApi(request, url, ctx) {
 
 function targetFor(url) {
   if (url.pathname === "/api/uptime/status") return new URL(UPTIME_ORIGIN);
+  if (url.pathname === "/api/fx/usd-thb") return new URL(USD_THB_ORIGIN);
 
   const path = url.pathname.replace(/^\/api\//, "");
   if (!path || path.includes("..")) return null;
@@ -60,6 +64,10 @@ function targetFor(url) {
   const target = new URL(path, API_ORIGIN);
   target.search = url.search;
   return target;
+}
+
+function cacheSecondsFor(url) {
+  return url.pathname.startsWith("/api/fx/") ? FX_CACHE_SECONDS : API_CACHE_SECONDS;
 }
 
 function upstreamInit(request) {
@@ -82,7 +90,7 @@ function upstreamHeaders(upstream, maxAge) {
   const headers = new Headers();
   const type = upstream.headers.get("content-type") || "application/json; charset=utf-8";
   headers.set("content-type", type);
-  headers.set("cache-control", maxAge ? `public, max-age=${maxAge}, stale-while-revalidate=60` : "no-store");
+  headers.set("cache-control", maxAge ? `public, max-age=${maxAge}, stale-while-revalidate=600` : "no-store");
   return headers;
 }
 
