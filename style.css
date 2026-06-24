@@ -167,6 +167,28 @@ textarea {
   text-shadow: none !important;
 }
 
+.kpi-stack {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 5px !important;
+  line-height: 1 !important;
+}
+
+.kpi-main {
+  display: block !important;
+  white-space: nowrap !important;
+}
+
+.kpi-sub {
+  display: block !important;
+  color: #078f8f !important;
+  font-size: clamp(14px, 1vw, 18px) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+}
+
 .label {
   color: #078f8f !important;
   margin-top: 8px !important;
