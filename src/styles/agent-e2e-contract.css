@@ -1,0 +1,17 @@
+body:not(.comments-off) .comments-controlled {
+  display: block !important;
+}
+
+.setup-card {
+  display: block !important;
+}
+
+.worker-graph-grid.w5 .chart-wrap,
+.worker-graph-grid.w5 .chart-svg {
+  min-height: 140px !important;
+  max-height: 140px !important;
+}
+
+.worker-graph-grid.w5 .y-axis {
+  height: 140px !important;
+}
