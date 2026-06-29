@@ -16,7 +16,7 @@ struct AgentConfig {
     event_log_path: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct ParsedEvent {
     event: String,
     match_value: Option<String>,
