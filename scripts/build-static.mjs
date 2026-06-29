@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { chdir } from "node:process";
 
-chdir(new URL("..", import.meta.url));
+chdir(join(dirname(fileURLToPath(import.meta.url)), ".."));
 
 const commandName = (name) => process.platform === "win32" ? `${name}.cmd` : name;
 
@@ -44,10 +45,6 @@ run(npx, ["terser", "build/script.esbuild.js", "--compress", "passes=10,booleans
 rmSync("build/script.esbuild.js", { force: true });
 run(npx, ["esbuild", "style.css", "--bundle", "--minify", "--outfile=build/style.css", "--log-level=warning"]);
 run(npx, ["csso-cli", "build/style.css", "--output", "build/style.css"]);
-
-copyFileSync("manifest.webmanifest", join("build", "manifest.webmanifest"));
-copyFileSync("icon.svg", join("build", "icon.svg"));
-copyFileSync("sw.js", join("build", "sw.js"));
 
 const html = readFileSync("index.html", "utf8")
   .replace('href="style.css"', `href="style.css?v=${sha}"`)
