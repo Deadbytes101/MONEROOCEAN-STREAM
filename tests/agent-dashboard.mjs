@@ -4,6 +4,7 @@ import { parseRoute } from "../src/routes.js";
 import { agentSummaryPanel } from "../src/views/agent.js";
 
 const NOW = Math.floor(Date.now() / 1000);
+const STALE_TS = NOW - 3_600;
 
 const TELEMETRY = {
   telemetry_schema: 1,
@@ -61,7 +62,22 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /ledger_clean/);
       assert.match(html, /observe/);
       assert.match(html, /Generated/);
+      assert.match(html, /Freshness/);
+      assert.match(html, /fresh/);
       assert.match(html, /reports\/dbyte-agent-decision\.json/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("agent summary marks stale telemetry and decision artifacts", async () => {
+    await withFetchFixtures({
+      "reports/dbyte-agent-telemetry.json": { ...TELEMETRY, telemetry_ts_unix: STALE_TS },
+      "reports/dbyte-agent-decision.json": { ...DECISION, decision_ts_unix: STALE_TS }
+    }, async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /stale_artifact/);
+      assert.match(html, /DBYTE Decision/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
