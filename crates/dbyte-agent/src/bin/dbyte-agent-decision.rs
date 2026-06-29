@@ -443,7 +443,7 @@ mod tests {
     fn missing_ledger_requests_initialization() {
         let path = env::temp_dir().join(format!(
             "dbyte-agent-missing-ledger-{}.events",
-            current_unix()
+            temp_suffix()
         ));
         let facts = read_ledger_facts(&path.display().to_string()).expect("missing is valid facts");
 
@@ -453,8 +453,15 @@ mod tests {
     }
 
     fn write_temp_ledger(raw: &str) -> String {
-        let path = env::temp_dir().join(format!("dbyte-agent-decision-{}.events", current_unix()));
+        let path = env::temp_dir().join(format!("dbyte-agent-decision-{}.events", temp_suffix()));
         fs::write(&path, raw).expect("fixture should be written");
         path.display().to_string()
+    }
+
+    fn temp_suffix() -> u128 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be valid")
+            .as_nanos()
     }
 }
