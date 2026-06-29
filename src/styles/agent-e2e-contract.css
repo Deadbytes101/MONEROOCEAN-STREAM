@@ -2,7 +2,8 @@ body:not(.comments-off) .comments-controlled {
   display: block !important;
 }
 
-.setup-card {
+body .setup-card,
+body .help-donation {
   display: block !important;
 }
 
