@@ -2,7 +2,10 @@ use sha2::{Digest, Sha256};
 use std::env;
 use std::fmt::Write as _;
 use std::fs;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Default)]
 struct AgentConfig {
@@ -10,6 +13,7 @@ struct AgentConfig {
     machine_note: Option<String>,
     file_path: Option<String>,
     file_expected_sha256: Option<String>,
+    event_log_path: Option<String>,
 }
 
 fn main() {
@@ -36,6 +40,7 @@ fn main() {
     let result = match cli.command.as_deref() {
         Some("identity") => {
             print_identity(&config);
+            record_event(&config, "identity_reported", "status=ok");
             Ok(())
         }
         Some("verify-file") => verify_file(&config),
@@ -121,6 +126,7 @@ impl AgentConfig {
                 ("machine", "note") => config.machine_note = Some(value),
                 ("file_manifest", "path") => config.file_path = Some(value),
                 ("file_manifest", "expected_sha256") => config.file_expected_sha256 = Some(value),
+                ("event_log", "path") => config.event_log_path = Some(value),
                 _ => return Err(format!("line {line_number}: unknown key {section}.{key}")),
             }
         }
@@ -179,11 +185,13 @@ fn print_identity(config: &AgentConfig) {
 fn verify_file(config: &AgentConfig) -> Result<(), i32> {
     let Some(path) = config.file_path.as_deref() else {
         eprintln!("config error: file_manifest.path is required");
+        record_event(config, "file_verify_error", "reason=missing_path");
         return Err(2);
     };
 
     let Some(expected) = config.file_expected_sha256.as_deref() else {
         eprintln!("config error: file_manifest.expected_sha256 is required");
+        record_event(config, "file_verify_error", "reason=missing_expected_sha256");
         return Err(2);
     };
 
@@ -191,6 +199,7 @@ fn verify_file(config: &AgentConfig) -> Result<(), i32> {
         Ok(actual) => actual,
         Err(error) => {
             eprintln!("file error: {error}");
+            record_event(config, "file_verify_error", "reason=file_read_failed");
             return Err(2);
         }
     };
@@ -203,6 +212,15 @@ fn verify_file(config: &AgentConfig) -> Result<(), i32> {
     println!("manifest.expected_sha256={expected}");
     println!("manifest.match={matched}");
 
+    let detail = format!(
+        "path={} actual_sha256={} expected_sha256={} match={}",
+        escape_event_value(path),
+        actual,
+        expected,
+        matched
+    );
+    record_event(config, "file_verified", &detail);
+
     if matched {
         Ok(())
     } else {
@@ -211,7 +229,8 @@ fn verify_file(config: &AgentConfig) -> Result<(), i32> {
 }
 
 fn sha256_file(path: &str) -> Result<String, String> {
-    let bytes = fs::read(path).map_err(|error| format!("failed to read {}: {error}", Path::new(path).display()))?;
+    let bytes = fs::read(path)
+        .map_err(|error| format!("failed to read {}: {error}", Path::new(path).display()))?;
     let digest = Sha256::digest(&bytes);
 
     let mut output = String::with_capacity(64);
@@ -220,4 +239,50 @@ fn sha256_file(path: &str) -> Result<String, String> {
     }
 
     Ok(output)
+}
+
+fn record_event(config: &AgentConfig, event: &str, detail: &str) {
+    let Some(path) = config.event_log_path.as_deref() else {
+        return;
+    };
+
+    if let Some(parent) = Path::new(path).parent() {
+        if let Err(error) = fs::create_dir_all(parent) {
+            eprintln!("event log error: failed to create {}: {error}", parent.display());
+            return;
+        }
+    }
+
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0);
+
+    let machine = config.machine_name.as_deref().unwrap_or("<unset>");
+    let line = format!(
+        "ts_unix={} machine={} event={} {}\n",
+        timestamp,
+        escape_event_value(machine),
+        escape_event_value(event),
+        detail
+    );
+
+    match OpenOptions::new().create(true).append(true).open(path) {
+        Ok(mut file) => {
+            if let Err(error) = file.write_all(line.as_bytes()) {
+                eprintln!("event log error: failed to write {}: {error}", Path::new(path).display());
+            }
+        }
+        Err(error) => {
+            eprintln!("event log error: failed to open {}: {error}", Path::new(path).display());
+        }
+    }
+}
+
+fn escape_event_value(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace(' ', "_")
 }
