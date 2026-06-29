@@ -305,13 +305,15 @@ mod tests {
         let size = file_size(&path).unwrap();
         let raw = artifact_report_json(&path, &hash, size);
 
-        assert!(optional_artifact_match(
-            &raw,
-            "agent_report",
-            "agent_report_sha256",
-            "agent_report_size_bytes",
-        )
-        .unwrap());
+        assert!(
+            optional_artifact_match(
+                &raw,
+                "agent_report",
+                "agent_report_sha256",
+                "agent_report_size_bytes",
+            )
+            .unwrap()
+        );
 
         fs::remove_file(path).ok();
     }
@@ -325,13 +327,15 @@ mod tests {
         let wrong_hash = "0000000000000000000000000000000000000000000000000000000000000000";
         let raw = artifact_report_json(&path, wrong_hash, size);
 
-        assert!(!optional_artifact_match(
-            &raw,
-            "agent_report",
-            "agent_report_sha256",
-            "agent_report_size_bytes",
-        )
-        .unwrap());
+        assert!(
+            !optional_artifact_match(
+                &raw,
+                "agent_report",
+                "agent_report_sha256",
+                "agent_report_size_bytes",
+            )
+            .unwrap()
+        );
 
         fs::remove_file(path).ok();
     }
