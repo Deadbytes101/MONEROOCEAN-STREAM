@@ -35,7 +35,3 @@ jobs:
       - name: Run agent gate
         shell: pwsh
         run: ./scripts/verify-agent.ps1
-
-      - name: Run release script
-        shell: pwsh
-        run: ./scripts/build-agent-release.ps1
