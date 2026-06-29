@@ -137,12 +137,27 @@ try {
     Assert-Equal "agent_built_at_unix" $ManifestCheck.agent_built_at_unix $BuiltAtUnix
     Assert-Equal "agent_git_commit" $ManifestCheck.agent_git_commit $GitCommit
 
+    Write-Host "== final rust manifest check =="
+    $FinalCheckerOutput = cargo run --quiet --manifest-path $Manifest --bin dbyte-agent-check -- $JsonReport
+    $FinalCheckerExitCode = $LASTEXITCODE
+    $FinalCheckerOutput | ForEach-Object { Write-Host $_ }
+    if ($FinalCheckerExitCode -ne 0) {
+        throw "final rust manifest check failed with exit code $FinalCheckerExitCode"
+    }
+
+    Assert-Contains "final rust manifest check" $FinalCheckerOutput "check.valid=true"
+    Assert-Contains "final rust manifest check" $FinalCheckerOutput "runtime.approved=true"
+    Assert-Contains "final rust manifest check" $FinalCheckerOutput "runtime.reason=manifest_verified"
+    Assert-Equal "final checker output" ($FinalCheckerOutput -join "`n") ($CheckerOutput -join "`n")
+
     $Lines | ForEach-Object { Write-Host $_ }
 
     Write-Host "== manifest check passed =="
     Write-Host "AGENT RELEASE MANIFEST VERIFIED"
     Write-Host "checker.report=$CheckerReport"
     Write-Host "checker.report_sha256=$CheckerReportSha256"
+    Write-Host "== final manifest check passed =="
+    Write-Host "AGENT FINAL MANIFEST VERIFIED"
     Write-Host "== checker output passed =="
     Write-Host "AGENT CHECKER OUTPUT VERIFIED"
 
