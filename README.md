@@ -23,6 +23,12 @@ Internally the dashboard is split into small ES modules under `src/`, with `scri
 
 The UI is the frontend companion to [nodejs-pool](https://github.com/MoneroOcean/nodejs-pool), the pool backend whose API it consumes. It has no third-party browser framework dependency.
 
+## DBYTE agent release evidence
+
+This repository also contains the DBYTE agent release gate under `crates/dbyte-agent/` and `scripts/`.
+
+The release artifact contract is documented in [`docs/release-artifact-contract.md`](docs/release-artifact-contract.md). It defines the local release report, JSON manifest, checker report, manifest seal, seal readback, and invariants required for a valid release.
+
 ## Features
 
 - Pool overview, coin list, blocks, payments, uptime, and profit calculator views.
