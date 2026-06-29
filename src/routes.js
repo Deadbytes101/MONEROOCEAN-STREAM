@@ -17,6 +17,9 @@ Home:
   #/
   params: window=6h|12h|24h|all, mode=xmr|raw, tracked=<timestamp>
 
+Agent:
+  #/agent
+
 Coins:
   #/coins
   params: issues=1, inactive=0,
@@ -82,7 +85,7 @@ export function parseRoute(hash = "") {
     if (!/^(?=.*[A-Z])[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(coin)) return { n: "home", p: "#/", q: query };
     return { n: "blocks", c: coin, p: `#/blocks/${encodeUrlPart(routeCoinId(coin))}`, q: query };
   }
-  if (["coins", "blocks", "payments", "calc", "setup", "help"].includes(parts[0])) return { n: parts[0], p: `#/${parts[0]}`, q: query };
+  if (["agent", "coins", "blocks", "payments", "calc", "setup", "help"].includes(parts[0])) return { n: parts[0], p: `#/${parts[0]}`, q: query };
   return { n: "home", p: "#/", q: query };
 }
 
