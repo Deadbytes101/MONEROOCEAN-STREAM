@@ -341,6 +341,64 @@ mod tests {
     }
 
     #[test]
+    fn run_accepts_manifest_with_matching_artifact_integrity() {
+        let binary_path = temp_artifact_path("run-binary-match");
+        let report_path = temp_artifact_path("run-report-match");
+        let manifest_path = temp_artifact_path("run-manifest-match");
+        fs::write(&binary_path, b"agent-binary").unwrap();
+        fs::write(&report_path, b"release-report").unwrap();
+
+        let binary_hash = sha256_file(&binary_path).unwrap();
+        let binary_size = file_size(&binary_path).unwrap();
+        let report_hash = sha256_file(&report_path).unwrap();
+        let report_size = file_size(&report_path).unwrap();
+        let raw = manifest_json(
+            &binary_path,
+            &binary_hash,
+            binary_size,
+            &report_path,
+            &report_hash,
+            report_size,
+        );
+        fs::write(&manifest_path, raw).unwrap();
+
+        assert!(run(&manifest_path).unwrap());
+
+        fs::remove_file(binary_path).ok();
+        fs::remove_file(report_path).ok();
+        fs::remove_file(manifest_path).ok();
+    }
+
+    #[test]
+    fn run_rejects_manifest_with_mismatched_artifact_integrity() {
+        let binary_path = temp_artifact_path("run-binary-mismatch");
+        let report_path = temp_artifact_path("run-report-mismatch");
+        let manifest_path = temp_artifact_path("run-manifest-mismatch");
+        fs::write(&binary_path, b"agent-binary").unwrap();
+        fs::write(&report_path, b"release-report").unwrap();
+
+        let binary_hash = sha256_file(&binary_path).unwrap();
+        let binary_size = file_size(&binary_path).unwrap();
+        let report_size = file_size(&report_path).unwrap();
+        let wrong_hash = "0000000000000000000000000000000000000000000000000000000000000000";
+        let raw = manifest_json(
+            &binary_path,
+            &binary_hash,
+            binary_size,
+            &report_path,
+            wrong_hash,
+            report_size,
+        );
+        fs::write(&manifest_path, raw).unwrap();
+
+        assert!(!run(&manifest_path).unwrap());
+
+        fs::remove_file(binary_path).ok();
+        fs::remove_file(report_path).ok();
+        fs::remove_file(manifest_path).ok();
+    }
+
+    #[test]
     fn runtime_approval_output_is_stable_for_approved_runtime() {
         assert_eq!(
             runtime_approval_output(true, "manifest_verified"),
@@ -376,6 +434,25 @@ mod tests {
             json_escape(path),
             hash,
             size
+        )
+    }
+
+    fn manifest_json(
+        binary_path: &str,
+        binary_hash: &str,
+        binary_size: u64,
+        report_path: &str,
+        report_hash: &str,
+        report_size: u64,
+    ) -> String {
+        format!(
+            r#"{{"agent_binary":"{}","agent_sha256":"{}","agent_size_bytes":{},"agent_git_commit":"test-commit","agent_report":"{}","agent_report_sha256":"{}","agent_report_size_bytes":{}}}"#,
+            json_escape(binary_path),
+            binary_hash,
+            binary_size,
+            json_escape(report_path),
+            report_hash,
+            report_size
         )
     }
 
