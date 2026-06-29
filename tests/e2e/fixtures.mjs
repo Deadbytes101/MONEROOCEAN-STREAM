@@ -82,8 +82,8 @@ export async function mockApi(page, overrides = {}) {
   page.on("pageerror", (error) => seenConsole.push(`pageerror: ${error.message}`));
 
   await page.route("https://stats.uptimerobot.com/**", (route) => json(route, data.uptime));
-  await page.route("**/api/**", async (route) => handleApiRoute(route, data, calls, /^.*\/api\/+/, route.request().method()));
-  await page.route("https://api.moneroocean.stream/**", async (route) => handleApiRoute(route, data, calls, /^https:\/\/api\.moneroocean\.stream\/+/, route.request().method()));
+  await page.route("**/api/**", async (route) => handleApiRoute(route, data, calls, /^\/api\/+/, route.request().method()));
+  await page.route("https://api.moneroocean.stream/**", async (route) => handleApiRoute(route, data, calls, /^\/+/, route.request().method()));
   return {
     calls,
     consoleMessages: seenConsole,
@@ -154,8 +154,8 @@ export async function assertInternalLinksNavigate(page) {
 }
 
 async function handleApiRoute(route, data, calls, prefixPattern, method) {
-  const url = route.request().url();
-  const path = new URL(url).href.replace(prefixPattern, "").replace(/^\/+/, "");
+  const url = new URL(route.request().url());
+  const path = url.pathname.replace(prefixPattern, "").replace(/^\/+/, "");
   calls.set(path, (calls.get(path) || 0) + 1);
   if (method === "POST") return json(route, { msg: "Saved." });
   if (path === "config") return json(route, data.config);
