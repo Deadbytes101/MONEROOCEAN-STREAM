@@ -42,6 +42,7 @@ createServer(async (request, response) => {
   if (url.pathname === "/reports/dbyte-agent-decision.json") {
     writeJson(response, {
       decision_schema: 1,
+      decision_ts_unix: Math.floor(Date.now() / 1000),
       decision_scope: "read_only",
       decision_status: "ok",
       decision_reason: "ledger_clean",
