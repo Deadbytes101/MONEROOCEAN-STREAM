@@ -62,8 +62,7 @@ fn run(path: &str) -> Result<bool, String> {
     println!("agent.size_match={size_match}");
     println!("agent.git_commit={commit}");
     println!("check.valid={valid}");
-    println!("runtime.approved={valid}");
-    println!("runtime.reason={reason}");
+    print!("{}", runtime_approval_output(valid, reason));
 
     Ok(valid)
 }
@@ -158,6 +157,10 @@ fn approval_reason(hash_match: bool, size_match: bool) -> &'static str {
     }
 }
 
+fn runtime_approval_output(approved: bool, reason: &str) -> String {
+    format!("runtime.approved={approved}\nruntime.reason={reason}\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -180,5 +183,21 @@ mod tests {
     #[test]
     fn approval_reason_rejects_hash_and_size_mismatch() {
         assert_eq!(approval_reason(false, false), "hash_and_size_mismatch");
+    }
+
+    #[test]
+    fn runtime_approval_output_is_stable_for_approved_runtime() {
+        assert_eq!(
+            runtime_approval_output(true, "manifest_verified"),
+            "runtime.approved=true\nruntime.reason=manifest_verified\n"
+        );
+    }
+
+    #[test]
+    fn runtime_approval_output_is_stable_for_rejected_runtime() {
+        assert_eq!(
+            runtime_approval_output(false, "hash_mismatch"),
+            "runtime.approved=false\nruntime.reason=hash_mismatch\n"
+        );
     }
 }
