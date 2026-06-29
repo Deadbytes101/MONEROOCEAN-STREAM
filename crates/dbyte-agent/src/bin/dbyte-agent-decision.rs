@@ -293,13 +293,25 @@ fn decision_json(facts: &LedgerFacts) -> String {
         ("ledger_events", facts.events.to_string()),
         ("ledger_valid_events", facts.valid_events.to_string()),
         ("ledger_invalid_events", facts.invalid_events.to_string()),
-        ("ledger_identity_reports", facts.identity_reports.to_string()),
+        (
+            "ledger_identity_reports",
+            facts.identity_reports.to_string(),
+        ),
         ("ledger_machine_reports", facts.machine_reports.to_string()),
-        ("ledger_file_verifications", facts.file_verifications.to_string()),
-        ("ledger_file_verify_errors", facts.file_verify_errors.to_string()),
+        (
+            "ledger_file_verifications",
+            facts.file_verifications.to_string(),
+        ),
+        (
+            "ledger_file_verify_errors",
+            facts.file_verify_errors.to_string(),
+        ),
         ("ledger_last_event", facts.last_event.clone()),
         ("ledger_last_file_match", facts.last_file_match.clone()),
-        ("ledger_last_invalid_line", facts.last_invalid_line.to_string()),
+        (
+            "ledger_last_invalid_line",
+            facts.last_invalid_line.to_string(),
+        ),
         (
             "ledger_last_invalid_reason",
             facts.last_invalid_reason.clone(),
