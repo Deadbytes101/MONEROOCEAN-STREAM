@@ -123,6 +123,11 @@ try {
     $Json["agent_checker_report_size_bytes"] = $CheckerReportItem.Length
 
     $Lines | Set-Content -Path $Report -Encoding utf8
+    $ReportHash = Get-FileHash -Algorithm SHA256 $Report
+    $ReportItem = Get-Item $Report
+    $ReportSha256 = $ReportHash.Hash.ToLowerInvariant()
+    $Json["agent_report_sha256"] = $ReportSha256
+    $Json["agent_report_size_bytes"] = $ReportItem.Length
     $Json | ConvertTo-Json | Set-Content -Path $JsonReport -Encoding utf8
 
     $ManifestCheck = Get-Content $JsonReport -Raw | ConvertFrom-Json
@@ -130,6 +135,8 @@ try {
     Assert-Equal "agent_sha256" $ManifestCheck.agent_sha256 $BinarySha256
     Assert-Equal "agent_size_bytes" $ManifestCheck.agent_size_bytes $Item.Length
     Assert-Equal "agent_report" $ManifestCheck.agent_report $Report
+    Assert-Equal "agent_report_sha256" $ManifestCheck.agent_report_sha256 $ReportSha256
+    Assert-Equal "agent_report_size_bytes" $ManifestCheck.agent_report_size_bytes $ReportItem.Length
     Assert-Equal "agent_manifest" $ManifestCheck.agent_manifest $JsonReport
     Assert-Equal "agent_checker_report" $ManifestCheck.agent_checker_report $CheckerReport
     Assert-Equal "agent_checker_report_sha256" $ManifestCheck.agent_checker_report_sha256 $CheckerReportSha256
@@ -154,6 +161,7 @@ try {
 
     Write-Host "== manifest check passed =="
     Write-Host "AGENT RELEASE MANIFEST VERIFIED"
+    Write-Host "agent.report_sha256=$ReportSha256"
     Write-Host "checker.report=$CheckerReport"
     Write-Host "checker.report_sha256=$CheckerReportSha256"
     Write-Host "== final manifest check passed =="
