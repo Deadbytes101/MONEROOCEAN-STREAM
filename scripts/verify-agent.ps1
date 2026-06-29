@@ -43,6 +43,7 @@ try {
     $CleanLedger = "crates\dbyte-agent\fixtures\clean-ledger.events"
     $BadLedger = "crates\dbyte-agent\fixtures\corrupt-ledger.events"
     $JsonReport = "reports\verify-agent.json"
+    $DecisionReport = "reports\dbyte-agent-decision.json"
     $MachineReport = "reports\dbyte-agent-machine.txt"
     $MachineReportScript = Join-Path $Root "scripts\report-agent-machine.ps1"
     $TelemetryReport = "reports\dbyte-agent-telemetry.txt"
@@ -97,6 +98,25 @@ try {
     if (!(Test-Path $JsonReport)) {
         throw "missing report artifact: $JsonReport"
     }
+
+    Invoke-Checked "decision report export" {
+        cargo run --manifest-path $Manifest --bin dbyte-agent-decision -- --ledger $CleanLedger --out $DecisionReport
+    }
+
+    if (!(Test-Path $DecisionReport)) {
+        throw "missing decision report artifact: $DecisionReport"
+    }
+
+    $DecisionJson = Get-Content $DecisionReport -Raw
+    if ($DecisionJson -notmatch '"decision_status": "ok"') {
+        throw "decision report did not approve clean ledger"
+    }
+    if ($DecisionJson -notmatch '"decision_scope": "read_only"') {
+        throw "decision report must stay read-only"
+    }
+
+    Write-Host "decision.report=$DecisionReport"
+    Write-Host "AGENT DECISION ARTIFACT VERIFIED"
 
     Invoke-Checked "release build check" {
         & $ReleaseScript
