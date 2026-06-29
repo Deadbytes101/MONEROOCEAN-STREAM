@@ -399,6 +399,80 @@ mod tests {
     }
 
     #[test]
+    fn run_accepts_manifest_with_matching_release_and_checker_reports() {
+        let binary_path = temp_artifact_path("run-binary-full-match");
+        let report_path = temp_artifact_path("run-report-full-match");
+        let checker_path = temp_artifact_path("run-checker-full-match");
+        let manifest_path = temp_artifact_path("run-manifest-full-match");
+        fs::write(&binary_path, b"agent-binary").unwrap();
+        fs::write(&report_path, b"release-report").unwrap();
+        fs::write(&checker_path, b"checker-report").unwrap();
+
+        let binary_hash = sha256_file(&binary_path).unwrap();
+        let binary_size = file_size(&binary_path).unwrap();
+        let report_hash = sha256_file(&report_path).unwrap();
+        let report_size = file_size(&report_path).unwrap();
+        let checker_hash = sha256_file(&checker_path).unwrap();
+        let checker_size = file_size(&checker_path).unwrap();
+        let raw = manifest_json_with_checker_report(
+            &binary_path,
+            &binary_hash,
+            binary_size,
+            &report_path,
+            &report_hash,
+            report_size,
+            &checker_path,
+            &checker_hash,
+            checker_size,
+        );
+        fs::write(&manifest_path, raw).unwrap();
+
+        assert!(run(&manifest_path).unwrap());
+
+        fs::remove_file(binary_path).ok();
+        fs::remove_file(report_path).ok();
+        fs::remove_file(checker_path).ok();
+        fs::remove_file(manifest_path).ok();
+    }
+
+    #[test]
+    fn run_rejects_manifest_with_mismatched_checker_report_integrity() {
+        let binary_path = temp_artifact_path("run-binary-checker-mismatch");
+        let report_path = temp_artifact_path("run-report-checker-mismatch");
+        let checker_path = temp_artifact_path("run-checker-mismatch");
+        let manifest_path = temp_artifact_path("run-manifest-checker-mismatch");
+        fs::write(&binary_path, b"agent-binary").unwrap();
+        fs::write(&report_path, b"release-report").unwrap();
+        fs::write(&checker_path, b"checker-report").unwrap();
+
+        let binary_hash = sha256_file(&binary_path).unwrap();
+        let binary_size = file_size(&binary_path).unwrap();
+        let report_hash = sha256_file(&report_path).unwrap();
+        let report_size = file_size(&report_path).unwrap();
+        let checker_size = file_size(&checker_path).unwrap();
+        let wrong_hash = "0000000000000000000000000000000000000000000000000000000000000000";
+        let raw = manifest_json_with_checker_report(
+            &binary_path,
+            &binary_hash,
+            binary_size,
+            &report_path,
+            &report_hash,
+            report_size,
+            &checker_path,
+            wrong_hash,
+            checker_size,
+        );
+        fs::write(&manifest_path, raw).unwrap();
+
+        assert!(!run(&manifest_path).unwrap());
+
+        fs::remove_file(binary_path).ok();
+        fs::remove_file(report_path).ok();
+        fs::remove_file(checker_path).ok();
+        fs::remove_file(manifest_path).ok();
+    }
+
+    #[test]
     fn runtime_approval_output_is_stable_for_approved_runtime() {
         assert_eq!(
             runtime_approval_output(true, "manifest_verified"),
@@ -453,6 +527,44 @@ mod tests {
             json_escape(report_path),
             report_hash,
             report_size
+        )
+    }
+
+    fn manifest_json_with_checker_report(
+        binary_path: &str,
+        binary_hash: &str,
+        binary_size: u64,
+        report_path: &str,
+        report_hash: &str,
+        report_size: u64,
+        checker_path: &str,
+        checker_hash: &str,
+        checker_size: u64,
+    ) -> String {
+        format!(
+            concat!(
+                "{{",
+                "\"agent_binary\":\"{}\",",
+                "\"agent_sha256\":\"{}\",",
+                "\"agent_size_bytes\":{},",
+                "\"agent_git_commit\":\"test-commit\",",
+                "\"agent_report\":\"{}\",",
+                "\"agent_report_sha256\":\"{}\",",
+                "\"agent_report_size_bytes\":{},",
+                "\"agent_checker_report\":\"{}\",",
+                "\"agent_checker_report_sha256\":\"{}\",",
+                "\"agent_checker_report_size_bytes\":{}",
+                "}}"
+            ),
+            json_escape(binary_path),
+            binary_hash,
+            binary_size,
+            json_escape(report_path),
+            report_hash,
+            report_size,
+            json_escape(checker_path),
+            checker_hash,
+            checker_size
         )
     }
 
