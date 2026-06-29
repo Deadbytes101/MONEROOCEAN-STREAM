@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -87,10 +87,16 @@ try {
 
     Write-Host "== manifest check passed =="
     Write-Host "AGENT RELEASE MANIFEST VERIFIED"
+
+    Write-Host "== rust manifest check =="
+    cargo run --manifest-path $Manifest --bin dbyte-agent-check -- $JsonReport
+    if ($LASTEXITCODE -ne 0) {
+        throw "rust manifest check failed with exit code $LASTEXITCODE"
+    }
+
     Write-Host "== release build passed =="
     Write-Host "AGENT RELEASE BINARY BUILT"
 }
 finally {
     Pop-Location
 }
-
