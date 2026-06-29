@@ -45,6 +45,7 @@ fn main() {
         }
         Some("verify-file") => verify_file(&config),
         Some("report") => report_ledger(&config, cli.out_path.as_deref()),
+        Some("report-json") => report_ledger_json(&config, cli.out_path.as_deref()),
         Some("help") | Some("--help") | Some("-h") | None => {
             print_help();
             Ok(())
@@ -174,6 +175,7 @@ fn print_help() {
     println!("  identity      print local machine identity report");
     println!("  verify-file   hash configured file and compare manifest");
     println!("  report        read local event ledger and summarize truth");
+    println!("  report-json   read local event ledger and emit JSON truth");
 }
 
 fn print_identity(config: &AgentConfig) {
@@ -269,6 +271,34 @@ fn report_ledger(config: &AgentConfig, out_path: Option<&str>) -> Result<(), i32
     Ok(())
 }
 
+fn report_ledger_json(config: &AgentConfig, out_path: Option<&str>) -> Result<(), i32> {
+    let Some(path) = config.event_log_path.as_deref() else {
+        eprintln!("config error: event_log.path is required");
+        return Err(2);
+    };
+
+    let report = match build_ledger_report(path) {
+        Ok(report) => report,
+        Err(error) => {
+            eprintln!("ledger error: {error}");
+            return Err(2);
+        }
+    };
+
+    let json = report_to_json(&report);
+    print!("{json}");
+
+    if let Some(out_path) = out_path {
+        if let Err(error) = write_report(out_path, &json) {
+            eprintln!("report error: {error}");
+            return Err(2);
+        }
+        println!("report.out={out_path}");
+    }
+
+    Ok(())
+}
+
 fn build_ledger_report(path: &str) -> Result<String, String> {
     let raw = match fs::read_to_string(path) {
         Ok(raw) => raw,
@@ -312,6 +342,44 @@ fn build_ledger_report(path: &str) -> Result<String, String> {
     Ok(format!(
         "ledger.path={path}\nledger.exists=true\nledger.events={total_events}\nledger.identity_reports={identity_reports}\nledger.file_verifications={file_verifications}\nledger.file_verify_errors={verify_errors}\nledger.last_event={last_event}\nledger.last_file_match={last_file_match}\n"
     ))
+}
+
+fn report_to_json(report: &str) -> String {
+    let mut output = String::from("{\n");
+    let fields: Vec<(&str, &str)> = report
+        .lines()
+        .filter_map(|line| line.split_once('='))
+        .collect();
+
+    for (index, (key, value)) in fields.iter().enumerate() {
+        let comma = if index + 1 == fields.len() { "" } else { "," };
+        let json_key = json_escape(&key.replace('.', "_"));
+        let json_value = json_value(value);
+        let _ = writeln!(output, "  \"{json_key}\": {json_value}{comma}");
+    }
+
+    output.push_str("}\n");
+    output
+}
+
+fn json_value(value: &str) -> String {
+    match value {
+        "true" => "true".to_string(),
+        "false" => "false".to_string(),
+        _ => match value.parse::<u64>() {
+            Ok(number) => number.to_string(),
+            Err(_) => format!("\"{}\"", json_escape(value)),
+        },
+    }
+}
+
+fn json_escape(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
 }
 
 fn write_report(path: &str, report: &str) -> Result<(), String> {
