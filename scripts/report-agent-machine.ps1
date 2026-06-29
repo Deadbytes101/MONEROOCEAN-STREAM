@@ -1,10 +1,10 @@
-$ErrorActionPreference = "Stop"
-Set-StrictMode -Version Latest
-
 param(
     [string]$Config = "configs\agent.example.toml",
     [string]$Out = "reports\dbyte-agent-machine.txt"
 )
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 Push-Location $Root
