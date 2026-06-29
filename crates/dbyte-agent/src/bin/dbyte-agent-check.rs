@@ -182,12 +182,7 @@ fn sha256_file(path: &str) -> Result<String, String> {
 
 fn file_size(path: &str) -> Result<u64, String> {
     fs::metadata(path)
-        .map_err(|error| {
-            format!(
-                "failed to inspect {}: {error}",
-                Path::new(path).display()
-            )
-        })
+        .map_err(|error| format!("failed to inspect {}: {error}", Path::new(path).display()))
         .map(|metadata| metadata.len())
 }
 
@@ -213,7 +208,9 @@ fn optional_artifact_match(
 
             Ok(actual_hash == hash && actual_size == size)
         }
-        _ => Err(format!("{hash_key} and {size_key} must be provided together")),
+        _ => Err(format!(
+            "{hash_key} and {size_key} must be provided together"
+        )),
     }
 }
 
@@ -270,13 +267,15 @@ mod tests {
     fn optional_artifact_match_skips_missing_integrity_fields() {
         let raw = r#"{"agent_report":"reports\\dbyte-agent-release.txt"}"#;
 
-        assert!(optional_artifact_match(
-            raw,
-            "agent_report",
-            "agent_report_sha256",
-            "agent_report_size_bytes"
-        )
-        .unwrap());
+        assert!(
+            optional_artifact_match(
+                raw,
+                "agent_report",
+                "agent_report_sha256",
+                "agent_report_size_bytes"
+            )
+            .unwrap()
+        );
     }
 
     #[test]
