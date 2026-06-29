@@ -13,12 +13,18 @@ export default [
   {
     ignores: [
       "node_modules/**",
+      ".wrangler/**",
+      "MONEROOCEAN-STREAM/**",
       "build/**",
       "coverage/**",
+      "reports/**",
+      "logs/**",
       "test-results/**",
       "playwright-report/**",
       "blob-report/**",
       "tmp/**",
+      "target/**",
+      "crates/**/target/**",
       "**/*.min.js",
       "**/*.map"
     ]
@@ -28,7 +34,7 @@ export default [
     // Stricter shared ruleset applied across all first-party linted files
     // (frontend source, root scripts, and Node test/tooling code). Vendored,
     // build, and ignored paths are excluded via the top-level `ignores`.
-    files: ["src/**/*.js", "script.js", "tests/**/*.mjs", "tests/**/*.cjs"],
+    files: ["src/**/*.js", "script.js", "sw.js", "tests/**/*.mjs", "tests/**/*.cjs"],
     rules: {
       "no-throw-literal": "error",
       "default-case-last": "error",
@@ -46,11 +52,11 @@ export default [
   },
   {
     // Frontend (browser) ESM source.
-    files: ["src/**/*.js", "script.js"],
+    files: ["src/**/*.js", "script.js", "sw.js"],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: "module",
-      globals: { ...globals.browser }
+      globals: { ...globals.browser, ...globals.serviceworker }
     },
     rules: {
       "no-unused-vars": unusedVars
@@ -68,7 +74,7 @@ export default [
     },
     rules: {
       // Strict like the rest of the repo. The underscore-ignore convention
-      // (argsIgnorePattern/varsIgnorePattern "^_") still applies.
+      // (argsIgnorePattern/varsIgnorePattern "^") still applies.
       "no-unused-vars": unusedVars
     }
   },
