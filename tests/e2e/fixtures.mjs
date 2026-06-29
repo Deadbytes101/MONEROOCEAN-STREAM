@@ -82,29 +82,8 @@ export async function mockApi(page, overrides = {}) {
   page.on("pageerror", (error) => seenConsole.push(`pageerror: ${error.message}`));
 
   await page.route("https://stats.uptimerobot.com/**", (route) => json(route, data.uptime));
-  await page.route("https://api.moneroocean.stream/**", async (route) => {
-    const url = new URL(route.request().url());
-    const path = url.pathname.replace(/^\/+/, "");
-    calls.set(path, (calls.get(path) || 0) + 1);
-    if (route.request().method() === "POST") return json(route, { msg: "Saved." });
-    if (path === "config") return json(route, data.config);
-    if (path === "pool/ports") return json(route, data.poolPorts);
-    if (path === "pool/stats") return json(route, { pool_statistics: data.poolStats });
-    if (path === "network/stats") return json(route, data.networkStats);
-    if (path === "pool/chart/hashrate") return json(route, data.poolChart || chartRows(24, 221_000_000));
-    if (path === "pool/motd") return json(route, data.motd);
-    if (path === "pool/payments") return json(route, data.payments);
-    if (path === "pool/blocks") return json(route, data.blocks);
-    if (path.startsWith("pool/coin_altblocks/")) return json(route, data.altBlocks);
-    if (path.startsWith("miner/") && path.endsWith("/stats/allWorkers")) return json(route, data.walletWorkers);
-    if (path.startsWith("miner/") && path.endsWith("/chart/hashrate/allWorkers")) return json(route, data.workerCharts);
-    if (path.startsWith("miner/") && path.endsWith("/chart/hashrate")) return json(route, data.walletChart || chartRows(18, 100_000));
-    if (path.startsWith("miner/") && path.endsWith("/payments")) return json(route, data.walletPayments);
-    if (path.startsWith("miner/") && path.endsWith("/block_payments")) return json(route, data.walletBlocks);
-    if (path.startsWith("miner/") && path.endsWith("/stats")) return json(route, data.walletStats);
-    if (path.startsWith("user/")) return json(route, data.userSettings);
-    return json(route, {});
-  });
+  await page.route("**/api/**", async (route) => handleApiRoute(route, data, calls, /^.*\/api\/+/, route.request().method()));
+  await page.route("https://api.moneroocean.stream/**", async (route) => handleApiRoute(route, data, calls, /^https:\/\/api\.moneroocean\.stream\/+/, route.request().method()));
   return {
     calls,
     consoleMessages: seenConsole,
@@ -172,6 +151,30 @@ export async function assertInternalLinksNavigate(page) {
     await expect(page.locator("#view")).not.toHaveAttribute("aria-busy", "true");
     await expect(page.locator("#view")).not.toContainText(/Data unavailable|Invalid wallet address|undefined|NaN/);
   }
+}
+
+async function handleApiRoute(route, data, calls, prefixPattern, method) {
+  const url = route.request().url();
+  const path = new URL(url).href.replace(prefixPattern, "").replace(/^\/+/, "");
+  calls.set(path, (calls.get(path) || 0) + 1);
+  if (method === "POST") return json(route, { msg: "Saved." });
+  if (path === "config") return json(route, data.config);
+  if (path === "pool/ports") return json(route, data.poolPorts);
+  if (path === "pool/stats") return json(route, { pool_statistics: data.poolStats });
+  if (path === "network/stats") return json(route, data.networkStats);
+  if (path === "pool/chart/hashrate") return json(route, data.poolChart || chartRows(24, 221_000_000));
+  if (path === "pool/motd") return json(route, data.motd);
+  if (path === "pool/payments") return json(route, data.payments);
+  if (path === "pool/blocks") return json(route, data.blocks);
+  if (path.startsWith("pool/coin_altblocks/")) return json(route, data.altBlocks);
+  if (path.startsWith("miner/") && path.endsWith("/stats/allWorkers")) return json(route, data.walletWorkers);
+  if (path.startsWith("miner/") && path.endsWith("/chart/hashrate/allWorkers")) return json(route, data.workerCharts);
+  if (path.startsWith("miner/") && path.endsWith("/chart/hashrate")) return json(route, data.walletChart || chartRows(18, 100_000));
+  if (path.startsWith("miner/") && path.endsWith("/payments")) return json(route, data.walletPayments);
+  if (path.startsWith("miner/") && path.endsWith("/block_payments")) return json(route, data.walletBlocks);
+  if (path.startsWith("miner/") && path.endsWith("/stats")) return json(route, data.walletStats);
+  if (path.startsWith("user/")) return json(route, data.userSettings);
+  return json(route, {});
 }
 
 async function json(route, body) {
