@@ -7,6 +7,7 @@ import { state } from "./state.js";
 import { applyPreferences, readPreferences, saveExplanations, saveTheme, toggleExplanations, toggleTheme } from "./preferences.js";
 import { supportEmail } from "./constants.js";
 import { walletView } from "./views/wallet.js";
+import { agentView } from "./views/agent.js";
 import { blocksView } from "./views/blocks.js";
 import { calcView } from "./views/calc.js";
 import { coinsView } from "./views/coins.js";
@@ -26,6 +27,7 @@ let lastRefreshAt = 0;
 
 const routeViews = {
   wallet: walletView,
+  agent: agentView,
   coins: coinsView,
   blocks: blocksView,
   payments: paymentsView,
