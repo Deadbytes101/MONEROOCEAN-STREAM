@@ -44,6 +44,7 @@ try {
     $Report = "reports\dbyte-agent-release.txt"
     $JsonReport = "reports\dbyte-agent-release.json"
     $CheckerReport = "reports\dbyte-agent-check.txt"
+    $ManifestSeal = "reports\dbyte-agent-release.seal.txt"
 
     Write-Host "== release build =="
     cargo build --release --manifest-path $Manifest --bin dbyte-agent
@@ -75,6 +76,7 @@ try {
         "agent.size_bytes=$($Item.Length)",
         "agent.report=$Report",
         "agent.manifest=$JsonReport",
+        "agent.manifest_seal=$ManifestSeal",
         "agent.checker_report=$CheckerReport",
         "agent.built_at_unix=$BuiltAtUnix",
         "agent.git_commit=$GitCommit"
@@ -86,6 +88,7 @@ try {
         agent_size_bytes = $Item.Length
         agent_report = $Report
         agent_manifest = $JsonReport
+        agent_manifest_seal = $ManifestSeal
         agent_checker_report = $CheckerReport
         agent_built_at_unix = $BuiltAtUnix
         agent_git_commit = $GitCommit
@@ -138,6 +141,7 @@ try {
     Assert-Equal "agent_report_sha256" $ManifestCheck.agent_report_sha256 $ReportSha256
     Assert-Equal "agent_report_size_bytes" $ManifestCheck.agent_report_size_bytes $ReportItem.Length
     Assert-Equal "agent_manifest" $ManifestCheck.agent_manifest $JsonReport
+    Assert-Equal "agent_manifest_seal" $ManifestCheck.agent_manifest_seal $ManifestSeal
     Assert-Equal "agent_checker_report" $ManifestCheck.agent_checker_report $CheckerReport
     Assert-Equal "agent_checker_report_sha256" $ManifestCheck.agent_checker_report_sha256 $CheckerReportSha256
     Assert-Equal "agent_checker_report_size_bytes" $ManifestCheck.agent_checker_report_size_bytes $CheckerReportItem.Length
@@ -157,6 +161,24 @@ try {
     Assert-Contains "final rust manifest check" $FinalCheckerOutput "runtime.reason=manifest_verified"
     Assert-Equal "final checker output" ($FinalCheckerOutput -join "`n") ($CheckerOutput -join "`n")
 
+    $JsonReportHash = Get-FileHash -Algorithm SHA256 $JsonReport
+    $JsonReportItem = Get-Item $JsonReport
+    $JsonReportSha256 = $JsonReportHash.Hash.ToLowerInvariant()
+    $SealLines = @(
+        "seal.manifest=$JsonReport",
+        "seal.manifest_sha256=$JsonReportSha256",
+        "seal.manifest_size_bytes=$($JsonReportItem.Length)",
+        "seal.git_commit=$GitCommit",
+        "seal.built_at_unix=$BuiltAtUnix"
+    )
+    $SealLines | Set-Content -Path $ManifestSeal -Encoding utf8
+
+    Assert-Contains "manifest seal" $SealLines "seal.manifest=$JsonReport"
+    Assert-Contains "manifest seal" $SealLines "seal.manifest_sha256=$JsonReportSha256"
+    Assert-Contains "manifest seal" $SealLines "seal.manifest_size_bytes=$($JsonReportItem.Length)"
+    Assert-Contains "manifest seal" $SealLines "seal.git_commit=$GitCommit"
+    Assert-Contains "manifest seal" $SealLines "seal.built_at_unix=$BuiltAtUnix"
+
     $Lines | ForEach-Object { Write-Host $_ }
 
     Write-Host "== manifest check passed =="
@@ -164,6 +186,10 @@ try {
     Write-Host "agent.report_sha256=$ReportSha256"
     Write-Host "checker.report=$CheckerReport"
     Write-Host "checker.report_sha256=$CheckerReportSha256"
+    Write-Host "manifest.seal=$ManifestSeal"
+    Write-Host "manifest.seal_sha256=$JsonReportSha256"
+    Write-Host "== manifest seal passed =="
+    Write-Host "AGENT MANIFEST SEAL VERIFIED"
     Write-Host "== final manifest check passed =="
     Write-Host "AGENT FINAL MANIFEST VERIFIED"
     Write-Host "== checker output passed =="
