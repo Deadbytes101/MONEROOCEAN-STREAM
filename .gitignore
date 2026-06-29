@@ -9,6 +9,7 @@ blob-report/
 tmp/
 target/
 logs/
+reports/
 crates/*/target/
 *.map
 *.log
