@@ -247,7 +247,13 @@ fn build_machine_report(config: &AgentConfig) -> String {
     let file_manifest_expected_sha256 = config
         .file_expected_sha256
         .as_deref()
-        .map(|value| if value.trim().is_empty() { "false" } else { "true" })
+        .map(|value| {
+            if value.trim().is_empty() {
+                "false"
+            } else {
+                "true"
+            }
+        })
         .unwrap_or("false");
 
     format!(
@@ -796,6 +802,9 @@ mod tests {
         assert_eq!(report_field(&report, "ledger.events"), Some("3"));
         assert_eq!(report_field(&report, "ledger.valid_events"), Some("3"));
         assert_eq!(report_field(&report, "ledger.machine_reports"), Some("1"));
-        assert_eq!(report_field(&report, "ledger.last_event"), Some("file_verified"));
+        assert_eq!(
+            report_field(&report, "ledger.last_event"),
+            Some("file_verified")
+        );
     }
 }
