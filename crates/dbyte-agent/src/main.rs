@@ -50,9 +50,11 @@ fn main() {
             Ok(())
         }
         Some("verify-file") => verify_file(&config),
-        Some("report") => report_ledger(&config, cli.out_path.as_deref()),
-        Some("report-json") => report_ledger_json(&config, cli.out_path.as_deref()),
-        Some("check-ledger") => check_ledger(&config),
+        Some("report") => report_ledger(&config, cli.ledger_path.as_deref(), cli.out_path.as_deref()),
+        Some("report-json") => {
+            report_ledger_json(&config, cli.ledger_path.as_deref(), cli.out_path.as_deref())
+        }
+        Some("check-ledger") => check_ledger(&config, cli.ledger_path.as_deref()),
         Some("help") | Some("--help") | Some("-h") | None => {
             print_help();
             Ok(())
@@ -72,6 +74,7 @@ fn main() {
 #[derive(Debug)]
 struct Cli {
     config_path: Option<String>,
+    ledger_path: Option<String>,
     out_path: Option<String>,
     command: Option<String>,
 }
@@ -83,6 +86,7 @@ impl Cli {
     {
         let mut args = args.into_iter();
         let mut config_path = None;
+        let mut ledger_path = None;
         let mut out_path = None;
         let mut command = None;
 
@@ -93,6 +97,12 @@ impl Cli {
                         .next()
                         .ok_or_else(|| "--config requires a path".to_string())?;
                     config_path = Some(path);
+                }
+                "--ledger" => {
+                    let path = args
+                        .next()
+                        .ok_or_else(|| "--ledger requires a path".to_string())?;
+                    ledger_path = Some(path);
                 }
                 "--out" => {
                     let path = args
@@ -107,6 +117,7 @@ impl Cli {
 
         Ok(Self {
             config_path,
+            ledger_path,
             out_path,
             command,
         })
@@ -177,7 +188,7 @@ fn parse_quoted_value(input: &str) -> Option<String> {
 fn print_help() {
     println!("dbyte-agent {}", env!("CARGO_PKG_VERSION"));
     println!("usage:");
-    println!("  dbyte-agent [--config <path>] [--out <path>] <command>");
+    println!("  dbyte-agent [--config <path>] [--ledger <path>] [--out <path>] <command>");
     println!("commands:");
     println!("  identity      print local machine identity report");
     println!("  verify-file   hash configured file and compare manifest");
@@ -252,12 +263,12 @@ fn verify_file(config: &AgentConfig) -> Result<(), i32> {
     }
 }
 
-fn report_ledger(config: &AgentConfig, out_path: Option<&str>) -> Result<(), i32> {
-    let Some(path) = config.event_log_path.as_deref() else {
-        eprintln!("config error: event_log.path is required");
-        return Err(2);
-    };
-
+fn report_ledger(
+    config: &AgentConfig,
+    ledger_override: Option<&str>,
+    out_path: Option<&str>,
+) -> Result<(), i32> {
+    let path = resolve_ledger_path(config, ledger_override)?;
     let report = match build_ledger_report(path) {
         Ok(report) => report,
         Err(error) => {
@@ -279,12 +290,12 @@ fn report_ledger(config: &AgentConfig, out_path: Option<&str>) -> Result<(), i32
     Ok(())
 }
 
-fn report_ledger_json(config: &AgentConfig, out_path: Option<&str>) -> Result<(), i32> {
-    let Some(path) = config.event_log_path.as_deref() else {
-        eprintln!("config error: event_log.path is required");
-        return Err(2);
-    };
-
+fn report_ledger_json(
+    config: &AgentConfig,
+    ledger_override: Option<&str>,
+    out_path: Option<&str>,
+) -> Result<(), i32> {
+    let path = resolve_ledger_path(config, ledger_override)?;
     let report = match build_ledger_report(path) {
         Ok(report) => report,
         Err(error) => {
@@ -307,12 +318,8 @@ fn report_ledger_json(config: &AgentConfig, out_path: Option<&str>) -> Result<()
     Ok(())
 }
 
-fn check_ledger(config: &AgentConfig) -> Result<(), i32> {
-    let Some(path) = config.event_log_path.as_deref() else {
-        eprintln!("config error: event_log.path is required");
-        return Err(2);
-    };
-
+fn check_ledger(config: &AgentConfig, ledger_override: Option<&str>) -> Result<(), i32> {
+    let path = resolve_ledger_path(config, ledger_override)?;
     let report = match build_ledger_report(path) {
         Ok(report) => report,
         Err(error) => {
@@ -332,6 +339,19 @@ fn check_ledger(config: &AgentConfig) -> Result<(), i32> {
     } else {
         Err(1)
     }
+}
+
+fn resolve_ledger_path<'a>(config: &'a AgentConfig, ledger_override: Option<&'a str>) -> Result<&'a str, i32> {
+    if let Some(path) = ledger_override {
+        return Ok(path);
+    }
+
+    let Some(path) = config.event_log_path.as_deref() else {
+        eprintln!("config error: event_log.path is required");
+        return Err(2);
+    };
+
+    Ok(path)
 }
 
 fn build_ledger_report(path: &str) -> Result<String, String> {
@@ -584,4 +604,67 @@ fn escape_event_value(value: &str) -> String {
         .replace('\n', "\\n")
         .replace('\r', "\\r")
         .replace(' ', "_")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const HASH: &str = "b592cc2cef79053a7490ba03d220bb2ff6bcd8fba496d956e377232c2652243e";
+
+    #[test]
+    fn parses_identity_event() {
+        let event = parse_event_line("ts_unix=1 machine=test event=identity_reported status=ok")
+            .expect("identity event should parse");
+
+        assert_eq!(event.event, "identity_reported");
+        assert_eq!(event.match_value, None);
+    }
+
+    #[test]
+    fn parses_file_verified_event() {
+        let line = format!(
+            "ts_unix=2 machine=test event=file_verified path=configs/hash-fixture.txt actual_sha256={HASH} expected_sha256={HASH} match=true"
+        );
+        let event = parse_event_line(&line).expect("file_verified event should parse");
+
+        assert_eq!(event.event, "file_verified");
+        assert_eq!(event.match_value.as_deref(), Some("true"));
+    }
+
+    #[test]
+    fn rejects_corrupt_sha() {
+        let line = format!(
+            "ts_unix=2 machine=test event=file_verified path=configs/hash-fixture.txt actual_sha256=BAD expected_sha256={HASH} match=true"
+        );
+
+        assert_eq!(parse_event_line(&line), Err("invalid_actual_sha256".to_string()));
+    }
+
+    #[test]
+    fn counts_invalid_records() {
+        let raw = format!(
+            "ts_unix=1 machine=test event=identity_reported status=ok\nts_unix=2 machine=test event=file_verified path=configs/hash-fixture.txt actual_sha256=BAD expected_sha256={HASH} match=true\n"
+        );
+        let path = env::temp_dir().join(format!(
+            "dbyte-agent-corrupt-ledger-{}.events",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("system time should be valid")
+                .as_nanos()
+        ));
+
+        fs::write(&path, raw).expect("fixture should be written");
+        let report = build_ledger_report(&path.display().to_string()).expect("report should build");
+        let _ = fs::remove_file(&path);
+
+        assert_eq!(report_field(&report, "ledger.events"), Some("2"));
+        assert_eq!(report_field(&report, "ledger.valid_events"), Some("1"));
+        assert_eq!(report_field(&report, "ledger.invalid_events"), Some("1"));
+        assert_eq!(report_field(&report, "ledger.last_invalid_line"), Some("2"));
+        assert_eq!(
+            report_field(&report, "ledger.last_invalid_reason"),
+            Some("invalid_actual_sha256")
+        );
+    }
 }
