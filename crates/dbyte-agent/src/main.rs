@@ -16,6 +16,12 @@ struct AgentConfig {
     event_log_path: Option<String>,
 }
 
+#[derive(Debug)]
+struct ParsedEvent {
+    event: String,
+    match_value: Option<String>,
+}
+
 fn main() {
     let cli = match Cli::parse(env::args().skip(1)) {
         Ok(cli) => cli,
@@ -46,6 +52,7 @@ fn main() {
         Some("verify-file") => verify_file(&config),
         Some("report") => report_ledger(&config, cli.out_path.as_deref()),
         Some("report-json") => report_ledger_json(&config, cli.out_path.as_deref()),
+        Some("check-ledger") => check_ledger(&config),
         Some("help") | Some("--help") | Some("-h") | None => {
             print_help();
             Ok(())
@@ -176,6 +183,7 @@ fn print_help() {
     println!("  verify-file   hash configured file and compare manifest");
     println!("  report        read local event ledger and summarize truth");
     println!("  report-json   read local event ledger and emit JSON truth");
+    println!("  check-ledger  parse local event ledger and reject corrupt records");
 }
 
 fn print_identity(config: &AgentConfig) {
@@ -299,12 +307,39 @@ fn report_ledger_json(config: &AgentConfig, out_path: Option<&str>) -> Result<()
     Ok(())
 }
 
+fn check_ledger(config: &AgentConfig) -> Result<(), i32> {
+    let Some(path) = config.event_log_path.as_deref() else {
+        eprintln!("config error: event_log.path is required");
+        return Err(2);
+    };
+
+    let report = match build_ledger_report(path) {
+        Ok(report) => report,
+        Err(error) => {
+            eprintln!("ledger error: {error}");
+            return Err(2);
+        }
+    };
+
+    print!("{report}");
+
+    let invalid_events = report_field(&report, "ledger.invalid_events")
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(0);
+
+    if invalid_events == 0 {
+        Ok(())
+    } else {
+        Err(1)
+    }
+}
+
 fn build_ledger_report(path: &str) -> Result<String, String> {
     let raw = match fs::read_to_string(path) {
         Ok(raw) => raw,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             return Ok(format!(
-                "ledger.path={path}\nledger.exists=false\nledger.events=0\n"
+                "ledger.path={path}\nledger.exists=false\nledger.events=0\nledger.valid_events=0\nledger.invalid_events=0\nledger.identity_reports=0\nledger.file_verifications=0\nledger.file_verify_errors=0\nledger.last_event=<none>\nledger.last_file_match=<unknown>\nledger.last_invalid_line=0\nledger.last_invalid_reason=<none>\n"
             ));
         }
         Err(error) => {
@@ -316,32 +351,119 @@ fn build_ledger_report(path: &str) -> Result<String, String> {
     };
 
     let mut total_events = 0usize;
+    let mut valid_events = 0usize;
+    let mut invalid_events = 0usize;
     let mut identity_reports = 0usize;
     let mut file_verifications = 0usize;
     let mut verify_errors = 0usize;
     let mut last_event = String::from("<none>");
     let mut last_file_match = String::from("<unknown>");
+    let mut last_invalid_line = 0usize;
+    let mut last_invalid_reason = String::from("<none>");
 
-    for line in raw.lines().map(str::trim).filter(|line| !line.is_empty()) {
+    for (index, line) in raw.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
         total_events += 1;
-        last_event = extract_field(line, "event").unwrap_or("<unknown>").to_string();
 
-        match last_event.as_str() {
-            "identity_reported" => identity_reports += 1,
-            "file_verified" => {
-                file_verifications += 1;
-                if let Some(value) = extract_field(line, "match") {
-                    last_file_match = value.to_string();
+        match parse_event_line(line) {
+            Ok(parsed) => {
+                valid_events += 1;
+                last_event = parsed.event;
+
+                match last_event.as_str() {
+                    "identity_reported" => identity_reports += 1,
+                    "file_verified" => {
+                        file_verifications += 1;
+                        if let Some(value) = parsed.match_value {
+                            last_file_match = value;
+                        }
+                    }
+                    "file_verify_error" => verify_errors += 1,
+                    _ => {}
                 }
             }
-            "file_verify_error" => verify_errors += 1,
-            _ => {}
+            Err(reason) => {
+                invalid_events += 1;
+                last_invalid_line = index + 1;
+                last_invalid_reason = reason;
+            }
         }
     }
 
     Ok(format!(
-        "ledger.path={path}\nledger.exists=true\nledger.events={total_events}\nledger.identity_reports={identity_reports}\nledger.file_verifications={file_verifications}\nledger.file_verify_errors={verify_errors}\nledger.last_event={last_event}\nledger.last_file_match={last_file_match}\n"
+        "ledger.path={path}\nledger.exists=true\nledger.events={total_events}\nledger.valid_events={valid_events}\nledger.invalid_events={invalid_events}\nledger.identity_reports={identity_reports}\nledger.file_verifications={file_verifications}\nledger.file_verify_errors={verify_errors}\nledger.last_event={last_event}\nledger.last_file_match={last_file_match}\nledger.last_invalid_line={last_invalid_line}\nledger.last_invalid_reason={last_invalid_reason}\n"
     ))
+}
+
+fn parse_event_line(line: &str) -> Result<ParsedEvent, String> {
+    let ts_unix = require_field(line, "ts_unix")?;
+    if ts_unix.parse::<u64>().is_err() {
+        return Err("invalid_ts_unix".to_string());
+    }
+
+    let machine = require_field(line, "machine")?;
+    if machine.trim().is_empty() {
+        return Err("empty_machine".to_string());
+    }
+
+    let event = require_field(line, "event")?;
+    if event.trim().is_empty() {
+        return Err("empty_event".to_string());
+    }
+
+    match event {
+        "identity_reported" => {
+            let status = require_field(line, "status")?;
+            if status != "ok" {
+                return Err("invalid_identity_status".to_string());
+            }
+            Ok(ParsedEvent {
+                event: event.to_string(),
+                match_value: None,
+            })
+        }
+        "file_verified" => {
+            require_field(line, "path")?;
+            let actual = require_field(line, "actual_sha256")?;
+            let expected = require_field(line, "expected_sha256")?;
+            let matched = require_field(line, "match")?;
+
+            if !is_sha256_hex(actual) {
+                return Err("invalid_actual_sha256".to_string());
+            }
+            if !is_sha256_hex(expected) {
+                return Err("invalid_expected_sha256".to_string());
+            }
+            if matched != "true" && matched != "false" {
+                return Err("invalid_match_value".to_string());
+            }
+
+            Ok(ParsedEvent {
+                event: event.to_string(),
+                match_value: Some(matched.to_string()),
+            })
+        }
+        "file_verify_error" => {
+            require_field(line, "reason")?;
+            Ok(ParsedEvent {
+                event: event.to_string(),
+                match_value: None,
+            })
+        }
+        _ => Err(format!("unknown_event_{event}")),
+    }
+}
+
+fn require_field<'a>(line: &'a str, key: &str) -> Result<&'a str, String> {
+    extract_field(line, key).ok_or_else(|| format!("missing_{key}"))
+}
+
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn report_to_json(report: &str) -> String {
@@ -390,6 +512,13 @@ fn write_report(path: &str, report: &str) -> Result<(), String> {
 
     fs::write(path, report)
         .map_err(|error| format!("failed to write {}: {error}", Path::new(path).display()))
+}
+
+fn report_field<'a>(report: &'a str, key: &str) -> Option<&'a str> {
+    let prefix = format!("{key}=");
+    report
+        .lines()
+        .find_map(|line| line.strip_prefix(&prefix))
 }
 
 fn extract_field<'a>(line: &'a str, key: &str) -> Option<&'a str> {
