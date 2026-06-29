@@ -6,7 +6,38 @@ const TELEMETRY_JSON_PATH = "reports/dbyte-agent-telemetry.json";
 export async function agentView() {
   const telemetry = await loadTelemetry();
   if (!telemetry) return unavailableView();
+  return telemetryPanel(telemetry, "DBYTE Agent", "Local runtime telemetry from the DBYTE agent JSON artifact.");
+}
 
+export async function agentSummaryPanel() {
+  const telemetry = await loadTelemetry();
+  if (!telemetry) {
+    return `<section class=panel>
+      <div class=panel-header>
+        <div>
+          <h2>DBYTE Agent</h2>
+          <p class=muted>Local telemetry JSON is not available yet.</p>
+        </div>
+      </div>
+      <div class=card>
+        <p>Run <code>.\\scripts\\report-agent-telemetry.ps1</code> to write <code>${escapeHtml(TELEMETRY_JSON_PATH)}</code>.</p>
+      </div>
+    </section>`;
+  }
+  return telemetryPanel(telemetry, "DBYTE Agent", "Dashboard-facing local telemetry JSON.");
+}
+
+async function loadTelemetry() {
+  try {
+    const response = await fetch(TELEMETRY_JSON_PATH, { cache: "no-store" });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function telemetryPanel(telemetry, title, subtitle) {
   const hashrate = normalizedHashrate(telemetry);
   const rejectRate = Number(telemetry.miner_reject_rate) || 0;
   const acceptedShares = Number(telemetry.miner_accepted_shares) || 0;
@@ -15,8 +46,8 @@ export async function agentView() {
   return `<section class=panel>
     <div class=panel-header>
       <div>
-        <h1>DBYTE Agent</h1>
-        <p class=muted>Local runtime telemetry from the DBYTE agent JSON artifact.</p>
+        <h2>${escapeHtml(title)}</h2>
+        <p class=muted>${escapeHtml(subtitle)}</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
@@ -40,16 +71,6 @@ export async function agentView() {
       </table>
     </div>
   </section>`;
-}
-
-async function loadTelemetry() {
-  try {
-    const response = await fetch(TELEMETRY_JSON_PATH, { cache: "no-store" });
-    if (!response.ok) return null;
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 function unavailableView() {
