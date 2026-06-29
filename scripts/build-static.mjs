@@ -6,14 +6,15 @@ import { chdir } from "node:process";
 
 chdir(join(dirname(fileURLToPath(import.meta.url)), ".."));
 
-const commandName = (name) => process.platform === "win32" ? `${name}.cmd` : name;
+const windows = process.platform === "win32";
+const commandName = (name) => windows ? `${name}.cmd` : name;
 
 function run(command, args) {
-  execFileSync(command, args, { stdio: "inherit" });
+  execFileSync(command, args, { stdio: "inherit", shell: windows });
 }
 
 function output(command, args) {
-  return execFileSync(command, args, { encoding: "utf8" }).trim();
+  return execFileSync(command, args, { encoding: "utf8", shell: windows }).trim();
 }
 
 function cacheKey() {
@@ -25,8 +26,8 @@ function cacheKey() {
   }
 
   try {
-    execFileSync("git", ["diff", "--quiet", "--", "."]);
-    execFileSync("git", ["diff", "--cached", "--quiet", "--", "."]);
+    execFileSync("git", ["diff", "--quiet", "--", "."], { shell: windows });
+    execFileSync("git", ["diff", "--cached", "--quiet", "--", "."], { shell: windows });
   } catch {
     key = `${key}-dirty-${Math.floor(Date.now() / 1000)}`;
   }
