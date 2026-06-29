@@ -34,9 +34,50 @@ async function loadJson(path) {
 
 function agentPanels(telemetry, decision, title, subtitle) {
   return [
+    healthPanel(telemetry, decision),
     telemetry ? telemetryPanel(telemetry, title, subtitle) : missingTelemetryPanel(title),
     decision ? decisionPanel(decision) : missingDecisionPanel()
   ].join("");
+}
+
+function healthPanel(telemetry, decision) {
+  const health = agentHealth(telemetry, decision);
+  const telemetryFreshness = telemetry ? artifactFreshness(Number(telemetry.telemetry_ts_unix) || 0, TELEMETRY_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
+  const decisionFreshness = decision ? artifactFreshness(Number(decision.decision_ts_unix) || 0, DECISION_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
+
+  return `<section class=panel>
+    <div class=panel-header>
+      <div>
+        <h2>DBYTE Agent Health</h2>
+        <p class=muted>Single display-only operator state from local telemetry, decision, and freshness artifacts.</p>
+      </div>
+    </div>
+    <div class="card grid kpi-grid">
+      ${kpi("Health", { html: `<span class="${decisionStatusClass(health.status)}">${escapeHtml(health.status)}</span>` }, "Overall local agent health for operator review.")}
+      ${kpi("Reason", health.reason, "Why this health state was selected.")}
+      ${kpi("Next", health.next, "Suggested operator action label.")}
+      ${kpi("Telemetry", freshnessValue(telemetryFreshness), "Telemetry artifact freshness.")}
+      ${kpi("Decision", freshnessValue(decisionFreshness), "Decision artifact freshness.")}
+      ${kpi("Mode", "display_only", "This panel renders local report state only.")}
+    </div>
+  </section>`;
+}
+
+function agentHealth(telemetry, decision) {
+  if (!telemetry) return { status: "attention", reason: "missing_telemetry", next: "generate_telemetry" };
+  if (!decision) return { status: "attention", reason: "missing_decision", next: "generate_decision" };
+
+  const telemetryFreshness = artifactFreshness(Number(telemetry.telemetry_ts_unix) || 0, TELEMETRY_STALE_SECONDS);
+  if (telemetryFreshness.label !== "fresh") return { status: "attention", reason: `telemetry_${telemetryFreshness.label}`, next: "refresh_telemetry" };
+
+  const decisionFreshness = artifactFreshness(Number(decision.decision_ts_unix) || 0, DECISION_STALE_SECONDS);
+  if (decisionFreshness.label !== "fresh") return { status: "attention", reason: `decision_${decisionFreshness.label}`, next: "refresh_decision" };
+
+  const decisionStatus = String(decision.decision_status || "unknown");
+  if (decisionStatus === "blocked") return { status: "blocked", reason: String(decision.decision_reason || "decision_blocked"), next: String(decision.decision_next || "inspect_decision") };
+  if (decisionStatus !== "ok") return { status: "attention", reason: String(decision.decision_reason || "decision_attention"), next: String(decision.decision_next || "inspect_decision") };
+
+  return { status: "ok", reason: "local_artifacts_fresh", next: "observe" };
 }
 
 function telemetryPanel(telemetry, title, subtitle) {
@@ -93,14 +134,14 @@ function decisionPanel(decision) {
     <div class=panel-header>
       <div>
         <h2>DBYTE Decision</h2>
-        <p class=muted>Read-only operator decision from the local decision JSON artifact.</p>
+        <p class=muted>Display-only operator decision from the local decision JSON artifact.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
-      ${kpi("Decision", { html: `<span class="${decisionStatusClass(status)}">${escapeHtml(status)}</span>` }, "Read-only decision status. This page does not start miners or change wallets.")}
+      ${kpi("Decision", { html: `<span class="${decisionStatusClass(status)}">${escapeHtml(status)}</span>` }, "Display-only decision status.")}
       ${kpi("Freshness", freshnessValue(freshness), "Whether the local decision artifact is still fresh.")}
       ${kpi("Reason", reason, "Machine-readable reason from the decision artifact.")}
-      ${kpi("Next", next, "Recommended operator action. This is display-only.")}
+      ${kpi("Next", next, "Recommended operator action label.")}
       ${kpi("Generated", formatAge(generatedAt), "How old the local decision artifact is.")}
       ${kpi("Invalid", formatNumber(invalidEvents), "Invalid ledger events rejected by the decision artifact.")}
     </div>

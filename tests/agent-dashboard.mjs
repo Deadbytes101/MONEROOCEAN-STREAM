@@ -48,14 +48,15 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     assert.deepEqual(parseRoute("#/agent"), { n: "agent", p: "#/agent", q: {} });
   });
 
-  test("agent summary renders telemetry and read-only decision JSON", async () => {
+  test("agent summary renders telemetry, decision JSON, and health rollup", async () => {
     await withFetchFixtures({
       "reports/dbyte-agent-telemetry.json": TELEMETRY,
       "reports/dbyte-agent-decision.json": DECISION
     }, async () => {
       const html = await agentSummaryPanel();
 
-      assert.match(html, /DBYTE Agent/);
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /local_artifacts_fresh/);
       assert.match(html, /unit-rig/);
       assert.match(html, /DBYTE Decision/);
       assert.match(html, /read_only/);
@@ -69,15 +70,33 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     });
   });
 
-  test("agent summary marks stale telemetry and decision artifacts", async () => {
+  test("agent health rollup marks stale telemetry and decision artifacts as attention", async () => {
     await withFetchFixtures({
       "reports/dbyte-agent-telemetry.json": { ...TELEMETRY, telemetry_ts_unix: STALE_TS },
       "reports/dbyte-agent-decision.json": { ...DECISION, decision_ts_unix: STALE_TS }
     }, async () => {
       const html = await agentSummaryPanel();
 
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /attention/);
+      assert.match(html, /telemetry_stale_artifact/);
       assert.match(html, /stale_artifact/);
       assert.match(html, /DBYTE Decision/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("agent health rollup marks blocked decisions as blocked", async () => {
+    await withFetchFixtures({
+      "reports/dbyte-agent-telemetry.json": TELEMETRY,
+      "reports/dbyte-agent-decision.json": { ...DECISION, decision_status: "blocked", decision_reason: "file_mismatch", decision_next: "verify_file" }
+    }, async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /blocked/);
+      assert.match(html, /file_mismatch/);
+      assert.match(html, /verify_file/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
@@ -88,6 +107,8 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     }, async () => {
       const html = await agentSummaryPanel();
 
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /missing_decision/);
       assert.match(html, /DBYTE Decision/);
       assert.match(html, /Local decision JSON is not available yet/);
       assert.match(html, /report-agent-decision\.ps1/);
