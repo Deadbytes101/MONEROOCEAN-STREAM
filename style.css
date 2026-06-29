@@ -6,6 +6,7 @@
 @import "./src/styles/responsive.css";
 @import "./src/styles/old-wallet.css";
 @import "./src/styles/ios-pwa.css";
+@import "./src/styles/agent-e2e-contract.css";
 
 /* private old-style operator view */
 .crawl-copy,
@@ -13,7 +14,6 @@
 .hero,
 .marketing,
 .comments-controlled,
-#comments-toggle,
 .setup-card,
 .help-donation {
   display: none !important;
@@ -257,59 +257,4 @@ button[type="submit"] {
 #mtd,
 .motd-card {
   margin: 12px 7vw !important;
-}
-
-.motd-card {
-  border: 1px solid rgba(255,255,255,.025) !important;
-  background: rgba(255,255,255,.012) !important;
-}
-
-.motd-card .panel-header,
-.motd-card .card {
-  padding: 10px !important;
-}
-
-.motd-card h2 {
-  color: #d2d2d2 !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-  font-size: 16px !important;
-}
-
-.wallet-list,
-.wallet-track-card {
-  width: min(84vw, 1520px) !important;
-  margin: 0 auto !important;
-}
-
-.wallet-track-card {
-  border: 1px solid rgba(7,143,143,.24) !important;
-  background: rgba(255,255,255,.01) !important;
-}
-
-.address-bar {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto !important;
-  gap: 8px !important;
-}
-
-input,
-textarea,
-select {
-  color: #d2d2d2 !important;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: rgba(210,210,210,.55) !important;
-}
-
-.explanation { display: none !important; }
-
-@media (max-width: 900px) {
-  .topbar { align-items: flex-start !important; flex-wrap: wrap !important; padding: 10px 8px !important; }
-  .nav { width: 100% !important; justify-content: flex-start !important; margin-left: 0 !important; }
-  .pool-kpi-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)) !important; }
-  .wallet-list,
-  .wallet-track-card { width: calc(100vw - 16px) !important; }
 }

@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>MoneroOcean</title>
+  <title>MoneroOcean Pool Dashboard</title>
   <meta name="description" content="Private MoneroOcean wallet monitor.">
   <meta name="theme-color" content="#050706">
   <meta name="robots" content="noindex,nofollow">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="MoneroOcean">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"MoneroOcean Pool Dashboard","applicationCategory":"FinanceApplication"}</script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -26,9 +27,15 @@
     </a>
     <nav class="nav" aria-label="Primary">
       <a href="#/">Home</a>
+      <a href="#/coins">Coins</a>
+      <a href="#/blocks">Blocks</a>
       <a href="#/payments">Payments</a>
+      <a href="#/calc">Calc</a>
+      <a href="#/setup">Setup</a>
+      <a href="#/help">Help</a>
     </nav>
     <div class="top-actions">
+      <button id="comments-toggle" class="icon-button" title="Show comments" aria-label="Show comments" aria-pressed="false">?</button>
       <button id="theme-toggle" class="icon-button" title="Switch theme" aria-label="Switch theme">☾</button>
     </div>
   </header>

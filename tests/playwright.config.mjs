@@ -19,7 +19,7 @@ export default defineConfig({
     command: "node tests/e2e/server.mjs",
     cwd: repoRoot,
     url: "http://127.0.0.1:4173",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 10_000
   },
   projects: [

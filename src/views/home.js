@@ -8,6 +8,7 @@ import { localHistoryEnabled, saveWallet } from "../privacy.js";
 import { UNKNOWN_UPTIME, summarizeUptimeRobot, uptimeToneClass } from "../uptime.js";
 import { bindChartHover, chartHtml, hashrateChart } from "./charts.js";
 import { chipLink, escapeHtml, graphControls, recover, skel } from "./common.js";
+import { agentSummaryPanel } from "./agent.js";
 import { poolDashboard } from "./pool-dashboard.js";
 import { walletRouteWithGraph, lastShareAgeSuffix, walletKpis, workerList } from "./wallet.js";
 
@@ -22,7 +23,7 @@ export async function homeView(route = state.r) {
   const graphMode = route.q?.mode || state.gm;
   state.gw = graphWindow;
   state.gm = graphMode;
-  const [pool, network] = await Promise.all([api.poolStats(), api.networkStats()]);
+  const [pool, network, agentPanel] = await Promise.all([api.poolStats(), api.networkStats(), agentSummaryPanel()]);
   state.p = Number(pool.pplnsWindowTime) || 0;
   const poolChartRows = getCache("pool/chart/hashrate");
   const motd = normalizeMotd(getCache("pool/motd") || {});
@@ -30,6 +31,7 @@ export async function homeView(route = state.r) {
   return `
     <div class="grid">
       ${poolDashboard(pool, network, cachedUptime())}
+      ${agentPanel}
       ${poolHashrateChart(poolChartRows, graphWindow)}
       ${motdSlot(motd)}
       ${dashboardGraphControls(graphWindow, graphMode)}

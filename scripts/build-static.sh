@@ -16,9 +16,6 @@ npx terser build/script.esbuild.js --compress passes=10,booleans_as_integers=tru
 rm build/script.esbuild.js
 npx esbuild style.css --bundle --minify --outfile=build/style.css --log-level=warning
 npx csso-cli build/style.css --output build/style.css
-cp manifest.webmanifest build/manifest.webmanifest
-cp icon.svg build/icon.svg
-cp sw.js build/sw.js
 
 sed \
   -e "s|href=\"style.css\"|href=\"style.css?v=${SHA}\"|" \
