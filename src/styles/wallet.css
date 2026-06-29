@@ -156,16 +156,18 @@
 }
 .worker-graph-grid .chart-wrap {
   height: auto;
+  min-height: 180px;
   max-height: 180px;
   overflow: hidden;
 }
 .worker-graph-grid .chart-svg {
   aspect-ratio: 2 / 1;
   height: auto;
+  min-height: 180px;
   max-height: 180px;
 }
 .worker-graph-grid .y-axis {
-  height: min(180px, 45cqw);
+  height: 180px;
 }
 @container worker-card (max-width: 150px) {
   .worker-graph-grid .chart-shell {
