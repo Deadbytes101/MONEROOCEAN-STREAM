@@ -10,7 +10,8 @@ const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
-  ".svg": "image/svg+xml"
+  ".svg": "image/svg+xml",
+  ".webmanifest": "application/manifest+json; charset=utf-8"
 };
 
 createServer(async (request, response) => {
@@ -35,6 +36,21 @@ createServer(async (request, response) => {
       miner_uptime_seconds: 3600,
       pool_name: "test"
     });
+    return;
+  }
+
+  if (url.pathname === "/sw.js") {
+    writeText(response, "text/javascript; charset=utf-8", "self.addEventListener('install', () => self.skipWaiting());\n");
+    return;
+  }
+
+  if (url.pathname === "/manifest.webmanifest") {
+    writeJson(response, { name: "MoneroOcean", start_url: "/", display: "standalone" });
+    return;
+  }
+
+  if (url.pathname === "/icon.svg") {
+    writeText(response, "image/svg+xml", "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect width='1' height='1'/></svg>");
     return;
   }
 
@@ -74,6 +90,10 @@ function apiBody(path, method) {
 }
 
 function writeJson(response, body) {
-  response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-  response.end(JSON.stringify(body));
+  writeText(response, "application/json; charset=utf-8", JSON.stringify(body));
+}
+
+function writeText(response, contentType, body) {
+  response.writeHead(200, { "content-type": contentType });
+  response.end(body);
 }
