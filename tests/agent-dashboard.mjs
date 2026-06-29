@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import { parseRoute } from "../src/routes.js";
 import { agentSummaryPanel } from "../src/views/agent.js";
 
+const NOW = Math.floor(Date.now() / 1000);
+
 const TELEMETRY = {
   telemetry_schema: 1,
   telemetry_source: "unit-test",
-  telemetry_ts_unix: 1700000000,
+  telemetry_ts_unix: NOW,
   machine_name: "unit-rig",
   miner_algorithm: "randomx",
   miner_hashrate: 1200,
@@ -20,6 +22,7 @@ const TELEMETRY = {
 
 const DECISION = {
   decision_schema: 1,
+  decision_ts_unix: NOW,
   decision_scope: "read_only",
   decision_status: "ok",
   decision_reason: "ledger_clean",
@@ -57,6 +60,7 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /read_only/);
       assert.match(html, /ledger_clean/);
       assert.match(html, /observe/);
+      assert.match(html, /Generated/);
       assert.match(html, /reports\/dbyte-agent-decision\.json/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
