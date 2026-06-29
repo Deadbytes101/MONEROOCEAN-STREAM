@@ -77,6 +77,7 @@ function decisionPanel(decision) {
   const status = String(decision.decision_status || "unknown");
   const reason = String(decision.decision_reason || "unknown");
   const next = String(decision.decision_next || "observe");
+  const generatedAt = Number(decision.decision_ts_unix) || 0;
   const events = Number(decision.ledger_events) || 0;
   const validEvents = Number(decision.ledger_valid_events) || 0;
   const invalidEvents = Number(decision.ledger_invalid_events) || 0;
@@ -92,16 +93,18 @@ function decisionPanel(decision) {
       ${kpi("Decision", { html: `<span class="${decisionStatusClass(status)}">${escapeHtml(status)}</span>` }, "Read-only decision status. This page does not start miners or change wallets.")}
       ${kpi("Reason", reason, "Machine-readable reason from the decision artifact.")}
       ${kpi("Next", next, "Recommended operator action. This is display-only.")}
+      ${kpi("Generated", formatAge(generatedAt), "How old the local decision artifact is.")}
       ${kpi("Events", formatNumber(events), "Total ledger events read by the decision artifact.")}
-      ${kpi("Valid", formatNumber(validEvents), "Valid ledger events accepted by the decision artifact.")}
       ${kpi("Invalid", formatNumber(invalidEvents), "Invalid ledger events rejected by the decision artifact.")}
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE agent decision details">
         <tbody>
           ${detailRow("Scope", decision.decision_scope)}
+          ${detailRow("Generated", formatAge(generatedAt))}
           ${detailRow("Schema", decision.decision_schema)}
           ${detailRow("Ledger", decision.ledger_path)}
+          ${detailRow("Valid events", formatNumber(validEvents))}
           ${detailRow("Last event", decision.ledger_last_event)}
           ${detailRow("Last file match", decision.ledger_last_file_match)}
           ${detailRow("Last invalid reason", decision.ledger_last_invalid_reason)}
