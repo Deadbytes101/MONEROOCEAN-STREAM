@@ -46,6 +46,7 @@ try {
     $MachineReport = "reports\dbyte-agent-machine.txt"
     $MachineReportScript = Join-Path $Root "scripts\report-agent-machine.ps1"
     $TelemetryReport = "reports\dbyte-agent-telemetry.txt"
+    $TelemetryJsonReport = "reports\dbyte-agent-telemetry.json"
     $TelemetryReportScript = Join-Path $Root "scripts\report-agent-telemetry.ps1"
     $ReleaseManifest = "reports\dbyte-agent-release.json"
     $ReleaseManifestSeal = "reports\dbyte-agent-release.seal.txt"
@@ -68,11 +69,15 @@ try {
     }
 
     Invoke-Checked "telemetry report export" {
-        & $TelemetryReportScript -Out $TelemetryReport -MachineName "deadbyte-local" -Algorithm "test" -Hashrate 0 -HashrateUnit "hps" -AcceptedShares 0 -RejectedShares 0 -UptimeSeconds 0 -Pool "test" -Source "verify-agent"
+        & $TelemetryReportScript -Out $TelemetryReport -JsonOut $TelemetryJsonReport -MachineName "deadbyte-local" -Algorithm "test" -Hashrate 0 -HashrateUnit "hps" -AcceptedShares 0 -RejectedShares 0 -UptimeSeconds 0 -Pool "test" -Source "verify-agent"
     }
 
     if (!(Test-Path $TelemetryReport)) {
         throw "missing telemetry report artifact: $TelemetryReport"
+    }
+
+    if (!(Test-Path $TelemetryJsonReport)) {
+        throw "missing telemetry json artifact: $TelemetryJsonReport"
     }
 
     Invoke-Checked "clean ledger check" {
