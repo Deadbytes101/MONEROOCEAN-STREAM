@@ -1,4 +1,6 @@
+use sha2::{Digest, Sha256};
 use std::env;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
@@ -6,6 +8,8 @@ use std::path::Path;
 struct AgentConfig {
     machine_name: Option<String>,
     machine_note: Option<String>,
+    file_path: Option<String>,
+    file_expected_sha256: Option<String>,
 }
 
 fn main() {
@@ -29,14 +33,25 @@ fn main() {
         None => AgentConfig::default(),
     };
 
-    match cli.command.as_deref() {
-        Some("identity") => print_identity(&config),
-        Some("help") | Some("--help") | Some("-h") | None => print_help(),
+    let result = match cli.command.as_deref() {
+        Some("identity") => {
+            print_identity(&config);
+            Ok(())
+        }
+        Some("verify-file") => verify_file(&config),
+        Some("help") | Some("--help") | Some("-h") | None => {
+            print_help();
+            Ok(())
+        }
         Some(command) => {
             eprintln!("unknown command: {command}");
             print_help();
-            std::process::exit(2);
+            Err(2)
         }
+    };
+
+    if let Err(code) = result {
+        std::process::exit(code);
     }
 }
 
@@ -104,6 +119,8 @@ impl AgentConfig {
             match (section.as_str(), key) {
                 ("machine", "name") => config.machine_name = Some(value),
                 ("machine", "note") => config.machine_note = Some(value),
+                ("file_manifest", "path") => config.file_path = Some(value),
+                ("file_manifest", "expected_sha256") => config.file_expected_sha256 = Some(value),
                 _ => return Err(format!("line {line_number}: unknown key {section}.{key}")),
             }
         }
@@ -135,7 +152,8 @@ fn print_help() {
     println!("usage:");
     println!("  dbyte-agent [--config <path>] <command>");
     println!("commands:");
-    println!("  identity    print local machine identity report");
+    println!("  identity      print local machine identity report");
+    println!("  verify-file   hash configured file and compare manifest");
 }
 
 fn print_identity(config: &AgentConfig) {
@@ -156,4 +174,50 @@ fn print_identity(config: &AgentConfig) {
     println!("os={}", env::consts::OS);
     println!("arch={}", env::consts::ARCH);
     println!("cwd={cwd}");
+}
+
+fn verify_file(config: &AgentConfig) -> Result<(), i32> {
+    let Some(path) = config.file_path.as_deref() else {
+        eprintln!("config error: file_manifest.path is required");
+        return Err(2);
+    };
+
+    let Some(expected) = config.file_expected_sha256.as_deref() else {
+        eprintln!("config error: file_manifest.expected_sha256 is required");
+        return Err(2);
+    };
+
+    let actual = match sha256_file(path) {
+        Ok(actual) => actual,
+        Err(error) => {
+            eprintln!("file error: {error}");
+            return Err(2);
+        }
+    };
+
+    let expected = expected.trim().to_ascii_lowercase();
+    let matched = actual == expected;
+
+    println!("file.path={path}");
+    println!("file.sha256={actual}");
+    println!("manifest.expected_sha256={expected}");
+    println!("manifest.match={matched}");
+
+    if matched {
+        Ok(())
+    } else {
+        Err(1)
+    }
+}
+
+fn sha256_file(path: &str) -> Result<String, String> {
+    let bytes = fs::read(path).map_err(|error| format!("failed to read {}: {error}", Path::new(path).display()))?;
+    let digest = Sha256::digest(&bytes);
+
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+
+    Ok(output)
 }
