@@ -39,6 +39,30 @@ createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/reports/dbyte-agent-decision.json") {
+    writeJson(response, {
+      decision_schema: 1,
+      decision_scope: "read_only",
+      decision_status: "ok",
+      decision_reason: "ledger_clean",
+      decision_next: "observe",
+      ledger_path: "crates\\dbyte-agent\\fixtures\\decision-clean-ledger.events",
+      ledger_exists: true,
+      ledger_events: 3,
+      ledger_valid_events: 3,
+      ledger_invalid_events: 0,
+      ledger_identity_reports: 1,
+      ledger_machine_reports: 1,
+      ledger_file_verifications: 1,
+      ledger_file_verify_errors: 0,
+      ledger_last_event: "file_verified",
+      ledger_last_file_match: true,
+      ledger_last_invalid_line: 0,
+      ledger_last_invalid_reason: "<none>"
+    });
+    return;
+  }
+
   if (url.pathname === "/sw.js") {
     writeText(response, "text/javascript; charset=utf-8", "self.addEventListener('install', () => self.skipWaiting());\n");
     return;
