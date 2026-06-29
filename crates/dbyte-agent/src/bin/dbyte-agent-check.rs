@@ -234,6 +234,7 @@ fn runtime_approval_output(approved: bool, reason: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn approval_reason_accepts_verified_manifest() {
@@ -296,6 +297,46 @@ mod tests {
     }
 
     #[test]
+    fn optional_artifact_match_accepts_matching_file_integrity() {
+        let path = temp_artifact_path("match");
+        fs::write(&path, b"release-report").unwrap();
+
+        let hash = sha256_file(&path).unwrap();
+        let size = file_size(&path).unwrap();
+        let raw = artifact_report_json(&path, &hash, size);
+
+        assert!(optional_artifact_match(
+            &raw,
+            "agent_report",
+            "agent_report_sha256",
+            "agent_report_size_bytes",
+        )
+        .unwrap());
+
+        fs::remove_file(path).ok();
+    }
+
+    #[test]
+    fn optional_artifact_match_rejects_mismatched_file_integrity() {
+        let path = temp_artifact_path("mismatch");
+        fs::write(&path, b"release-report").unwrap();
+
+        let size = file_size(&path).unwrap();
+        let wrong_hash = "0000000000000000000000000000000000000000000000000000000000000000";
+        let raw = artifact_report_json(&path, wrong_hash, size);
+
+        assert!(!optional_artifact_match(
+            &raw,
+            "agent_report",
+            "agent_report_sha256",
+            "agent_report_size_bytes",
+        )
+        .unwrap());
+
+        fs::remove_file(path).ok();
+    }
+
+    #[test]
     fn runtime_approval_output_is_stable_for_approved_runtime() {
         assert_eq!(
             runtime_approval_output(true, "manifest_verified"),
@@ -309,5 +350,32 @@ mod tests {
             runtime_approval_output(false, "hash_mismatch"),
             "runtime.approved=false\nruntime.reason=hash_mismatch\n"
         );
+    }
+
+    fn temp_artifact_path(label: &str) -> String {
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let mut path = std::env::temp_dir();
+        path.push(format!(
+            "dbyte-agent-check-{label}-{}-{stamp}.txt",
+            std::process::id()
+        ));
+
+        path.to_string_lossy().into_owned()
+    }
+
+    fn artifact_report_json(path: &str, hash: &str, size: u64) -> String {
+        format!(
+            r#"{{"agent_report":"{}","agent_report_sha256":"{}","agent_report_size_bytes":{}}}"#,
+            json_escape(path),
+            hash,
+            size
+        )
+    }
+
+    fn json_escape(value: &str) -> String {
+        value.replace('\\', "\\\\").replace('"', "\\\"")
     }
 }
