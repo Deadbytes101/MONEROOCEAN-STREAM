@@ -1,0 +1,2 @@
+ts_unix=1 machine=fixture event=identity_reported status=ok
+ts_unix=2 machine=fixture event=file_verified path=configs/hash-fixture.txt actual_sha256=b592cc2cef79053a7490ba03d220bb2ff6bcd8fba496d956e377232c2652243e expected_sha256=b592cc2cef79053a7490ba03d220bb2ff6bcd8fba496d956e377232c2652243e match=true
