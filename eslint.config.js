@@ -34,7 +34,7 @@ export default [
     // Stricter shared ruleset applied across all first-party linted files
     // (frontend source, root scripts, and Node test/tooling code). Vendored,
     // build, and ignored paths are excluded via the top-level `ignores`.
-    files: ["src/**/*.js", "script.js", "sw.js", "tests/**/*.mjs", "tests/**/*.cjs"],
+    files: ["src/**/*.js", "script.js", "sw.js", "scripts/**/*.mjs", "tests/**/*.mjs", "tests/**/*.cjs"],
     rules: {
       "no-throw-literal": "error",
       "default-case-last": "error",
@@ -66,7 +66,7 @@ export default [
     // Node ESM test/tooling code. Browser globals are included because these
     // tests both simulate a DOM in Node and run code inside Playwright
     // page.evaluate()/addInitScript() callbacks (browser execution context).
-    files: ["tests/**/*.mjs"],
+    files: ["scripts/**/*.mjs", "tests/**/*.mjs"],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: "module",
