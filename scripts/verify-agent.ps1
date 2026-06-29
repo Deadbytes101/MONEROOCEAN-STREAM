@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -26,6 +26,7 @@ try {
     $CleanLedger = "crates\dbyte-agent\fixtures\clean-ledger.events"
     $BadLedger = "crates\dbyte-agent\fixtures\corrupt-ledger.events"
     $JsonReport = "reports\verify-agent.json"
+    $ReleaseScript = Join-Path $Root "scripts\build-agent-release.ps1"
 
     Invoke-Checked "cargo fmt" {
         cargo fmt --manifest-path $Manifest -- --check
@@ -53,10 +54,13 @@ try {
         throw "missing report artifact: $JsonReport"
     }
 
+    Invoke-Checked "release build check" {
+        & $ReleaseScript
+    }
+
     Write-Host "== gate passed =="
     Write-Host "AGENT TEST GATE PASSED"
 }
 finally {
     Pop-Location
 }
-
