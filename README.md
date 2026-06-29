@@ -29,6 +29,8 @@ This repository also contains the DBYTE agent release gate under `crates/dbyte-a
 
 The release artifact contract is documented in [`docs/release-artifact-contract.md`](docs/release-artifact-contract.md). It defines the local release report, JSON manifest, checker report, manifest seal, seal readback, and invariants required for a valid release.
 
+The operator runbook is documented in [`docs/operator-runbook.md`](docs/operator-runbook.md). It keeps the merge gate, agent artifact commands, and Agent dashboard health check in one place.
+
 ## Features
 
 - Pool overview, coin list, blocks, payments, uptime, and profit calculator views.
@@ -81,16 +83,17 @@ npm run build:static
 ## Testing
 
 ```sh
-npm test
+npm run verify
 ```
 
-Runs the Node.js unit and integration suite (`tests/all.mjs`) using the built-in `node --test` runner with a single-concurrency spec reporter.
+Runs the full local gate: clean step, lint, Node.js unit and integration tests, Playwright browser checks, DBYTE agent gate, and static build. A valid run ends with `FULL VERIFY GATE PASSED`.
 
 Additional targets:
 
 ```sh
-npm run test:unit   # focused Node.js unit suite
-npm run test:e2e    # builds the static bundle, then runs Playwright e2e tests
+npm test           # JavaScript and browser test suite
+npm run test:unit  # focused Node.js unit suite
+npm run test:e2e   # builds the static bundle, then runs Playwright e2e tests
 ```
 
 The end-to-end target builds the static output first and drives a real browser via Playwright, so it requires the Playwright browser binaries to be installed (`npx playwright install`) and is heavier than the default unit run.
