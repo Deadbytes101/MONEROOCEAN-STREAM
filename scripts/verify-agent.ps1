@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -36,17 +36,17 @@ try {
     }
 
     Invoke-Checked "clean ledger check" {
-        cargo run --manifest-path $Manifest -- --config $Config --ledger $CleanLedger check-ledger
+        cargo run --manifest-path $Manifest --bin dbyte-agent -- --config $Config --ledger $CleanLedger check-ledger
     }
 
     Write-Host "== bad ledger check =="
-    cargo run --manifest-path $Manifest -- --config $Config --ledger $BadLedger check-ledger
+    cargo run --manifest-path $Manifest --bin dbyte-agent -- --config $Config --ledger $BadLedger check-ledger
     if ($LASTEXITCODE -ne 1) {
         throw "bad ledger check should return exit code 1, got $LASTEXITCODE"
     }
 
     Invoke-Checked "json report export" {
-        cargo run --manifest-path $Manifest -- --config $Config --ledger $CleanLedger --out $JsonReport report-json
+        cargo run --manifest-path $Manifest --bin dbyte-agent -- --config $Config --ledger $CleanLedger --out $JsonReport report-json
     }
 
     if (!(Test-Path $JsonReport)) {
@@ -59,3 +59,4 @@ try {
 finally {
     Pop-Location
 }
+

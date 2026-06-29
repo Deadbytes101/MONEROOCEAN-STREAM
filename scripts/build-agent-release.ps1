@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -28,7 +28,7 @@ try {
     $JsonReport = "reports\dbyte-agent-release.json"
 
     Write-Host "== release build =="
-    cargo build --release --manifest-path $Manifest
+    cargo build --release --manifest-path $Manifest --bin dbyte-agent
     if ($LASTEXITCODE -ne 0) {
         throw "release build failed with exit code $LASTEXITCODE"
     }
@@ -93,3 +93,4 @@ try {
 finally {
     Pop-Location
 }
+
