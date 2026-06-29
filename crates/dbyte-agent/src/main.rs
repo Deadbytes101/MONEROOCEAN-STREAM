@@ -44,6 +44,7 @@ fn main() {
             Ok(())
         }
         Some("verify-file") => verify_file(&config),
+        Some("report") => report_ledger(&config),
         Some("help") | Some("--help") | Some("-h") | None => {
             print_help();
             Ok(())
@@ -160,6 +161,7 @@ fn print_help() {
     println!("commands:");
     println!("  identity      print local machine identity report");
     println!("  verify-file   hash configured file and compare manifest");
+    println!("  report        read local event ledger and summarize truth");
 }
 
 fn print_identity(config: &AgentConfig) {
@@ -226,6 +228,68 @@ fn verify_file(config: &AgentConfig) -> Result<(), i32> {
     } else {
         Err(1)
     }
+}
+
+fn report_ledger(config: &AgentConfig) -> Result<(), i32> {
+    let Some(path) = config.event_log_path.as_deref() else {
+        eprintln!("config error: event_log.path is required");
+        return Err(2);
+    };
+
+    let raw = match fs::read_to_string(path) {
+        Ok(raw) => raw,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            println!("ledger.path={path}");
+            println!("ledger.exists=false");
+            println!("ledger.events=0");
+            return Ok(());
+        }
+        Err(error) => {
+            eprintln!("ledger error: failed to read {}: {error}", Path::new(path).display());
+            return Err(2);
+        }
+    };
+
+    let mut total_events = 0usize;
+    let mut identity_reports = 0usize;
+    let mut file_verifications = 0usize;
+    let mut verify_errors = 0usize;
+    let mut last_event = String::from("<none>");
+    let mut last_file_match = String::from("<unknown>");
+
+    for line in raw.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        total_events += 1;
+        last_event = extract_field(line, "event").unwrap_or("<unknown>").to_string();
+
+        match last_event.as_str() {
+            "identity_reported" => identity_reports += 1,
+            "file_verified" => {
+                file_verifications += 1;
+                if let Some(value) = extract_field(line, "match") {
+                    last_file_match = value.to_string();
+                }
+            }
+            "file_verify_error" => verify_errors += 1,
+            _ => {}
+        }
+    }
+
+    println!("ledger.path={path}");
+    println!("ledger.exists=true");
+    println!("ledger.events={total_events}");
+    println!("ledger.identity_reports={identity_reports}");
+    println!("ledger.file_verifications={file_verifications}");
+    println!("ledger.file_verify_errors={verify_errors}");
+    println!("ledger.last_event={last_event}");
+    println!("ledger.last_file_match={last_file_match}");
+
+    Ok(())
+}
+
+fn extract_field<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    let prefix = format!("{key}=");
+    line.split_whitespace()
+        .find_map(|part| part.strip_prefix(&prefix))
 }
 
 fn sha256_file(path: &str) -> Result<String, String> {
