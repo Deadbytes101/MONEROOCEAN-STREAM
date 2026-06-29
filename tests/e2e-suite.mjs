@@ -1,10 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { execPath } from "node:process";
 
-const windows = process.platform === "win32";
-const npmCommand = windows ? "npm.cmd" : "npm";
-const npxCommand = windows ? "npx.cmd" : "npx";
+const require = createRequire(import.meta.url);
+
+function packageBin(packageName, binName = packageName) {
+  const packagePath = require.resolve(`${packageName}/package.json`);
+  const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+  const bin = typeof packageJson.bin === "string"
+    ? packageJson.bin
+    : packageJson.bin?.[binName] || Object.values(packageJson.bin || {})[0];
+  if (!bin) throw new Error(`Missing package bin for ${packageName}`);
+  return join(dirname(packagePath), bin);
+}
 
 test.describe("e2e browser suite", { concurrency: false }, () => {
   test("playwright browser checks", async (t) => {
@@ -17,9 +29,8 @@ test.describe("e2e browser suite", { concurrency: false }, () => {
 
 function buildStaticBundle() {
   return new Promise((resolve, reject) => {
-    const child = spawn(npmCommand, ["run", "build:static"], {
+    const child = spawn(execPath, ["scripts/build-static.mjs"], {
       cwd: process.cwd(),
-      shell: windows,
       stdio: ["ignore", "inherit", "inherit"]
     });
     child.on("error", reject);
@@ -32,10 +43,9 @@ function buildStaticBundle() {
 
 function runPlaywrightNodeSubtests(t) {
   return new Promise((resolve, reject) => {
-    const child = spawn(npxCommand, ["playwright", "test", "--config=tests/playwright.config.mjs", "--reporter=./tests/e2e/node-progress-reporter.cjs"], {
+    const child = spawn(execPath, [packageBin("@playwright/test", "playwright"), "test", "--config=tests/playwright.config.mjs", "--reporter=./tests/e2e/node-progress-reporter.cjs"], {
       cwd: process.cwd(),
       env: { ...process.env, PLAYWRIGHT_LIST_PRINT_STEPS: "0" },
-      shell: windows,
       stdio: ["ignore", "pipe", "pipe"]
     });
     let pending = Promise.resolve();
