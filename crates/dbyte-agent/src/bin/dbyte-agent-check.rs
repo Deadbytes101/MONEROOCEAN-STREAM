@@ -157,3 +157,28 @@ fn approval_reason(hash_match: bool, size_match: bool) -> &'static str {
         (false, false) => "hash_and_size_mismatch",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn approval_reason_accepts_verified_manifest() {
+        assert_eq!(approval_reason(true, true), "manifest_verified");
+    }
+
+    #[test]
+    fn approval_reason_rejects_hash_mismatch() {
+        assert_eq!(approval_reason(false, true), "hash_mismatch");
+    }
+
+    #[test]
+    fn approval_reason_rejects_size_mismatch() {
+        assert_eq!(approval_reason(true, false), "size_mismatch");
+    }
+
+    #[test]
+    fn approval_reason_rejects_hash_and_size_mismatch() {
+        assert_eq!(approval_reason(false, false), "hash_and_size_mismatch");
+    }
+}
