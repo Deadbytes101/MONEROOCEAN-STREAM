@@ -50,7 +50,9 @@ fn main() {
             Ok(())
         }
         Some("verify-file") => verify_file(&config),
-        Some("report") => report_ledger(&config, cli.ledger_path.as_deref(), cli.out_path.as_deref()),
+        Some("report") => {
+            report_ledger(&config, cli.ledger_path.as_deref(), cli.out_path.as_deref())
+        }
         Some("report-json") => {
             report_ledger_json(&config, cli.ledger_path.as_deref(), cli.out_path.as_deref())
         }
@@ -226,7 +228,11 @@ fn verify_file(config: &AgentConfig) -> Result<(), i32> {
 
     let Some(expected) = config.file_expected_sha256.as_deref() else {
         eprintln!("config error: file_manifest.expected_sha256 is required");
-        record_event(config, "file_verify_error", "reason=missing_expected_sha256");
+        record_event(
+            config,
+            "file_verify_error",
+            "reason=missing_expected_sha256",
+        );
         return Err(2);
     };
 
@@ -256,11 +262,7 @@ fn verify_file(config: &AgentConfig) -> Result<(), i32> {
     );
     record_event(config, "file_verified", &detail);
 
-    if matched {
-        Ok(())
-    } else {
-        Err(1)
-    }
+    if matched { Ok(()) } else { Err(1) }
 }
 
 fn report_ledger(
@@ -334,14 +336,13 @@ fn check_ledger(config: &AgentConfig, ledger_override: Option<&str>) -> Result<(
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(0);
 
-    if invalid_events == 0 {
-        Ok(())
-    } else {
-        Err(1)
-    }
+    if invalid_events == 0 { Ok(()) } else { Err(1) }
 }
 
-fn resolve_ledger_path<'a>(config: &'a AgentConfig, ledger_override: Option<&'a str>) -> Result<&'a str, i32> {
+fn resolve_ledger_path<'a>(
+    config: &'a AgentConfig,
+    ledger_override: Option<&'a str>,
+) -> Result<&'a str, i32> {
     if let Some(path) = ledger_override {
         return Ok(path);
     }
@@ -536,9 +537,7 @@ fn write_report(path: &str, report: &str) -> Result<(), String> {
 
 fn report_field<'a>(report: &'a str, key: &str) -> Option<&'a str> {
     let prefix = format!("{key}=");
-    report
-        .lines()
-        .find_map(|line| line.strip_prefix(&prefix))
+    report.lines().find_map(|line| line.strip_prefix(&prefix))
 }
 
 fn extract_field<'a>(line: &'a str, key: &str) -> Option<&'a str> {
@@ -567,7 +566,10 @@ fn record_event(config: &AgentConfig, event: &str, detail: &str) {
 
     if let Some(parent) = Path::new(path).parent() {
         if let Err(error) = fs::create_dir_all(parent) {
-            eprintln!("event log error: failed to create {}: {error}", parent.display());
+            eprintln!(
+                "event log error: failed to create {}: {error}",
+                parent.display()
+            );
             return;
         }
     }
@@ -589,11 +591,17 @@ fn record_event(config: &AgentConfig, event: &str, detail: &str) {
     match OpenOptions::new().create(true).append(true).open(path) {
         Ok(mut file) => {
             if let Err(error) = file.write_all(line.as_bytes()) {
-                eprintln!("event log error: failed to write {}: {error}", Path::new(path).display());
+                eprintln!(
+                    "event log error: failed to write {}: {error}",
+                    Path::new(path).display()
+                );
             }
         }
         Err(error) => {
-            eprintln!("event log error: failed to open {}: {error}", Path::new(path).display());
+            eprintln!(
+                "event log error: failed to open {}: {error}",
+                Path::new(path).display()
+            );
         }
     }
 }
@@ -638,7 +646,10 @@ mod tests {
             "ts_unix=2 machine=test event=file_verified path=configs/hash-fixture.txt actual_sha256=BAD expected_sha256={HASH} match=true"
         );
 
-        assert_eq!(parse_event_line(&line), Err("invalid_actual_sha256".to_string()));
+        assert_eq!(
+            parse_event_line(&line),
+            Err("invalid_actual_sha256".to_string())
+        );
     }
 
     #[test]
