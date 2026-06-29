@@ -43,12 +43,17 @@ try {
 
     $DecisionJson = Get-Content $Out -Raw | ConvertFrom-Json
     Assert-JsonField $DecisionJson "decision_scope"
+    Assert-JsonField $DecisionJson "decision_ts_unix"
     Assert-JsonField $DecisionJson "decision_status"
     Assert-JsonField $DecisionJson "decision_reason"
     Assert-JsonField $DecisionJson "decision_next"
 
     if ($DecisionJson.decision_scope -ne "read_only") {
         throw "decision report must stay read-only"
+    }
+
+    if ([int64]$DecisionJson.decision_ts_unix -le 0) {
+        throw "decision report timestamp must be positive"
     }
 
     $ReportHash = Get-FileHash -Algorithm SHA256 $Out
