@@ -94,21 +94,6 @@ try {
     $Lines | Set-Content -Path $Report -Encoding utf8
     $Json | ConvertTo-Json | Set-Content -Path $JsonReport -Encoding utf8
 
-    $ManifestCheck = Get-Content $JsonReport -Raw | ConvertFrom-Json
-    Assert-Equal "agent_binary" $ManifestCheck.agent_binary $Binary
-    Assert-Equal "agent_sha256" $ManifestCheck.agent_sha256 $BinarySha256
-    Assert-Equal "agent_size_bytes" $ManifestCheck.agent_size_bytes $Item.Length
-    Assert-Equal "agent_report" $ManifestCheck.agent_report $Report
-    Assert-Equal "agent_manifest" $ManifestCheck.agent_manifest $JsonReport
-    Assert-Equal "agent_checker_report" $ManifestCheck.agent_checker_report $CheckerReport
-    Assert-Equal "agent_built_at_unix" $ManifestCheck.agent_built_at_unix $BuiltAtUnix
-    Assert-Equal "agent_git_commit" $ManifestCheck.agent_git_commit $GitCommit
-
-    $Lines | ForEach-Object { Write-Host $_ }
-
-    Write-Host "== manifest check passed =="
-    Write-Host "AGENT RELEASE MANIFEST VERIFIED"
-
     Write-Host "== rust manifest check =="
     $CheckerOutput = cargo run --quiet --manifest-path $Manifest --bin dbyte-agent-check -- $JsonReport
     $CheckerExitCode = $LASTEXITCODE
@@ -126,7 +111,38 @@ try {
     Assert-Contains "rust manifest check" $CheckerOutput "runtime.approved=true"
     Assert-Contains "rust manifest check" $CheckerOutput "runtime.reason=manifest_verified"
 
+    $CheckerReportHash = Get-FileHash -Algorithm SHA256 $CheckerReport
+    $CheckerReportItem = Get-Item $CheckerReport
+    $CheckerReportSha256 = $CheckerReportHash.Hash.ToLowerInvariant()
+
+    $Lines += @(
+        "agent.checker_report_sha256=$CheckerReportSha256",
+        "agent.checker_report_size_bytes=$($CheckerReportItem.Length)"
+    )
+    $Json["agent_checker_report_sha256"] = $CheckerReportSha256
+    $Json["agent_checker_report_size_bytes"] = $CheckerReportItem.Length
+
+    $Lines | Set-Content -Path $Report -Encoding utf8
+    $Json | ConvertTo-Json | Set-Content -Path $JsonReport -Encoding utf8
+
+    $ManifestCheck = Get-Content $JsonReport -Raw | ConvertFrom-Json
+    Assert-Equal "agent_binary" $ManifestCheck.agent_binary $Binary
+    Assert-Equal "agent_sha256" $ManifestCheck.agent_sha256 $BinarySha256
+    Assert-Equal "agent_size_bytes" $ManifestCheck.agent_size_bytes $Item.Length
+    Assert-Equal "agent_report" $ManifestCheck.agent_report $Report
+    Assert-Equal "agent_manifest" $ManifestCheck.agent_manifest $JsonReport
+    Assert-Equal "agent_checker_report" $ManifestCheck.agent_checker_report $CheckerReport
+    Assert-Equal "agent_checker_report_sha256" $ManifestCheck.agent_checker_report_sha256 $CheckerReportSha256
+    Assert-Equal "agent_checker_report_size_bytes" $ManifestCheck.agent_checker_report_size_bytes $CheckerReportItem.Length
+    Assert-Equal "agent_built_at_unix" $ManifestCheck.agent_built_at_unix $BuiltAtUnix
+    Assert-Equal "agent_git_commit" $ManifestCheck.agent_git_commit $GitCommit
+
+    $Lines | ForEach-Object { Write-Host $_ }
+
+    Write-Host "== manifest check passed =="
+    Write-Host "AGENT RELEASE MANIFEST VERIFIED"
     Write-Host "checker.report=$CheckerReport"
+    Write-Host "checker.report_sha256=$CheckerReportSha256"
     Write-Host "== checker output passed =="
     Write-Host "AGENT CHECKER OUTPUT VERIFIED"
 
