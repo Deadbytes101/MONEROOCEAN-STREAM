@@ -43,6 +43,7 @@ try {
     $Binary = "crates\dbyte-agent\target\release\dbyte-agent.exe"
     $Report = "reports\dbyte-agent-release.txt"
     $JsonReport = "reports\dbyte-agent-release.json"
+    $CheckerReport = "reports\dbyte-agent-check.txt"
 
     Write-Host "== release build =="
     cargo build --release --manifest-path $Manifest --bin dbyte-agent
@@ -74,6 +75,7 @@ try {
         "agent.size_bytes=$($Item.Length)",
         "agent.report=$Report",
         "agent.manifest=$JsonReport",
+        "agent.checker_report=$CheckerReport",
         "agent.built_at_unix=$BuiltAtUnix",
         "agent.git_commit=$GitCommit"
     )
@@ -84,6 +86,7 @@ try {
         agent_size_bytes = $Item.Length
         agent_report = $Report
         agent_manifest = $JsonReport
+        agent_checker_report = $CheckerReport
         agent_built_at_unix = $BuiltAtUnix
         agent_git_commit = $GitCommit
     }
@@ -97,6 +100,7 @@ try {
     Assert-Equal "agent_size_bytes" $ManifestCheck.agent_size_bytes $Item.Length
     Assert-Equal "agent_report" $ManifestCheck.agent_report $Report
     Assert-Equal "agent_manifest" $ManifestCheck.agent_manifest $JsonReport
+    Assert-Equal "agent_checker_report" $ManifestCheck.agent_checker_report $CheckerReport
     Assert-Equal "agent_built_at_unix" $ManifestCheck.agent_built_at_unix $BuiltAtUnix
     Assert-Equal "agent_git_commit" $ManifestCheck.agent_git_commit $GitCommit
 
@@ -108,15 +112,21 @@ try {
     Write-Host "== rust manifest check =="
     $CheckerOutput = cargo run --quiet --manifest-path $Manifest --bin dbyte-agent-check -- $JsonReport
     $CheckerExitCode = $LASTEXITCODE
+    $CheckerOutput | Set-Content -Path $CheckerReport -Encoding utf8
     $CheckerOutput | ForEach-Object { Write-Host $_ }
     if ($CheckerExitCode -ne 0) {
         throw "rust manifest check failed with exit code $CheckerExitCode"
+    }
+
+    if (!(Test-Path $CheckerReport)) {
+        throw "missing checker report artifact: $CheckerReport"
     }
 
     Assert-Contains "rust manifest check" $CheckerOutput "check.valid=true"
     Assert-Contains "rust manifest check" $CheckerOutput "runtime.approved=true"
     Assert-Contains "rust manifest check" $CheckerOutput "runtime.reason=manifest_verified"
 
+    Write-Host "checker.report=$CheckerReport"
     Write-Host "== checker output passed =="
     Write-Host "AGENT CHECKER OUTPUT VERIFIED"
 
