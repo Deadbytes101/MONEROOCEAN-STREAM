@@ -106,7 +106,7 @@ try {
     Write-Host "AGENT RELEASE MANIFEST VERIFIED"
 
     Write-Host "== rust manifest check =="
-    $CheckerOutput = cargo run --manifest-path $Manifest --bin dbyte-agent-check -- $JsonReport 2>&1
+    $CheckerOutput = cargo run --quiet --manifest-path $Manifest --bin dbyte-agent-check -- $JsonReport
     $CheckerExitCode = $LASTEXITCODE
     $CheckerOutput | ForEach-Object { Write-Host $_ }
     if ($CheckerExitCode -ne 0) {
