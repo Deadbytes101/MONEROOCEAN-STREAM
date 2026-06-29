@@ -22,6 +22,23 @@ try {
         }
     }
 
+    function Assert-Contains {
+        param(
+            [Parameter(Mandatory = $true)]
+            [string]$Name,
+
+            [Parameter(Mandatory = $true)]
+            [string[]]$Lines,
+
+            [Parameter(Mandatory = $true)]
+            [string]$Expected
+        )
+
+        if ($Lines -notcontains $Expected) {
+            throw "$Name missing expected line: $Expected"
+        }
+    }
+
     $Manifest = "crates\dbyte-agent\Cargo.toml"
     $Binary = "crates\dbyte-agent\target\release\dbyte-agent.exe"
     $Report = "reports\dbyte-agent-release.txt"
@@ -89,10 +106,19 @@ try {
     Write-Host "AGENT RELEASE MANIFEST VERIFIED"
 
     Write-Host "== rust manifest check =="
-    cargo run --manifest-path $Manifest --bin dbyte-agent-check -- $JsonReport
-    if ($LASTEXITCODE -ne 0) {
-        throw "rust manifest check failed with exit code $LASTEXITCODE"
+    $CheckerOutput = cargo run --quiet --manifest-path $Manifest --bin dbyte-agent-check -- $JsonReport
+    $CheckerExitCode = $LASTEXITCODE
+    $CheckerOutput | ForEach-Object { Write-Host $_ }
+    if ($CheckerExitCode -ne 0) {
+        throw "rust manifest check failed with exit code $CheckerExitCode"
     }
+
+    Assert-Contains "rust manifest check" $CheckerOutput "check.valid=true"
+    Assert-Contains "rust manifest check" $CheckerOutput "runtime.approved=true"
+    Assert-Contains "rust manifest check" $CheckerOutput "runtime.reason=manifest_verified"
+
+    Write-Host "== checker output passed =="
+    Write-Host "AGENT CHECKER OUTPUT VERIFIED"
 
     Write-Host "== release build passed =="
     Write-Host "AGENT RELEASE BINARY BUILT"
