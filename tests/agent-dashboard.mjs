@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { parseRoute } from "../src/routes.js";
 import { agentSummaryPanel } from "../src/views/agent.js";
 
 const TELEMETRY = {
@@ -39,6 +40,10 @@ const DECISION = {
 };
 
 test.describe("agent dashboard artifacts", { concurrency: false }, () => {
+  test("agent route is public and stable", () => {
+    assert.deepEqual(parseRoute("#/agent"), { n: "agent", p: "#/agent", q: {} });
+  });
+
   test("agent summary renders telemetry and read-only decision JSON", async () => {
     await withFetchFixtures({
       "reports/dbyte-agent-telemetry.json": TELEMETRY,
