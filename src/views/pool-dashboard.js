@@ -15,11 +15,11 @@ export function poolDashboard(pool, network, uptime) {
     <div class=card>
       <div class="grid kpi-grid pool-kpi-grid">
         ${kpi("Wallets", formatNumber(pool.miners), "Connected pool wallets.")}
-        ${kpi(linkLabel("Pool Hashrate", "#/coins"), formatHashrate(pool.hashRate), EXPLANATIONS.normalizedHashrate)}
-        ${kpi(linkLabel("Current XMR Block Effort", blockRoute(topPort, 1, undefined, pool)), formatPercent(effortPercent(pool, network, topPort)), EXPLANATIONS.luck)}
+        ${kpi(linkLabel("Pool hashrate", "#/coins"), formatHashrate(pool.hashRate), EXPLANATIONS.normalizedHashrate)}
+        ${kpi("XMR world", formatHashrate(topWorld), "Network estimate for the current top coin.")}
+        ${kpi(linkLabel("XMR last effort", blockRoute(topPort, 1, undefined, pool)), formatPercent(effortPercent(pool, network, topPort)), EXPLANATIONS.luck)}
         ${kpi("Blocks Found", formatNumber(blockCount(pool)), "")}
-        ${kpi(uptimeLabel("Accounts Connected", uptime), formatNumber(pool.miners), "")}
-        ${kpi(linkLabel("Payments Made", "#/payments"), formatNumber(pool.totalPayments), "")}
+        ${kpi(linkLabel("Payments made", "#/payments"), formatNumber(pool.totalPayments), "")}
       </div>
     </div>
   </section>`;
