@@ -7,3 +7,6 @@ note = "owned development machine"
 [file_manifest]
 path = "configs/hash-fixture.txt"
 expected_sha256 = "b592cc2cef79053a7490ba03d220bb2ff6bcd8fba496d956e377232c2652243e"
+
+[event_log]
+path = "logs/dbyte-agent.events"
