@@ -43,6 +43,8 @@ try {
     $CleanLedger = "crates\dbyte-agent\fixtures\clean-ledger.events"
     $BadLedger = "crates\dbyte-agent\fixtures\corrupt-ledger.events"
     $JsonReport = "reports\verify-agent.json"
+    $MachineReport = "reports\dbyte-agent-machine.txt"
+    $MachineReportScript = Join-Path $Root "scripts\report-agent-machine.ps1"
     $ReleaseManifest = "reports\dbyte-agent-release.json"
     $ReleaseManifestSeal = "reports\dbyte-agent-release.seal.txt"
     $ReleaseScript = Join-Path $Root "scripts\build-agent-release.ps1"
@@ -53,6 +55,14 @@ try {
 
     Invoke-Checked "cargo test" {
         cargo test --manifest-path $Manifest
+    }
+
+    Invoke-Checked "machine report export" {
+        & $MachineReportScript -Config $Config -Out $MachineReport
+    }
+
+    if (!(Test-Path $MachineReport)) {
+        throw "missing machine report artifact: $MachineReport"
     }
 
     Invoke-Checked "clean ledger check" {
