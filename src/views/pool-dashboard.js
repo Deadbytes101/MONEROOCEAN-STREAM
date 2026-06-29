@@ -14,7 +14,7 @@ export function poolDashboard(pool, network, uptime) {
   return `<section class="panel pool-overview">
     <div class=card>
       <div class="grid kpi-grid pool-kpi-grid">
-        ${kpi("World XMR Hashrate", formatHashrate(topWorld), "")}
+        ${kpi("Wallets", formatNumber(pool.miners), "Connected pool wallets.")}
         ${kpi(linkLabel("Pool Hashrate", "#/coins"), formatHashrate(pool.hashRate), EXPLANATIONS.normalizedHashrate)}
         ${kpi(linkLabel("Current XMR Block Effort", blockRoute(topPort, 1, undefined, pool)), formatPercent(effortPercent(pool, network, topPort)), EXPLANATIONS.luck)}
         ${kpi("Blocks Found", formatNumber(blockCount(pool)), "")}
