@@ -2,6 +2,7 @@ use std::env;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Default)]
 struct Cli {
@@ -280,10 +281,15 @@ fn decide(facts: &LedgerFacts) -> Decision {
 }
 
 fn decision_json(facts: &LedgerFacts) -> String {
+    decision_json_at(facts, current_unix())
+}
+
+fn decision_json_at(facts: &LedgerFacts, decision_ts_unix: u64) -> String {
     let decision = decide(facts);
     let mut output = String::from("{\n");
     let fields = [
         ("decision_schema", "1".to_string()),
+        ("decision_ts_unix", decision_ts_unix.to_string()),
         ("decision_scope", "read_only".to_string()),
         ("decision_status", decision.status.to_string()),
         ("decision_reason", decision.reason.to_string()),
@@ -324,6 +330,13 @@ fn decision_json(facts: &LedgerFacts) -> String {
     }
     output.push_str("}\n");
     output
+}
+
+fn current_unix() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0)
 }
 
 fn json_value(value: &str) -> String {
@@ -373,7 +386,6 @@ fn write_report(path: &str, report: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     const HASH: &str = "b592cc2cef79053a7490ba03d220bb2ff6bcd8fba496d956e377232c2652243e";
 
@@ -389,6 +401,28 @@ mod tests {
         assert_eq!(decide(&facts).status, "ok");
         assert_eq!(decide(&facts).reason, "ledger_clean");
         assert_eq!(facts.file_verifications, 1);
+    }
+
+    #[test]
+    fn decision_json_includes_generation_timestamp() {
+        let facts = LedgerFacts {
+            path: "test.events".to_string(),
+            exists: true,
+            events: 3,
+            valid_events: 3,
+            identity_reports: 1,
+            machine_reports: 1,
+            file_verifications: 1,
+            last_event: "file_verified".to_string(),
+            last_file_match: "true".to_string(),
+            last_invalid_reason: "<none>".to_string(),
+            ..LedgerFacts::default()
+        };
+
+        let json = decision_json_at(&facts, 12345);
+
+        assert!(json.contains("\"decision_ts_unix\": 12345"));
+        assert!(json.contains("\"decision_status\": \"ok\""));
     }
 
     #[test]
@@ -409,10 +443,7 @@ mod tests {
     fn missing_ledger_requests_initialization() {
         let path = env::temp_dir().join(format!(
             "dbyte-agent-missing-ledger-{}.events",
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time should be valid")
-                .as_nanos()
+            current_unix()
         ));
         let facts = read_ledger_facts(&path.display().to_string()).expect("missing is valid facts");
 
@@ -422,13 +453,7 @@ mod tests {
     }
 
     fn write_temp_ledger(raw: &str) -> String {
-        let path = env::temp_dir().join(format!(
-            "dbyte-agent-decision-{}.events",
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time should be valid")
-                .as_nanos()
-        ));
+        let path = env::temp_dir().join(format!("dbyte-agent-decision-{}.events", current_unix()));
         fs::write(&path, raw).expect("fixture should be written");
         path.display().to_string()
     }
