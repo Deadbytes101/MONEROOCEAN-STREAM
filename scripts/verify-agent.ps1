@@ -60,7 +60,7 @@ try {
     }
 
     Invoke-Checked "cargo test" {
-        cargo test --manifest-path $Manifest
+        cargo test --manifest-path $Manifest -- --test-threads=1
     }
 
     Invoke-Checked "machine report export" {
