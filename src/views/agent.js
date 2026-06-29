@@ -3,6 +3,8 @@ import { escapeHtml, kpi } from "./common.js";
 
 const TELEMETRY_JSON_PATH = "reports/dbyte-agent-telemetry.json";
 const DECISION_JSON_PATH = "reports/dbyte-agent-decision.json";
+const TELEMETRY_STALE_SECONDS = 300;
+const DECISION_STALE_SECONDS = 300;
 
 export async function agentView() {
   const [telemetry, decision] = await loadAgentArtifacts();
@@ -42,6 +44,8 @@ function telemetryPanel(telemetry, title, subtitle) {
   const rejectRate = Number(telemetry.miner_reject_rate) || 0;
   const acceptedShares = Number(telemetry.miner_accepted_shares) || 0;
   const rejectedShares = Number(telemetry.miner_rejected_shares) || 0;
+  const capturedAt = Number(telemetry.telemetry_ts_unix) || 0;
+  const freshness = artifactFreshness(capturedAt, TELEMETRY_STALE_SECONDS);
 
   return `<section class=panel>
     <div class=panel-header>
@@ -54,7 +58,7 @@ function telemetryPanel(telemetry, title, subtitle) {
       ${kpi("Machine", telemetry.machine_name || "--", "Local machine name reported by the DBYTE agent.")}
       ${kpi("Algorithm", telemetry.miner_algorithm || "--", "Algorithm label from the latest telemetry report.")}
       ${kpi("Hashrate", formatHashrate(hashrate), "Reported local hashrate normalized for display.")}
-      ${kpi("Reject rate", formatPercent(rejectRate * 100, 2), "Rejected shares divided by total shares.")}
+      ${kpi("Freshness", freshnessValue(freshness), "Whether the local telemetry artifact is still fresh.")}
       ${kpi("Accepted", formatNumber(acceptedShares), "Accepted shares in the latest telemetry report.")}
       ${kpi("Rejected", formatNumber(rejectedShares), "Rejected shares in the latest telemetry report.")}
     </div>
@@ -62,8 +66,10 @@ function telemetryPanel(telemetry, title, subtitle) {
       <table aria-label="DBYTE agent telemetry details">
         <tbody>
           ${detailRow("Source", telemetry.telemetry_source)}
-          ${detailRow("Timestamp", formatAge(telemetry.telemetry_ts_unix))}
+          ${detailRow("Timestamp", formatAge(capturedAt))}
+          ${detailRow("Freshness", freshness.label)}
           ${detailRow("Raw hashrate", `${formatNumber(telemetry.miner_hashrate, 4)} ${telemetry.miner_hashrate_unit || "hps"}`)}
+          ${detailRow("Reject rate", formatPercent(rejectRate * 100, 2))}
           ${detailRow("Uptime", `${formatNumber(telemetry.miner_uptime_seconds)} seconds`)}
           ${detailRow("Pool", telemetry.pool_name)}
           ${detailRow("JSON", TELEMETRY_JSON_PATH)}
@@ -78,6 +84,7 @@ function decisionPanel(decision) {
   const reason = String(decision.decision_reason || "unknown");
   const next = String(decision.decision_next || "observe");
   const generatedAt = Number(decision.decision_ts_unix) || 0;
+  const freshness = artifactFreshness(generatedAt, DECISION_STALE_SECONDS);
   const events = Number(decision.ledger_events) || 0;
   const validEvents = Number(decision.ledger_valid_events) || 0;
   const invalidEvents = Number(decision.ledger_invalid_events) || 0;
@@ -91,10 +98,10 @@ function decisionPanel(decision) {
     </div>
     <div class="card grid kpi-grid">
       ${kpi("Decision", { html: `<span class="${decisionStatusClass(status)}">${escapeHtml(status)}</span>` }, "Read-only decision status. This page does not start miners or change wallets.")}
+      ${kpi("Freshness", freshnessValue(freshness), "Whether the local decision artifact is still fresh.")}
       ${kpi("Reason", reason, "Machine-readable reason from the decision artifact.")}
       ${kpi("Next", next, "Recommended operator action. This is display-only.")}
       ${kpi("Generated", formatAge(generatedAt), "How old the local decision artifact is.")}
-      ${kpi("Events", formatNumber(events), "Total ledger events read by the decision artifact.")}
       ${kpi("Invalid", formatNumber(invalidEvents), "Invalid ledger events rejected by the decision artifact.")}
     </div>
     <div class="card table-wrap">
@@ -102,8 +109,10 @@ function decisionPanel(decision) {
         <tbody>
           ${detailRow("Scope", decision.decision_scope)}
           ${detailRow("Generated", formatAge(generatedAt))}
+          ${detailRow("Freshness", freshness.label)}
           ${detailRow("Schema", decision.decision_schema)}
           ${detailRow("Ledger", decision.ledger_path)}
+          ${detailRow("Events", formatNumber(events))}
           ${detailRow("Valid events", formatNumber(validEvents))}
           ${detailRow("Last event", decision.ledger_last_event)}
           ${detailRow("Last file match", decision.ledger_last_file_match)}
@@ -155,6 +164,22 @@ function unavailableView(title = "DBYTE Agent", subtitle = "Local telemetry JSON
       <p>Run <code>.\\scripts\\report-agent-telemetry.ps1</code> and <code>.\\scripts\\report-agent-decision.ps1</code> to write local dashboard artifacts.</p>
     </div>
   </section>`;
+}
+
+function artifactFreshness(tsUnix, maxAgeSeconds) {
+  if (!Number.isFinite(tsUnix) || tsUnix <= 0) return { label: "missing_timestamp", className: "red" };
+  const age = nowUnix() - tsUnix;
+  if (age < -60) return { label: "future_clock", className: "muted" };
+  if (age > maxAgeSeconds) return { label: "stale_artifact", className: "red" };
+  return { label: "fresh", className: "green" };
+}
+
+function freshnessValue(freshness) {
+  return { html: `<span class="${freshness.className}">${escapeHtml(freshness.label)}</span>` };
+}
+
+function nowUnix() {
+  return Math.floor(Date.now() / 1000);
 }
 
 function decisionStatusClass(status) {
