@@ -50,6 +50,7 @@ fn run(path: &str) -> Result<bool, String> {
     let hash_match = actual_hash == expected_hash;
     let size_match = actual_size == expected_size;
     let valid = hash_match && size_match;
+    let reason = approval_reason(hash_match, size_match);
 
     println!("check.path={path}");
     println!("agent.binary={file_path}");
@@ -61,6 +62,8 @@ fn run(path: &str) -> Result<bool, String> {
     println!("agent.size_match={size_match}");
     println!("agent.git_commit={commit}");
     println!("check.valid={valid}");
+    println!("runtime.approved={valid}");
+    println!("runtime.reason={reason}");
 
     Ok(valid)
 }
@@ -144,4 +147,13 @@ fn sha256_file(path: &str) -> Result<String, String> {
     }
 
     Ok(output)
+}
+
+fn approval_reason(hash_match: bool, size_match: bool) -> &'static str {
+    match (hash_match, size_match) {
+        (true, true) => "manifest_verified",
+        (false, true) => "hash_mismatch",
+        (true, false) => "size_mismatch",
+        (false, false) => "hash_and_size_mismatch",
+    }
 }
