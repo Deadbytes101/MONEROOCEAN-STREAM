@@ -1,0 +1,5 @@
+# DBYTE Agent canonical config example
+
+[machine]
+name = "deadbyte-local"
+note = "owned development machine"
