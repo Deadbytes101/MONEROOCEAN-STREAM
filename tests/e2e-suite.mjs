@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
+const windows = process.platform === "win32";
+const npmCommand = windows ? "npm.cmd" : "npm";
+const npxCommand = windows ? "npx.cmd" : "npx";
 
 test.describe("e2e browser suite", { concurrency: false }, () => {
   test("playwright browser checks", async (t) => {
@@ -18,6 +19,7 @@ function buildStaticBundle() {
   return new Promise((resolve, reject) => {
     const child = spawn(npmCommand, ["run", "build:static"], {
       cwd: process.cwd(),
+      shell: windows,
       stdio: ["ignore", "inherit", "inherit"]
     });
     child.on("error", reject);
@@ -33,6 +35,7 @@ function runPlaywrightNodeSubtests(t) {
     const child = spawn(npxCommand, ["playwright", "test", "--config=tests/playwright.config.mjs", "--reporter=./tests/e2e/node-progress-reporter.cjs"], {
       cwd: process.cwd(),
       env: { ...process.env, PLAYWRIGHT_LIST_PRINT_STEPS: "0" },
+      shell: windows,
       stdio: ["ignore", "pipe", "pipe"]
     });
     let pending = Promise.resolve();
