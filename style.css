@@ -6,6 +6,7 @@
 @import "./src/styles/responsive.css";
 @import "./src/styles/old-wallet.css";
 @import "./src/styles/ios-pwa.css";
+@import "./src/styles/agent-e2e-contract.css";
 
 /* private old-style operator view */
 .crawl-copy,
