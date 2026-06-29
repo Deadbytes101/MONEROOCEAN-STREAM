@@ -27,6 +27,10 @@ try {
     $BadLedger = "crates\dbyte-agent\fixtures\corrupt-ledger.events"
     $JsonReport = "reports\verify-agent.json"
 
+    Invoke-Checked "cargo fmt" {
+        cargo fmt --manifest-path $Manifest -- --check
+    }
+
     Invoke-Checked "cargo test" {
         cargo test --manifest-path $Manifest
     }
