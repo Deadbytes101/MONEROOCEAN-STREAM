@@ -45,6 +45,7 @@ try {
     $BadLedger = "crates\dbyte-agent\fixtures\corrupt-ledger.events"
     $JsonReport = "reports\verify-agent.json"
     $DecisionReport = "reports\dbyte-agent-decision.json"
+    $DecisionReportScript = Join-Path $Root "scripts\report-agent-decision.ps1"
     $MachineReport = "reports\dbyte-agent-machine.txt"
     $MachineReportScript = Join-Path $Root "scripts\report-agent-machine.ps1"
     $TelemetryReport = "reports\dbyte-agent-telemetry.txt"
@@ -101,7 +102,7 @@ try {
     }
 
     Invoke-Checked "decision report export" {
-        cargo run --manifest-path $Manifest --bin dbyte-agent-decision -- --ledger $DecisionCleanLedger --out $DecisionReport
+        & $DecisionReportScript -Ledger $DecisionCleanLedger -Out $DecisionReport
     }
 
     if (!(Test-Path $DecisionReport)) {

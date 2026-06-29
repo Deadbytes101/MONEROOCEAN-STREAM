@@ -1,6 +1,7 @@
 import "./build-invariants.mjs";
 import "./core-routing-privacy.mjs";
 import "./rendered-views.mjs";
+import "./agent-dashboard.mjs";
 import "./wallet-workers-render-policy.mjs";
 import "./setup-settings.mjs";
 import "./dom-interactions.mjs";

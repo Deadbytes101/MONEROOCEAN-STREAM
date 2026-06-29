@@ -21,6 +21,7 @@ test("main route matrix renders usable pages with valid internal links", async (
   const api = await mockApi(page);
   for (const route of [
     "#/",
+    "#/agent",
     "#/coins?issues=1",
     "#/blocks/XMR",
     "#/blocks/RTM",
