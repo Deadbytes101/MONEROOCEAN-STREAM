@@ -44,7 +44,7 @@ fn main() {
             Ok(())
         }
         Some("verify-file") => verify_file(&config),
-        Some("report") => report_ledger(&config),
+        Some("report") => report_ledger(&config, cli.out_path.as_deref()),
         Some("help") | Some("--help") | Some("-h") | None => {
             print_help();
             Ok(())
@@ -64,6 +64,7 @@ fn main() {
 #[derive(Debug)]
 struct Cli {
     config_path: Option<String>,
+    out_path: Option<String>,
     command: Option<String>,
 }
 
@@ -74,6 +75,7 @@ impl Cli {
     {
         let mut args = args.into_iter();
         let mut config_path = None;
+        let mut out_path = None;
         let mut command = None;
 
         while let Some(arg) = args.next() {
@@ -84,12 +86,22 @@ impl Cli {
                         .ok_or_else(|| "--config requires a path".to_string())?;
                     config_path = Some(path);
                 }
+                "--out" => {
+                    let path = args
+                        .next()
+                        .ok_or_else(|| "--out requires a path".to_string())?;
+                    out_path = Some(path);
+                }
                 _ if command.is_none() => command = Some(arg),
                 _ => return Err(format!("unexpected argument: {arg}")),
             }
         }
 
-        Ok(Self { config_path, command })
+        Ok(Self {
+            config_path,
+            out_path,
+            command,
+        })
     }
 }
 
@@ -157,7 +169,7 @@ fn parse_quoted_value(input: &str) -> Option<String> {
 fn print_help() {
     println!("dbyte-agent {}", env!("CARGO_PKG_VERSION"));
     println!("usage:");
-    println!("  dbyte-agent [--config <path>] <command>");
+    println!("  dbyte-agent [--config <path>] [--out <path>] <command>");
     println!("commands:");
     println!("  identity      print local machine identity report");
     println!("  verify-file   hash configured file and compare manifest");
@@ -230,23 +242,46 @@ fn verify_file(config: &AgentConfig) -> Result<(), i32> {
     }
 }
 
-fn report_ledger(config: &AgentConfig) -> Result<(), i32> {
+fn report_ledger(config: &AgentConfig, out_path: Option<&str>) -> Result<(), i32> {
     let Some(path) = config.event_log_path.as_deref() else {
         eprintln!("config error: event_log.path is required");
         return Err(2);
     };
 
+    let report = match build_ledger_report(path) {
+        Ok(report) => report,
+        Err(error) => {
+            eprintln!("ledger error: {error}");
+            return Err(2);
+        }
+    };
+
+    print!("{report}");
+
+    if let Some(out_path) = out_path {
+        if let Err(error) = write_report(out_path, &report) {
+            eprintln!("report error: {error}");
+            return Err(2);
+        }
+        println!("report.out={out_path}");
+    }
+
+    Ok(())
+}
+
+fn build_ledger_report(path: &str) -> Result<String, String> {
     let raw = match fs::read_to_string(path) {
         Ok(raw) => raw,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            println!("ledger.path={path}");
-            println!("ledger.exists=false");
-            println!("ledger.events=0");
-            return Ok(());
+            return Ok(format!(
+                "ledger.path={path}\nledger.exists=false\nledger.events=0\n"
+            ));
         }
         Err(error) => {
-            eprintln!("ledger error: failed to read {}: {error}", Path::new(path).display());
-            return Err(2);
+            return Err(format!(
+                "failed to read {}: {error}",
+                Path::new(path).display()
+            ));
         }
     };
 
@@ -274,16 +309,19 @@ fn report_ledger(config: &AgentConfig) -> Result<(), i32> {
         }
     }
 
-    println!("ledger.path={path}");
-    println!("ledger.exists=true");
-    println!("ledger.events={total_events}");
-    println!("ledger.identity_reports={identity_reports}");
-    println!("ledger.file_verifications={file_verifications}");
-    println!("ledger.file_verify_errors={verify_errors}");
-    println!("ledger.last_event={last_event}");
-    println!("ledger.last_file_match={last_file_match}");
+    Ok(format!(
+        "ledger.path={path}\nledger.exists=true\nledger.events={total_events}\nledger.identity_reports={identity_reports}\nledger.file_verifications={file_verifications}\nledger.file_verify_errors={verify_errors}\nledger.last_event={last_event}\nledger.last_file_match={last_file_match}\n"
+    ))
+}
 
-    Ok(())
+fn write_report(path: &str, report: &str) -> Result<(), String> {
+    if let Some(parent) = Path::new(path).parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    }
+
+    fs::write(path, report)
+        .map_err(|error| format!("failed to write {}: {error}", Path::new(path).display()))
 }
 
 fn extract_field<'a>(line: &'a str, key: &str) -> Option<&'a str> {
