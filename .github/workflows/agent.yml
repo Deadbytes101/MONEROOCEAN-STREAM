@@ -1,0 +1,35 @@
+name: DBYTE Agent Gate
+
+on:
+  pull_request:
+    paths:
+      - "crates/dbyte-agent/**"
+      - "configs/**"
+      - "scripts/verify-agent.ps1"
+      - ".github/workflows/agent.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "crates/dbyte-agent/**"
+      - "configs/**"
+      - "scripts/verify-agent.ps1"
+      - ".github/workflows/agent.yml"
+
+jobs:
+  verify-agent:
+    name: verify-agent
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Run agent gate
+        shell: pwsh
+        run: ./scripts/verify-agent.ps1
