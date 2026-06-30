@@ -6,6 +6,7 @@ const DECISION_JSON_PATH = "reports/dbyte-agent-decision.json";
 const INDEX_JSON_PATH = "reports/dbyte-agent-index.json";
 const TELEMETRY_STALE_SECONDS = 300;
 const DECISION_STALE_SECONDS = 300;
+const INDEX_STALE_SECONDS = 300;
 
 export async function agentView() {
   const [telemetry, decision, index] = await loadAgentArtifacts();
@@ -46,6 +47,7 @@ function healthPanel(telemetry, decision, index) {
   const health = agentHealth(telemetry, decision, index);
   const telemetryFreshness = telemetry ? artifactFreshness(Number(telemetry.telemetry_ts_unix) || 0, TELEMETRY_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
   const decisionFreshness = decision ? artifactFreshness(Number(decision.decision_ts_unix) || 0, DECISION_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
+  const indexFreshness = index ? artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
   const indexStatus = index ? String(index.index_status || "unknown") : "missing_artifact";
 
   return `<section class=panel>
@@ -62,6 +64,7 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Telemetry", freshnessValue(telemetryFreshness), "Telemetry artifact freshness.")}
       ${kpi("Decision", freshnessValue(decisionFreshness), "Decision artifact freshness.")}
       ${kpi("Index", { html: `<span class="${reportStatusClass(indexStatus)}">${escapeHtml(indexStatus)}</span>` }, "Report index status.")}
+      ${kpi("Index age", freshnessValue(indexFreshness), "Report index artifact freshness.")}
     </div>
   </section>`;
 }
@@ -73,6 +76,9 @@ function agentHealth(telemetry, decision, index) {
 
   const indexStatus = String(index.index_status || "unknown");
   if (indexStatus !== "ok") return { status: "attention", reason: `index_${indexStatus}`, next: "inspect_index" };
+
+  const indexFreshness = artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS);
+  if (indexFreshness.label !== "fresh") return { status: "attention", reason: `index_${indexFreshness.label}`, next: "refresh_index" };
 
   const telemetryFreshness = artifactFreshness(Number(telemetry.telemetry_ts_unix) || 0, TELEMETRY_STALE_SECONDS);
   if (telemetryFreshness.label !== "fresh") return { status: "attention", reason: `telemetry_${telemetryFreshness.label}`, next: "refresh_telemetry" };
