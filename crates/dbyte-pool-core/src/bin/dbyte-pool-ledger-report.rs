@@ -74,6 +74,7 @@ fn submit(
 }
 
 fn ledger_replay_json(report: &LedgerReplay) -> String {
+    let summary = report.summary();
     let mut session_ids = report.per_session.keys().copied().collect::<Vec<_>>();
     session_ids.sort_by_key(|session_id| session_id.raw());
 
@@ -81,18 +82,18 @@ fn ledger_replay_json(report: &LedgerReplay) -> String {
     out.push_str("{\n");
     out.push_str("  \"schema\": 1,\n");
     out.push_str("  \"status\": \"ok\",\n");
-    out.push_str(&format!("  \"total_events\": {},\n", report.total_events));
+    out.push_str(&format!("  \"total_events\": {},\n", summary.total_events));
     out.push_str(&format!(
         "  \"accepted_events\": {},\n",
-        report.accepted_events
+        summary.accepted_events
     ));
     out.push_str(&format!(
         "  \"rejected_events\": {},\n",
-        report.rejected_events
+        summary.rejected_events
     ));
     out.push_str(&format!(
         "  \"credited_difficulty\": {},\n",
-        report.credited_difficulty
+        summary.credited_difficulty
     ));
     out.push_str("  \"sessions\": [\n");
 
