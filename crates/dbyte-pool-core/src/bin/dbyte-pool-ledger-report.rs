@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use dbyte_pool_core::{LedgerError, LedgerReplay};
+use dbyte_pool_core::LedgerReplay;
 
 fn main() {
     let report = LedgerReplay::default();
@@ -61,13 +61,14 @@ fn ledger_replay_json(report: &LedgerReplay) -> String {
     out
 }
 
-fn ledger_error_json(error: &LedgerError) -> String {
+#[cfg(test)]
+fn ledger_error_json(error: &dbyte_pool_core::LedgerError) -> String {
     match error {
-        LedgerError::SequenceGap { expected, actual } => format!(
+        dbyte_pool_core::LedgerError::SequenceGap { expected, actual } => format!(
             "{{\n  \"schema\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"sequence_gap\",\n  \"expected_sequence\": {},\n  \"actual_sequence\": {}\n}}",
             expected, actual
         ),
-        LedgerError::DuplicateAcceptedShare { sequence, key } => format!(
+        dbyte_pool_core::LedgerError::DuplicateAcceptedShare { sequence, key } => format!(
             "{{\n  \"schema\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"duplicate_accepted_share\",\n  \"sequence\": {},\n  \"session_id\": {},\n  \"job_id\": {},\n  \"nonce\": {}\n}}",
             sequence,
             key.session_id.raw(),
@@ -134,7 +135,7 @@ mod tests {
 
     #[test]
     fn ledger_error_json_reports_sequence_gap() {
-        let error = LedgerError::SequenceGap {
+        let error = dbyte_pool_core::LedgerError::SequenceGap {
             expected: 1,
             actual: 3,
         };
