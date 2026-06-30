@@ -10,12 +10,14 @@ const POOL_CORE_FILE_LEDGER_REPORT_NAME = "pool_core_file_ledger";
 const BRIDGE_COMPARE_REPORT_NAME = "bridge_compare";
 const BRIDGE_FILE_COMPARE_REPORT_NAME = "bridge_file_compare";
 const BRIDGE_FILE_REPORT_NAME = "bridge_file";
+const PHASE_H_LOCAL_DRY_RUN_REPORT_NAME = "phase_h_local_dry_run";
 const POOL_CORE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-report.json";
 const POOL_CORE_FIXTURE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-fixture-report.json";
 const POOL_CORE_FILE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-file-report.json";
 const BRIDGE_COMPARE_REPORT_PATH = "reports/dbyte-bridge-compare.json";
 const BRIDGE_FILE_COMPARE_REPORT_PATH = "reports/dbyte-bridge-file-compare.json";
 const BRIDGE_FILE_REPORT_PATH = "reports/dbyte-bridge-file.json";
+const PHASE_H_LOCAL_DRY_RUN_REPORT_PATH = "reports/dbyte-local-service-dry-run.json";
 const TELEMETRY_STALE_SECONDS = 300;
 const DECISION_STALE_SECONDS = 300;
 const INDEX_STALE_SECONDS = 300;
@@ -52,6 +54,7 @@ function agentPanels(telemetry, decision, index, title, subtitle) {
     telemetry ? telemetryPanel(telemetry, title, subtitle) : missingTelemetryPanel(title),
     decision ? decisionPanel(decision) : missingDecisionPanel(),
     index ? poolCoreArtifactPanel(index) : "",
+    index ? serviceDryRunPanel(index) : "",
     index ? indexPanel(index) : missingIndexPanel()
   ].join("");
 }
@@ -356,6 +359,47 @@ function poolCoreArtifactPanel(index) {
   </section>`;
 }
 
+function serviceDryRunPanel(index) {
+  const reports = indexReports(index);
+  const dryRunReport = localDryRunReport(reports);
+  const status = dryRunReport ? String(dryRunReport.dry_run_status || dryRunReport.status || "unknown") : "missing";
+  const path = dryRunReport ? String(dryRunReport.path || PHASE_H_LOCAL_DRY_RUN_REPORT_PATH) : PHASE_H_LOCAL_DRY_RUN_REPORT_PATH;
+
+  return `<section class=panel>
+    <div class=panel-header>
+      <div>
+        <h2>DBYTE Service Dry-Run Evidence</h2>
+        <p class=muted>Display-only Phase H projection from the local report index.</p>
+      </div>
+    </div>
+    <div class="card grid kpi-grid">
+      ${kpi("Dry run", { html: `<span class="${reportStatusClass(status)}">${escapeHtml(status)}</span>` }, "Local fixture dry-run status embedded in the report index.")}
+      ${kpi("Messages", numberFieldLabel(dryRunReport, "dry_run_input_messages"), "Synthetic fixture input messages replayed by the dry-run report.")}
+      ${kpi("Errors", numberFieldLabel(dryRunReport, "dry_run_error_count"), "Dry-run error count embedded in the report index.")}
+      ${kpi("Accepted", numberFieldLabel(dryRunReport, "dry_run_accepted_submits"), "Accepted submit count embedded in the report index.")}
+      ${kpi("Rejected", numberFieldLabel(dryRunReport, "dry_run_rejected_submits"), "Rejected submit count embedded in the report index.")}
+      ${kpi("Replayable", booleanFieldLabel(dryRunReport, "dry_run_replayable"), "Whether all dry-run state is replayable from report files.")}
+    </div>
+    <div class="card table-wrap">
+      <table aria-label="DBYTE local service dry-run evidence details">
+        <tbody>
+          ${detailRow("Index name", dryRunReport ? dryRunReport.name : PHASE_H_LOCAL_DRY_RUN_REPORT_NAME)}
+          ${detailRow("Index status", dryRunReport ? dryRunReport.status : "missing")}
+          ${detailRow("Dry-run status", status)}
+          ${detailRow("Mode", dryRunReport ? dryRunReport.dry_run_mode : "--")}
+          ${detailRow("Startup", dryRunReport ? dryRunReport.dry_run_startup_status : "--")}
+          ${detailRow("Shutdown", dryRunReport ? dryRunReport.dry_run_shutdown_status : "--")}
+          ${detailRow("Dashboard source", dryRunReport ? dryRunReport.dry_run_dashboard_source : "--")}
+          ${detailRow("Malformed messages", numberFieldLabel(dryRunReport, "dry_run_malformed_messages"))}
+          ${detailRow("Rate-limited messages", numberFieldLabel(dryRunReport, "dry_run_rate_limited_messages"))}
+          ${detailRow("Plan rows", numberFieldLabel(dryRunReport, "dry_run_plan_rows"))}
+          ${detailRow("Path", path)}
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
 function indexPanel(index) {
   const status = String(index.index_status || "unknown");
   const scope = String(index.index_scope || "unknown");
@@ -426,6 +470,10 @@ function bridgeFileCompareReport(reports) {
 
 function bridgeFileReport(reports) {
   return reports.find((report) => String(report.name || "") === BRIDGE_FILE_REPORT_NAME) || null;
+}
+
+function localDryRunReport(reports) {
+  return reports.find((report) => String(report.name || "") === PHASE_H_LOCAL_DRY_RUN_REPORT_NAME) || null;
 }
 
 function poolCoreReplayStatus(report) {
