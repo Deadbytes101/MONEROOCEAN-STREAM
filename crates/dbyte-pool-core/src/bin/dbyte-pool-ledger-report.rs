@@ -1,10 +1,72 @@
 #![forbid(unsafe_code)]
 
-use dbyte_pool_core::LedgerReplay;
+use dbyte_pool_core::{FakePoolHarness, Hash32, LedgerReplay, ShareLedger, ShareResult, ShareSubmit};
+use std::env;
 
 fn main() {
-    let report = LedgerReplay::default();
+    let report = match report_from_args(env::args().skip(1)) {
+        Ok(report) => report,
+        Err(error) => {
+            eprintln!("error: {error}");
+            std::process::exit(2);
+        }
+    };
     println!("{}", ledger_replay_json(&report));
+}
+
+fn report_from_args(args: impl IntoIterator<Item = String>) -> Result<LedgerReplay, String> {
+    let args = args.into_iter().collect::<Vec<_>>();
+    match args.as_slice() {
+        [] => Ok(LedgerReplay::default()),
+        [flag, fixture_name] if flag == "--fixture" && fixture_name == "two-session" => {
+            Ok(two_session_fixture_report())
+        }
+        [flag, _] if flag == "--fixture" => Err("unknown pool ledger fixture".to_string()),
+        _ => Err("usage: dbyte-pool-ledger-report [--fixture two-session]".to_string()),
+    }
+}
+
+fn two_session_fixture_report() -> LedgerReplay {
+    let mut pool = FakePoolHarness::new();
+    let mut ledger = ShareLedger::new();
+    let second_session = pool
+        .register_session("wallet-two", "worker-b", 10)
+        .expect("valid fixture session");
+    let first_session = pool
+        .register_session("wallet-one", "worker-a", 10)
+        .expect("valid fixture session");
+    let job_id = pool.create_job(1_000, 10, Hash32::zero());
+    pool.assign_job(first_session, job_id)
+        .expect("valid fixture job assignment");
+    pool.assign_job(second_session, job_id)
+        .expect("valid fixture job assignment");
+
+    let accepted_submit = submit(second_session, job_id, 7, 10);
+    let accepted_result = pool.submit_share(accepted_submit.clone());
+    assert!(matches!(accepted_result, ShareResult::Accepted(_)));
+    ledger.append_result(&accepted_submit, &accepted_result);
+
+    let rejected_submit = submit(first_session, job_id, 8, 1);
+    let rejected_result = pool.submit_share(rejected_submit.clone());
+    assert!(matches!(rejected_result, ShareResult::Rejected(_)));
+    ledger.append_result(&rejected_submit, &rejected_result);
+
+    ledger.replay().expect("fixture ledger replay should be valid")
+}
+
+fn submit(
+    session_id: dbyte_pool_core::SessionId,
+    job_id: dbyte_pool_core::JobId,
+    nonce: u64,
+    difficulty: u64,
+) -> ShareSubmit {
+    ShareSubmit {
+        session_id,
+        job_id,
+        nonce,
+        share_difficulty: difficulty,
+        result_hash: Hash32::zero(),
+    }
 }
 
 fn ledger_replay_json(report: &LedgerReplay) -> String {
@@ -81,56 +143,47 @@ fn ledger_error_json(error: &dbyte_pool_core::LedgerError) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dbyte_pool_core::{
-        FakePoolHarness, Hash32, LedgerEvent, LedgerOutcome, ShareLedger, ShareResult, ShareSubmit,
-    };
-
-    fn submit(
-        session_id: dbyte_pool_core::SessionId,
-        job_id: dbyte_pool_core::JobId,
-        nonce: u64,
-        difficulty: u64,
-    ) -> ShareSubmit {
-        ShareSubmit {
-            session_id,
-            job_id,
-            nonce,
-            share_difficulty: difficulty,
-            result_hash: Hash32::zero(),
-        }
-    }
+    use dbyte_pool_core::{LedgerEvent, LedgerOutcome};
 
     #[test]
     fn ledger_report_json_is_stable_and_sorted() {
-        let mut pool = FakePoolHarness::new();
-        let mut ledger = ShareLedger::new();
-        let second_session = pool
-            .register_session("wallet-two", "worker-b", 10)
-            .expect("valid session");
-        let first_session = pool
-            .register_session("wallet-one", "worker-a", 10)
-            .expect("valid session");
-        let job_id = pool.create_job(1_000, 10, Hash32::zero());
-        pool.assign_job(first_session, job_id).expect("valid job");
-        pool.assign_job(second_session, job_id).expect("valid job");
-
-        let accepted_submit = submit(second_session, job_id, 7, 10);
-        let accepted_result = pool.submit_share(accepted_submit.clone());
-        assert!(matches!(accepted_result, ShareResult::Accepted(_)));
-        ledger.append_result(&accepted_submit, &accepted_result);
-
-        let rejected_submit = submit(first_session, job_id, 8, 1);
-        let rejected_result = pool.submit_share(rejected_submit.clone());
-        assert!(matches!(rejected_result, ShareResult::Rejected(_)));
-        ledger.append_result(&rejected_submit, &rejected_result);
-
-        let replay = ledger.replay().expect("valid ledger replay");
+        let replay = two_session_fixture_report();
         let json = ledger_replay_json(&replay);
 
         assert_eq!(
             json,
             "{\n  \"schema\": 1,\n  \"status\": \"ok\",\n  \"total_events\": 2,\n  \"accepted_events\": 1,\n  \"rejected_events\": 1,\n  \"credited_difficulty\": 10,\n  \"sessions\": [\n    {\n      \"session_id\": 1,\n      \"accepted_shares\": 1,\n      \"rejected_shares\": 0,\n      \"credited_difficulty\": 10\n    },\n    {\n      \"session_id\": 2,\n      \"accepted_shares\": 0,\n      \"rejected_shares\": 1,\n      \"credited_difficulty\": 0\n    }\n  ]\n}"
         );
+    }
+
+    #[test]
+    fn report_from_args_defaults_to_empty_report() {
+        let replay = report_from_args([]).expect("default report should be valid");
+
+        assert_eq!(replay.total_events, 0);
+        assert_eq!(replay.accepted_events, 0);
+        assert_eq!(replay.rejected_events, 0);
+        assert_eq!(replay.credited_difficulty, 0);
+    }
+
+    #[test]
+    fn report_from_args_loads_two_session_fixture() {
+        let replay = report_from_args(["--fixture".to_string(), "two-session".to_string()])
+            .expect("fixture report should be valid");
+
+        assert_eq!(replay.total_events, 2);
+        assert_eq!(replay.accepted_events, 1);
+        assert_eq!(replay.rejected_events, 1);
+        assert_eq!(replay.credited_difficulty, 10);
+        assert_eq!(replay.per_session.len(), 2);
+    }
+
+    #[test]
+    fn report_from_args_rejects_unknown_fixture() {
+        let error = report_from_args(["--fixture".to_string(), "unknown".to_string()])
+            .expect_err("unknown fixture should fail");
+
+        assert_eq!(error, "unknown pool ledger fixture");
     }
 
     #[test]
