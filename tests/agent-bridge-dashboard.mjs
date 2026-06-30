@@ -46,7 +46,7 @@ const INDEX = {
   index_scope: "read_only",
   index_ts_unix: NOW,
   index_status: "ok",
-  report_count: 6,
+  report_count: 7,
   missing_required_count: 0,
   reports: [
     {
@@ -104,13 +104,30 @@ const INDEX = {
       replay_session_count: 2
     },
     {
+      name: "pool_core_file_ledger",
+      kind: "json",
+      path: "reports/dbyte-pool-ledger-file-report.json",
+      required: true,
+      exists: true,
+      status: "present",
+      sha256: "e".repeat(64),
+      size_bytes: 401,
+      replay_schema: 1,
+      replay_status: "ok",
+      replay_total_events: 2,
+      replay_accepted_events: 1,
+      replay_rejected_events: 1,
+      replay_credited_difficulty: 10,
+      replay_session_count: 2
+    },
+    {
       name: "bridge_compare",
       kind: "json",
       path: "reports/dbyte-bridge-compare.json",
       required: false,
       exists: true,
       status: "present",
-      sha256: "e".repeat(64),
+      sha256: "f".repeat(64),
       size_bytes: 640
     },
     {
@@ -120,7 +137,7 @@ const INDEX = {
       required: false,
       exists: true,
       status: "present",
-      sha256: "f".repeat(64),
+      sha256: "g".repeat(64),
       size_bytes: 520
     }
   ]
@@ -137,6 +154,9 @@ test("agent summary renders bridge evidence from the report index", async () => 
     assert.match(html, /DBYTE Agent Health/);
     assert.match(html, /local_artifacts_fresh/);
     assert.match(html, /DBYTE Pool Core Evidence/);
+    assert.match(html, /Pool file/);
+    assert.match(html, /pool_core_file_ledger/);
+    assert.match(html, /reports\/dbyte-pool-ledger-file-report\.json/);
     assert.match(html, /Bridge compare/);
     assert.match(html, /Bridge file/);
     assert.match(html, /Bridge index name/);
