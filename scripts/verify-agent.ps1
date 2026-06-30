@@ -56,6 +56,9 @@ try {
     $ReleaseScript = Join-Path $Root "scripts\build-agent-release.ps1"
     $LocalEvidenceReport = "reports\dbyte-agent-local-evidence.json"
     $LocalEvidenceReportScript = Join-Path $Root "scripts\report-agent-local-evidence.ps1"
+    $SessionEventsFixture = "tests\fixtures\session-events.clean.jsonl"
+    $SessionEventsSummaryReport = "reports\dbyte-session-events-summary.json"
+    $SessionEventsSummaryScript = Join-Path $Root "scripts\report-session-events.mjs"
     $IndexReport = "reports\dbyte-agent-index.json"
     $IndexReportScript = Join-Path $Root "scripts\report-agent-index.ps1"
 
@@ -175,6 +178,34 @@ try {
     Write-Host "local.evidence.report=$LocalEvidenceReport"
     Write-Host "AGENT LOCAL EVIDENCE VERIFIED"
 
+    Invoke-Checked "event summary report export" {
+        node $SessionEventsSummaryScript --in $SessionEventsFixture --out $SessionEventsSummaryReport
+    }
+
+    if (!(Test-Path $SessionEventsSummaryReport)) {
+        throw "missing event summary artifact: $SessionEventsSummaryReport"
+    }
+
+    $SessionEventsSummaryJson = Get-Content $SessionEventsSummaryReport -Raw | ConvertFrom-Json
+    if ($SessionEventsSummaryJson.schema -ne 1) {
+        throw "event summary schema must be 1"
+    }
+    if ($SessionEventsSummaryJson.status -ne "ok") {
+        throw "event summary status must be ok"
+    }
+    if ($SessionEventsSummaryJson.valid_events -ne 5) {
+        throw "event summary should contain five valid events"
+    }
+    if ($SessionEventsSummaryJson.invalid_events -ne 0) {
+        throw "event summary should contain zero invalid events"
+    }
+    if ($SessionEventsSummaryJson.summary.credited_units -ne 10) {
+        throw "event summary should credit ten units"
+    }
+
+    Write-Host "event.summary.report=$SessionEventsSummaryReport"
+    Write-Host "AGENT EVENT SUMMARY VERIFIED"
+
     Invoke-Checked "report index export" {
         & $IndexReportScript -Out $IndexReport
     }
@@ -197,6 +228,14 @@ try {
     }
     if ($LocalEvidenceEntry.required -ne $false) {
         throw "local_agent_evidence index entry must remain optional in this phase"
+    }
+
+    $SessionEventsSummaryEntry = $IndexJson.reports | Where-Object { $_.name -eq "session_events_summary" -and $_.exists -and $_.status -eq "present" }
+    if (!$SessionEventsSummaryEntry) {
+        throw "report index missing session_events_summary artifact entry"
+    }
+    if ($SessionEventsSummaryEntry.required -ne $false) {
+        throw "session_events_summary index entry must remain optional in this phase"
     }
 
     $PoolCoreEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" }
