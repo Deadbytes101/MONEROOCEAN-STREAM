@@ -11,19 +11,24 @@ const DECISION_STALE_SECONDS = 300;
 const INDEX_STALE_SECONDS = 300;
 
 export async function agentView() {
-  const [telemetry, decision, index] = await loadAgentArtifacts();
-  if (!telemetry && !decision && !index) return unavailableView();
-  return agentPanels(telemetry, decision, index, "DBYTE Agent", "Local runtime telemetry from the DBYTE agent JSON artifact.");
+  const [telemetry, decision, index, poolCoreLedger] = await loadAgentArtifacts();
+  if (!telemetry && !decision && !index && !poolCoreLedger) return unavailableView();
+  return agentPanels(telemetry, decision, index, poolCoreLedger, "DBYTE Agent", "Local runtime telemetry from the DBYTE agent JSON artifact.");
 }
 
 export async function agentSummaryPanel() {
-  const [telemetry, decision, index] = await loadAgentArtifacts();
-  if (!telemetry && !decision && !index) return unavailableView("DBYTE Agent", "Local agent JSON artifacts are not available yet.");
-  return agentPanels(telemetry, decision, index, "DBYTE Agent", "Dashboard-facing local telemetry and decision JSON.");
+  const [telemetry, decision, index, poolCoreLedger] = await loadAgentArtifacts();
+  if (!telemetry && !decision && !index && !poolCoreLedger) return unavailableView("DBYTE Agent", "Local agent JSON artifacts are not available yet.");
+  return agentPanels(telemetry, decision, index, poolCoreLedger, "DBYTE Agent", "Dashboard-facing local telemetry and decision JSON.");
 }
 
 async function loadAgentArtifacts() {
-  return Promise.all([loadJson(TELEMETRY_JSON_PATH), loadJson(DECISION_JSON_PATH), loadJson(INDEX_JSON_PATH)]);
+  return Promise.all([
+    loadJson(TELEMETRY_JSON_PATH),
+    loadJson(DECISION_JSON_PATH),
+    loadJson(INDEX_JSON_PATH),
+    loadJson(POOL_CORE_LEDGER_REPORT_PATH)
+  ]);
 }
 
 async function loadJson(path) {
@@ -36,25 +41,25 @@ async function loadJson(path) {
   }
 }
 
-function agentPanels(telemetry, decision, index, title, subtitle) {
+function agentPanels(telemetry, decision, index, poolCoreLedger, title, subtitle) {
   return [
-    healthPanel(telemetry, decision, index),
+    healthPanel(telemetry, decision, index, poolCoreLedger),
     telemetry ? telemetryPanel(telemetry, title, subtitle) : missingTelemetryPanel(title),
     decision ? decisionPanel(decision) : missingDecisionPanel(),
-    index ? poolCoreArtifactPanel(index) : "",
+    index ? poolCoreArtifactPanel(index, poolCoreLedger) : "",
     index ? indexPanel(index) : missingIndexPanel()
   ].join("");
 }
 
-function healthPanel(telemetry, decision, index) {
-  const health = agentHealth(telemetry, decision, index);
+function healthPanel(telemetry, decision, index, poolCoreLedger) {
+  const health = agentHealth(telemetry, decision, index, poolCoreLedger);
   const telemetryFreshness = telemetry ? artifactFreshness(Number(telemetry.telemetry_ts_unix) || 0, TELEMETRY_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
   const decisionFreshness = decision ? artifactFreshness(Number(decision.decision_ts_unix) || 0, DECISION_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
   const indexFreshness = index ? artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
   const indexStatus = index ? String(index.index_status || "unknown") : "missing_artifact";
   const reports = indexReports(index);
   const poolCoreReport = poolCoreLedgerReport(reports);
-  const poolCoreStatus = poolCoreReport ? String(poolCoreReport.status || "unknown") : "missing";
+  const poolCoreStatus = poolCoreLedger ? String(poolCoreLedger.status || "unknown") : poolCoreReport ? String(poolCoreReport.status || "unknown") : "missing";
 
   return `<section class=panel>
     <div class=panel-header>
@@ -71,12 +76,12 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Decision", freshnessValue(decisionFreshness), "Decision artifact freshness.")}
       ${kpi("Index", { html: `<span class="${reportStatusClass(indexStatus)}">${escapeHtml(indexStatus)}</span>` }, "Report index status.")}
       ${kpi("Index age", freshnessValue(indexFreshness), "Report index artifact freshness.")}
-      ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core replay report entry from the local report index.")}
+      ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core replay report status from the report JSON or index entry.")}
     </div>
   </section>`;
 }
 
-function agentHealth(telemetry, decision, index) {
+function agentHealth(telemetry, decision, index, poolCoreLedger) {
   if (!telemetry) return { status: "attention", reason: "missing_telemetry", next: "generate_telemetry" };
   if (!decision) return { status: "attention", reason: "missing_decision", next: "generate_decision" };
   if (!index) return { status: "attention", reason: "missing_index", next: "generate_index" };
@@ -86,6 +91,10 @@ function agentHealth(telemetry, decision, index) {
 
   const reports = indexReports(index);
   if (!poolCoreLedgerReport(reports)) return { status: "attention", reason: "missing_pool_core_ledger", next: "refresh_index" };
+  if (!poolCoreLedger) return { status: "attention", reason: "missing_pool_core_report", next: "generate_pool_core_report" };
+
+  const poolCoreStatus = String(poolCoreLedger.status || "unknown");
+  if (poolCoreStatus !== "ok") return { status: "attention", reason: `pool_core_${poolCoreStatus}`, next: "inspect_pool_core_report" };
 
   const indexFreshness = artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS);
   if (indexFreshness.label !== "fresh") return { status: "attention", reason: `index_${indexFreshness.label}`, next: "refresh_index" };
@@ -188,7 +197,7 @@ function decisionPanel(decision) {
   </section>`;
 }
 
-function poolCoreArtifactPanel(index) {
+function poolCoreArtifactPanel(index, poolCoreLedger) {
   const reports = indexReports(index);
   const report = poolCoreLedgerReport(reports);
   const status = report ? String(report.status || "unknown") : "missing";
@@ -197,6 +206,12 @@ function poolCoreArtifactPanel(index) {
   const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
   const sizeBytes = report ? Number(report.size_bytes) || 0 : 0;
   const sha256 = report ? String(report.sha256 || "--") : "--";
+  const reportStatus = poolCoreLedger ? String(poolCoreLedger.status || "unknown") : "missing";
+  const totalEvents = poolCoreLedger ? Number(poolCoreLedger.total_events) || 0 : 0;
+  const acceptedEvents = poolCoreLedger ? Number(poolCoreLedger.accepted_events) || 0 : 0;
+  const rejectedEvents = poolCoreLedger ? Number(poolCoreLedger.rejected_events) || 0 : 0;
+  const creditedDifficulty = poolCoreLedger ? Number(poolCoreLedger.credited_difficulty) || 0 : 0;
+  const sessions = poolCoreLedger && Array.isArray(poolCoreLedger.sessions) ? poolCoreLedger.sessions : [];
 
   return `<section class=panel>
     <div class=panel-header>
@@ -207,19 +222,32 @@ function poolCoreArtifactPanel(index) {
     </div>
     <div class="card grid kpi-grid">
       ${kpi("Status", { html: `<span class="${reportStatusClass(status)}">${escapeHtml(status)}</span>` }, "Pool-core report artifact status from the index.")}
-      ${kpi("Exists", exists ? "yes" : "no", "Whether the indexed pool-core report artifact is present on disk.")}
-      ${kpi("Kind", kind, "Indexed artifact format.")}
-      ${kpi("Size", formatNumber(sizeBytes), "Indexed artifact size in bytes.")}
+      ${kpi("Replay", { html: `<span class="${reportStatusClass(reportStatus)}">${escapeHtml(reportStatus)}</span>` }, "Pool-core replay report status from the JSON artifact.")}
+      ${kpi("Events", formatNumber(totalEvents), "Total pool-core replay events in the report JSON.")}
+      ${kpi("Accepted", formatNumber(acceptedEvents), "Accepted replay events in the report JSON.")}
+      ${kpi("Rejected", formatNumber(rejectedEvents), "Rejected replay events in the report JSON.")}
+      ${kpi("Credited", formatNumber(creditedDifficulty), "Credited difficulty total in the report JSON.")}
+      ${kpi("Sessions", formatNumber(sessions.length), "Session rows in the report JSON.")}
       ${kpi("Path", path, "Local pool-core report artifact path.")}
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE pool core evidence details">
         <tbody>
           ${detailRow("Index name", report ? report.name : POOL_CORE_LEDGER_REPORT_NAME)}
-          ${detailRow("Status", status)}
+          ${detailRow("Index status", status)}
+          ${detailRow("Replay status", reportStatus)}
+          ${detailRow("Exists", exists ? "yes" : "no")}
+          ${detailRow("Kind", kind)}
           ${detailRow("Required", report ? requiredLabel(report.required) : "yes")}
           ${detailRow("Path", path)}
+          ${detailRow("Size", formatNumber(sizeBytes))}
           ${detailRow("SHA256", sha256)}
+          ${detailRow("Schema", poolCoreLedger ? poolCoreLedger.schema : "--")}
+          ${detailRow("Total events", formatNumber(totalEvents))}
+          ${detailRow("Accepted events", formatNumber(acceptedEvents))}
+          ${detailRow("Rejected events", formatNumber(rejectedEvents))}
+          ${detailRow("Credited difficulty", formatNumber(creditedDifficulty))}
+          ${detailRow("Session rows", formatNumber(sessions.length))}
         </tbody>
       </table>
     </div>
