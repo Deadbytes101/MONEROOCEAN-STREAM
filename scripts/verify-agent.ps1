@@ -178,6 +178,32 @@ try {
         throw "pool_core_ledger default replay should contain zero events"
     }
 
+    $PoolCoreFixtureEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_fixture_ledger" -and $_.exists -and $_.status -eq "present" }
+    if (!$PoolCoreFixtureEntry) {
+        throw "report index missing pool_core_fixture_ledger artifact entry"
+    }
+    if ($PoolCoreFixtureEntry.replay_schema -ne 1) {
+        throw "pool_core_fixture_ledger index entry must include replay_schema 1"
+    }
+    if ($PoolCoreFixtureEntry.replay_status -ne "ok") {
+        throw "pool_core_fixture_ledger index entry must include replay_status ok"
+    }
+    if ($PoolCoreFixtureEntry.replay_total_events -ne 2) {
+        throw "pool_core_fixture_ledger replay should contain two events"
+    }
+    if ($PoolCoreFixtureEntry.replay_accepted_events -ne 1) {
+        throw "pool_core_fixture_ledger replay should contain one accepted event"
+    }
+    if ($PoolCoreFixtureEntry.replay_rejected_events -ne 1) {
+        throw "pool_core_fixture_ledger replay should contain one rejected event"
+    }
+    if ($PoolCoreFixtureEntry.replay_credited_difficulty -ne 10) {
+        throw "pool_core_fixture_ledger replay should credit difficulty 10"
+    }
+    if ($PoolCoreFixtureEntry.replay_session_count -ne 2) {
+        throw "pool_core_fixture_ledger replay should contain two session rows"
+    }
+
     Write-Host "index.report=$IndexReport"
     Write-Host "AGENT REPORT INDEX VERIFIED"
 
