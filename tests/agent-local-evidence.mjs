@@ -48,14 +48,15 @@ const INDEX = {
   index_scope: "read_only",
   index_ts_unix: NOW,
   index_status: "ok",
-  report_count: 5,
+  report_count: 6,
   missing_required_count: 0,
   reports: [
     report("telemetry_json", "json", "reports/dbyte-agent-telemetry.json", true, true, "a"),
     report("decision", "json", "reports/dbyte-agent-decision.json", true, true, "b"),
     report("local_agent_evidence", "json", "reports/dbyte-agent-local-evidence.json", false, false, "<missing>"),
     poolReport("pool_core_ledger", "reports/dbyte-pool-ledger-report.json", 0, 0, 0, 0, 0, "c"),
-    poolReport("pool_core_fixture_ledger", "reports/dbyte-pool-ledger-fixture-report.json", 2, 1, 1, 10, 2, "d")
+    poolReport("pool_core_fixture_ledger", "reports/dbyte-pool-ledger-fixture-report.json", 2, 1, 1, 10, 2, "d"),
+    poolReport("pool_core_file_ledger", "reports/dbyte-pool-ledger-file-report.json", 2, 1, 1, 10, 2, "e")
   ]
 };
 
@@ -70,6 +71,8 @@ test("agent summary renders optional local evidence index entry without blocking
     assert.match(html, /DBYTE Agent Health/);
     assert.match(html, /local_artifacts_fresh/);
     assert.match(html, /DBYTE Report Index/);
+    assert.match(html, /pool_core_file_ledger/);
+    assert.match(html, /reports\/dbyte-pool-ledger-file-report\.json/);
     assert.match(html, /local_agent_evidence/);
     assert.match(html, /reports\/dbyte-agent-local-evidence\.json/);
     assert.match(html, /<td>no<\/td>/);
