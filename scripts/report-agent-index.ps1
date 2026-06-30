@@ -31,6 +31,7 @@ try {
         @{ name = "phase_d_share_intake"; kind = "json"; path = "reports\dbyte-share-intake.json"; required = $false },
         @{ name = "phase_e_difficulty_policy"; kind = "json"; path = "reports\dbyte-difficulty-policy.json"; required = $false },
         @{ name = "phase_f_accounting_projection"; kind = "json"; path = "reports\dbyte-accounting-projection.json"; required = $false },
+        @{ name = "phase_g_settlement_plan"; kind = "json"; path = "reports\dbyte-settlement-plan.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -171,6 +172,26 @@ try {
             $Entry.accounting_value_movement_count = [int64]$PhaseFJson.summary.value_movement_count
             $Entry.accounting_credited_matches_intake = [bool]$PhaseFJson.checks.credited_matches_intake
             $Entry.accounting_no_value_movement = [bool]$PhaseFJson.checks.no_value_movement
+        }
+
+        if ([string]$Report.name -eq "phase_g_settlement_plan" -and $Exists) {
+            $PhaseGJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.plan_schema = [int]$PhaseGJson.schema
+            $Entry.plan_status = [string]$PhaseGJson.status
+            $Entry.plan_input_valid = [bool]$PhaseGJson.input_valid
+            $Entry.plan_registry_valid = [bool]$PhaseGJson.registry_valid
+            $Entry.plan_accounting_valid = [bool]$PhaseGJson.accounting_valid
+            $Entry.plan_valid = [bool]$PhaseGJson.plan_valid
+            $Entry.plan_execution_enabled = [bool]$PhaseGJson.execution_enabled
+            $Entry.plan_operator_approval_required = [bool]$PhaseGJson.operator_approval_required
+            $Entry.plan_policy_mode = [string]$PhaseGJson.policy.mode
+            $Entry.plan_rows = [int64]$PhaseGJson.summary.plan_rows
+            $Entry.plan_review_rows = [int64]$PhaseGJson.summary.review_rows
+            $Entry.plan_held_rows = [int64]$PhaseGJson.summary.held_rows
+            $Entry.plan_total_amount_units = [int64]$PhaseGJson.summary.total_amount_units
+            $Entry.plan_total_fee_estimate_units = [int64]$PhaseGJson.summary.total_fee_estimate_units
+            $Entry.plan_total_net_amount_units = [int64]$PhaseGJson.summary.total_net_amount_units
+            $Entry.plan_secret_material_stored = [bool]$PhaseGJson.summary.secret_material_stored
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
