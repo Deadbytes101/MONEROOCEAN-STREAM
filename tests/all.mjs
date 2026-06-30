@@ -4,6 +4,7 @@ import "./rendered-views.mjs";
 import "./agent-dashboard.mjs";
 import "./agent-bridge-dashboard.mjs";
 import "./agent-local-evidence.mjs";
+import "./service-protocol.mjs";
 import "./bridge-file-report.mjs";
 import "./wallet-workers-render-policy.mjs";
 import "./setup-settings.mjs";
