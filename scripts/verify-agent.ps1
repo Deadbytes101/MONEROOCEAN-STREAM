@@ -64,6 +64,9 @@ try {
     $PoolLedgerFixtureReport = "reports\dbyte-pool-ledger-fixture-report.json"
     $BridgeCompareReport = "reports\dbyte-bridge-compare.json"
     $BridgeCompareScript = Join-Path $Root "scripts\report-bridge-compare.mjs"
+    $BridgeFileFixture = "tests\fixtures\pool-core-bridge.ledger"
+    $BridgeFileReport = "reports\dbyte-bridge-file.json"
+    $BridgeFileScript = Join-Path $Root "scripts\report-bridge-file.mjs"
     $IndexReport = "reports\dbyte-agent-index.json"
     $IndexReportScript = Join-Path $Root "scripts\report-agent-index.ps1"
 
@@ -277,6 +280,49 @@ try {
     Write-Host "bridge.compare.report=$BridgeCompareReport"
     Write-Host "AGENT BRIDGE COMPARE VERIFIED"
 
+    Invoke-Checked "bridge file report export" {
+        node $BridgeFileScript --in $BridgeFileFixture --out $BridgeFileReport
+    }
+
+    if (!(Test-Path $BridgeFileReport)) {
+        throw "missing bridge file artifact: $BridgeFileReport"
+    }
+
+    $BridgeFileJson = Get-Content $BridgeFileReport -Raw | ConvertFrom-Json
+    if ($BridgeFileJson.schema -ne 1) {
+        throw "bridge file schema must be 1"
+    }
+    if ($BridgeFileJson.status -ne "ok") {
+        throw "bridge file status must be ok"
+    }
+    if ($BridgeFileJson.valid -ne $true) {
+        throw "bridge file report must be valid"
+    }
+    if ($BridgeFileJson.summary.total_events -ne 2) {
+        throw "bridge file should contain two events"
+    }
+    if ($BridgeFileJson.summary.accepted_events -ne 1) {
+        throw "bridge file should contain one accepted event"
+    }
+    if ($BridgeFileJson.summary.rejected_events -ne 1) {
+        throw "bridge file should contain one rejected event"
+    }
+    if ($BridgeFileJson.summary.credited_difficulty -ne 10) {
+        throw "bridge file should credit difficulty 10"
+    }
+    if ($BridgeFileJson.summary.session_count -ne 2) {
+        throw "bridge file should contain two sessions"
+    }
+    if ($BridgeFileJson.summary.job_count -ne 1) {
+        throw "bridge file should contain one job"
+    }
+    if ($BridgeFileJson.summary.assignment_count -ne 2) {
+        throw "bridge file should contain two assignments"
+    }
+
+    Write-Host "bridge.file.report=$BridgeFileReport"
+    Write-Host "AGENT BRIDGE FILE VERIFIED"
+
     Invoke-Checked "report index export" {
         & $IndexReportScript -Out $IndexReport
     }
@@ -323,6 +369,14 @@ try {
     }
     if ($BridgeCompareEntry.required -ne $false) {
         throw "bridge_compare index entry must remain optional in this phase"
+    }
+
+    $BridgeFileEntry = $IndexJson.reports | Where-Object { $_.name -eq "bridge_file" -and $_.exists -and $_.status -eq "present" }
+    if (!$BridgeFileEntry) {
+        throw "report index missing bridge_file artifact entry"
+    }
+    if ($BridgeFileEntry.required -ne $false) {
+        throw "bridge_file index entry must remain optional in this phase"
     }
 
     $PoolCoreEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" }
