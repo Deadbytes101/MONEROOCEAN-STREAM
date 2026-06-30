@@ -156,11 +156,11 @@ try {
         throw "missing report index artifact: $IndexReport"
     }
 
-    $IndexJson = Get-Content $IndexReport -Raw
-    if ($IndexJson -notmatch '"index_scope": "read_only"') {
+    $IndexJson = Get-Content $IndexReport -Raw | ConvertFrom-Json
+    if ($IndexJson.index_scope -ne "read_only") {
         throw "report index must stay read-only"
     }
-    if ($IndexJson -notmatch '"index_status": "ok"') {
+    if ($IndexJson.index_status -ne "ok") {
         throw "report index did not approve generated reports"
     }
 
