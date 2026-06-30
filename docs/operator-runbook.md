@@ -58,6 +58,8 @@ index_status: ok
 missing_required_count: 0
 ```
 
+For the full report index field contract, read [Report Index Fields](report-index-fields.md).
+
 ## Dashboard operator view
 
 Open the Agent route:
