@@ -3,6 +3,7 @@ import "./core-routing-privacy.mjs";
 import "./rendered-views.mjs";
 import "./agent-dashboard.mjs";
 import "./agent-service-dry-run-dashboard.mjs";
+import "./agent-service-readiness-dashboard.mjs";
 import "./agent-bridge-dashboard.mjs";
 import "./agent-local-evidence.mjs";
 import "./service-protocol.mjs";
