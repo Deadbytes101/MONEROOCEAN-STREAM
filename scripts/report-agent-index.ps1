@@ -28,6 +28,7 @@ try {
         @{ name = "phase_a_summary"; kind = "json"; path = "reports\dbyte-service-protocol-summary.json"; required = $false },
         @{ name = "phase_b_registry"; kind = "json"; path = "reports\dbyte-session-registry.json"; required = $false },
         @{ name = "phase_c_job_source"; kind = "json"; path = "reports\dbyte-job-source.json"; required = $false },
+        @{ name = "phase_d_share_intake"; kind = "json"; path = "reports\dbyte-share-intake.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -119,6 +120,20 @@ try {
             $Entry.job_error_count = [int64]$PhaseCJson.summary.error_count
             $Entry.job_minimum_difficulty = [int64]$PhaseCJson.summary.minimum_difficulty
             $Entry.job_maximum_difficulty = [int64]$PhaseCJson.summary.maximum_difficulty
+        }
+
+        if ([string]$Report.name -eq "phase_d_share_intake" -and $Exists) {
+            $PhaseDJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.intake_schema = [int]$PhaseDJson.schema
+            $Entry.intake_status = [string]$PhaseDJson.status
+            $Entry.intake_input_valid = [bool]$PhaseDJson.input_valid
+            $Entry.intake_job_source_valid = [bool]$PhaseDJson.job_source_valid
+            $Entry.intake_valid = [bool]$PhaseDJson.intake_valid
+            $Entry.intake_total_submits = [int64]$PhaseDJson.summary.total_submits
+            $Entry.intake_accepted_submits = [int64]$PhaseDJson.summary.accepted_submits
+            $Entry.intake_rejected_submits = [int64]$PhaseDJson.summary.rejected_submits
+            $Entry.intake_credited_difficulty = [int64]$PhaseDJson.summary.credited_difficulty
+            $Entry.intake_rejection_count = [int64]@($PhaseDJson.summary.rejection_reasons).Count
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
