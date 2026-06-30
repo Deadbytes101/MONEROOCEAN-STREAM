@@ -25,7 +25,9 @@ fn report_from_args(args: impl IntoIterator<Item = String>) -> Result<LedgerRepl
         }
         [flag, path] if flag == "--file" => report_from_file(path),
         [flag, _] if flag == "--fixture" => Err("unknown pool ledger fixture".to_string()),
-        _ => Err("usage: dbyte-pool-ledger-report [--fixture two-session] [--file path]".to_string()),
+        _ => {
+            Err("usage: dbyte-pool-ledger-report [--fixture two-session] [--file path]".to_string())
+        }
     }
 }
 
@@ -53,7 +55,9 @@ fn report_from_text(source: &str) -> Result<LedgerReplay, String> {
                 let difficulty = parse_u64(difficulty, line_number, "difficulty")?;
                 let session_id = pool
                     .register_session(*wallet, *worker, difficulty)
-                    .map_err(|reason| format!("line {line_number}: session rejected: {reason:?}"))?;
+                    .map_err(|reason| {
+                        format!("line {line_number}: session rejected: {reason:?}")
+                    })?;
                 sessions.push(session_id);
             }
             ["job", height, required_difficulty] => {
@@ -97,7 +101,11 @@ fn parse_u64(value: &str, line_number: usize, field: &str) -> Result<u64, String
         .map_err(|_| format!("line {line_number}: invalid {field}"))
 }
 
-fn lookup_session(sessions: &[SessionId], value: &str, line_number: usize) -> Result<SessionId, String> {
+fn lookup_session(
+    sessions: &[SessionId],
+    value: &str,
+    line_number: usize,
+) -> Result<SessionId, String> {
     let index = parse_index(value, line_number, "session_index")?;
     sessions
         .get(index)
@@ -304,11 +312,8 @@ submit,1,1,8,1\n";
         ));
         fs::write(&path, BRIDGE_FIXTURE).expect("write bridge fixture");
 
-        let replay = report_from_args([
-            "--file".to_string(),
-            path.to_string_lossy().into_owned(),
-        ])
-        .expect("bridge file should replay");
+        let replay = report_from_args(["--file".to_string(), path.to_string_lossy().into_owned()])
+            .expect("bridge file should replay");
         let _ = fs::remove_file(path);
 
         assert_eq!(replay.total_events, 2);
