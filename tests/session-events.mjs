@@ -1,7 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import { execPath } from "node:process";
 import { parseSessionEventJsonl, summarizeSessionEvents } from "../src/session-events.js";
+
+const execFileAsync = promisify(execFile);
 
 test.describe("session event parser", { concurrency: false }, () => {
   test("parses clean session event fixture and summarizes counters", async () => {
@@ -41,5 +48,34 @@ test.describe("session event parser", { concurrency: false }, () => {
     assert.equal(result.errors[1].reason, "unknown_event");
     assert.equal(result.errors[2].reason, "missing_rig_id");
     assert.doesNotMatch(JSON.stringify(result), /undefined|NaN/);
+  });
+
+  test("writes a stable summary report artifact", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "dbyte-session-report-"));
+    const output = join(directory, "summary.json");
+
+    try {
+      const { stdout } = await execFileAsync(execPath, [
+        "scripts/report-session-events.mjs",
+        "--in",
+        "tests/fixtures/session-events.clean.jsonl",
+        "--out",
+        output
+      ]);
+      const report = JSON.parse(await readFile(output, "utf8"));
+
+      assert.match(stdout, /session\.report_status=ok/);
+      assert.equal(report.schema, 1);
+      assert.equal(report.status, "ok");
+      assert.equal(report.valid, true);
+      assert.equal(report.valid_events, 5);
+      assert.equal(report.invalid_events, 0);
+      assert.equal(report.summary.unit_accepted, 1);
+      assert.equal(report.summary.unit_rejected, 1);
+      assert.equal(report.summary.credited_units, 10);
+      assert.deepEqual(report.errors, []);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });
