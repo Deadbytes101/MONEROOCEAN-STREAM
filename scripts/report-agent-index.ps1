@@ -26,6 +26,7 @@ try {
         @{ name = "verify_ledger"; kind = "json"; path = "reports\verify-agent.json"; required = $true },
         @{ name = "local_agent_evidence"; kind = "json"; path = "reports\dbyte-agent-local-evidence.json"; required = $false },
         @{ name = "phase_a_summary"; kind = "json"; path = "reports\dbyte-service-protocol-summary.json"; required = $false },
+        @{ name = "phase_b_registry"; kind = "json"; path = "reports\dbyte-session-registry.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -86,6 +87,23 @@ try {
             $Entry.phase_rejected = [int64]$PhaseAJson.summary.rejected
             $Entry.phase_credited_difficulty = [int64]$PhaseAJson.summary.credited_difficulty
             $Entry.phase_session_count = [int64]$PhaseAJson.summary.session_count
+        }
+
+        if ([string]$Report.name -eq "phase_b_registry" -and $Exists) {
+            $PhaseBJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.registry_schema = [int]$PhaseBJson.schema
+            $Entry.registry_status = [string]$PhaseBJson.status
+            $Entry.registry_input_valid = [bool]$PhaseBJson.input_valid
+            $Entry.registry_valid = [bool]$PhaseBJson.registry_valid
+            $Entry.registry_valid_messages = [int64]$PhaseBJson.valid_messages
+            $Entry.registry_session_count = [int64]$PhaseBJson.summary.session_count
+            $Entry.registry_active_sessions = [int64]$PhaseBJson.summary.active_sessions
+            $Entry.registry_closed_sessions = [int64]$PhaseBJson.summary.closed_sessions
+            $Entry.registry_rejected_sessions = [int64]$PhaseBJson.summary.rejected_sessions
+            $Entry.registry_accepted = [int64]$PhaseBJson.summary.accepted
+            $Entry.registry_rejected = [int64]$PhaseBJson.summary.rejected
+            $Entry.registry_credited_difficulty = [int64]$PhaseBJson.summary.credited_difficulty
+            $Entry.registry_error_count = [int64]$PhaseBJson.summary.error_count
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
