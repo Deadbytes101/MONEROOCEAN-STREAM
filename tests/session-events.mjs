@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { execPath } from "node:process";
 import { parseSessionEventJsonl, summarizeSessionEvents } from "../src/session-events.js";
+import { projectSessionSummaryToReplayReport } from "../src/replay-projection.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -74,6 +75,72 @@ test.describe("session event parser", { concurrency: false }, () => {
       assert.equal(report.summary.unit_rejected, 1);
       assert.equal(report.summary.credited_units, 10);
       assert.deepEqual(report.errors, []);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test("projects summary report into replay-like counters", () => {
+    const projected = projectSessionSummaryToReplayReport({
+      schema: 1,
+      status: "ok",
+      source_path: "tests/fixtures/session-events.clean.jsonl",
+      valid: true,
+      summary: {
+        unit_accepted: 1,
+        unit_rejected: 1,
+        credited_units: 10
+      }
+    });
+
+    assert.deepEqual(projected, {
+      schema: 1,
+      status: "ok",
+      source_schema: 1,
+      source_path: "tests/fixtures/session-events.clean.jsonl",
+      total_events: 2,
+      accepted_events: 1,
+      rejected_events: 1,
+      credited_difficulty: 10,
+      sessions: [{
+        session_id: "fixture-session-1",
+        accepted_shares: 1,
+        rejected_shares: 1,
+        credited_difficulty: 10
+      }]
+    });
+  });
+
+  test("writes a stable replay projection report artifact", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "dbyte-replay-projection-"));
+    const summaryOutput = join(directory, "summary.json");
+    const projectionOutput = join(directory, "projection.json");
+
+    try {
+      await execFileAsync(execPath, [
+        "scripts/report-session-events.mjs",
+        "--in",
+        "tests/fixtures/session-events.clean.jsonl",
+        "--out",
+        summaryOutput
+      ]);
+      const { stdout } = await execFileAsync(execPath, [
+        "scripts/report-replay-projection.mjs",
+        "--in",
+        summaryOutput,
+        "--out",
+        projectionOutput
+      ]);
+      const report = JSON.parse(await readFile(projectionOutput, "utf8"));
+
+      assert.match(stdout, /replay\.projection\.status=ok/);
+      assert.equal(report.schema, 1);
+      assert.equal(report.status, "ok");
+      assert.equal(report.total_events, 2);
+      assert.equal(report.accepted_events, 1);
+      assert.equal(report.rejected_events, 1);
+      assert.equal(report.credited_difficulty, 10);
+      assert.equal(report.sessions.length, 1);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
