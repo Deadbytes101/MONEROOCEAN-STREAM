@@ -128,7 +128,13 @@ const INDEX = {
       exists: true,
       status: "present",
       sha256: "f".repeat(64),
-      size_bytes: 640
+      size_bytes: 640,
+      compare_schema: 1,
+      compare_status: "ok",
+      compare_total_events: true,
+      compare_accepted_events: true,
+      compare_rejected_events: true,
+      compare_credited_difficulty: true
     },
     {
       name: "bridge_file_compare",
@@ -138,7 +144,13 @@ const INDEX = {
       exists: true,
       status: "present",
       sha256: "g".repeat(64),
-      size_bytes: 640
+      size_bytes: 640,
+      compare_schema: 1,
+      compare_status: "ok",
+      compare_total_events: true,
+      compare_accepted_events: true,
+      compare_rejected_events: true,
+      compare_credited_difficulty: true
     },
     {
       name: "bridge_file",
@@ -172,9 +184,19 @@ test("agent summary renders bridge evidence from the report index", async () => 
     assert.match(html, /Bridge file/);
     assert.match(html, /Bridge index name/);
     assert.match(html, /Bridge index status/);
+    assert.match(html, /Bridge compare status/);
+    assert.match(html, /Bridge total events match/);
+    assert.match(html, /Bridge accepted events match/);
+    assert.match(html, /Bridge rejected events match/);
+    assert.match(html, /Bridge credited difficulty match/);
     assert.match(html, /Bridge path/);
     assert.match(html, /Bridge file compare index name/);
     assert.match(html, /Bridge file compare index status/);
+    assert.match(html, /Bridge file compare status/);
+    assert.match(html, /Bridge file total events match/);
+    assert.match(html, /Bridge file accepted events match/);
+    assert.match(html, /Bridge file rejected events match/);
+    assert.match(html, /Bridge file credited difficulty match/);
     assert.match(html, /Bridge file compare path/);
     assert.match(html, /Bridge file index name/);
     assert.match(html, /Bridge file index status/);
@@ -185,6 +207,7 @@ test("agent summary renders bridge evidence from the report index", async () => 
     assert.match(html, /reports\/dbyte-bridge-compare\.json/);
     assert.match(html, /reports\/dbyte-bridge-file-compare\.json/);
     assert.match(html, /reports\/dbyte-bridge-file\.json/);
+    assert.match(html, /<td>yes<\/td>/);
     assert.match(html, /<td>no<\/td>/);
     assert.doesNotMatch(html, /undefined|NaN/);
   });
