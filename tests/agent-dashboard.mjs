@@ -28,7 +28,7 @@ const DECISION = {
   decision_status: "ok",
   decision_reason: "ledger_clean",
   decision_next: "observe",
-  ledger_path: "crates\\dbyte-agent\\fixtures\\decision-clean-ledger.events",
+  ledger_path: "crates/dbyte-agent/fixtures/decision-clean-ledger.events",
   ledger_exists: true,
   ledger_events: 3,
   ledger_valid_events: 3,
@@ -54,7 +54,7 @@ const INDEX = {
     {
       name: "telemetry_json",
       kind: "json",
-      path: "reports\\dbyte-agent-telemetry.json",
+      path: "reports/dbyte-agent-telemetry.json",
       required: true,
       exists: true,
       status: "present",
@@ -64,7 +64,7 @@ const INDEX = {
     {
       name: "decision",
       kind: "json",
-      path: "reports\\dbyte-agent-decision.json",
+      path: "reports/dbyte-agent-decision.json",
       required: true,
       exists: true,
       status: "present",
@@ -89,8 +89,10 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /DBYTE Decision/);
       assert.match(html, /DBYTE Report Index/);
       assert.match(html, /Path/);
+      assert.match(html, /Required/);
+      assert.match(html, /<td>yes<\/td>/);
       assert.match(html, /telemetry_json/);
-      assert.match(html, /reports\\dbyte-agent-telemetry\.json/);
+      assert.match(html, /reports\/dbyte-agent-telemetry\.json/);
       assert.match(html, /present/);
       assert.match(html, /read_only/);
       assert.match(html, /ledger_clean/);

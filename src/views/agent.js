@@ -197,7 +197,7 @@ function indexPanel(index) {
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE agent report index details">
-        <thead><tr><th>Name</th><th>Status</th><th>Path</th><th>Size</th><th>SHA256</th></tr></thead>
+        <thead><tr><th>Name</th><th>Status</th><th>Required</th><th>Path</th><th>Size</th><th>SHA256</th></tr></thead>
         <tbody>${reports.map(reportRow).join("")}</tbody>
       </table>
     </div>
@@ -209,10 +209,15 @@ function reportRow(report) {
   return `<tr>
     <th>${escapeHtml(report.name || "--")}</th>
     <td><span class="${reportStatusClass(status)}">${escapeHtml(status)}</span></td>
+    <td>${escapeHtml(requiredLabel(report.required))}</td>
     <td><code>${escapeHtml(report.path || "--")}</code></td>
     <td>${escapeHtml(formatNumber(Number(report.size_bytes) || 0))}</td>
     <td><code>${escapeHtml(report.sha256 || "--")}</code></td>
   </tr>`;
+}
+
+function requiredLabel(required) {
+  return required === true ? "yes" : "no";
 }
 
 function missingTelemetryPanel(title = "DBYTE Agent") {
@@ -224,7 +229,7 @@ function missingTelemetryPanel(title = "DBYTE Agent") {
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\\scripts\\report-agent-telemetry.ps1</code> to write <code>${escapeHtml(TELEMETRY_JSON_PATH)}</code>.</p>
+      <p>Run <code>.&#92;scripts&#92;report-agent-telemetry.ps1</code> to write <code>${escapeHtml(TELEMETRY_JSON_PATH)}</code>.</p>
     </div>
   </section>`;
 }
@@ -238,7 +243,7 @@ function missingDecisionPanel() {
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\\scripts\\report-agent-decision.ps1</code> to write <code>${escapeHtml(DECISION_JSON_PATH)}</code>.</p>
+      <p>Run <code>.&#92;scripts&#92;report-agent-decision.ps1</code> to write <code>${escapeHtml(DECISION_JSON_PATH)}</code>.</p>
     </div>
   </section>`;
 }
@@ -252,7 +257,7 @@ function missingIndexPanel() {
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\\scripts\\report-agent-index.ps1</code> to write <code>${escapeHtml(INDEX_JSON_PATH)}</code>.</p>
+      <p>Run <code>.&#92;scripts&#92;report-agent-index.ps1</code> to write <code>${escapeHtml(INDEX_JSON_PATH)}</code>.</p>
     </div>
   </section>`;
 }
@@ -266,7 +271,7 @@ function unavailableView(title = "DBYTE Agent", subtitle = "Local telemetry JSON
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\\scripts\\report-agent-telemetry.ps1</code>, <code>.\\scripts\\report-agent-decision.ps1</code>, and <code>.\\scripts\\report-agent-index.ps1</code> to write local dashboard artifacts.</p>
+      <p>Run <code>.&#92;scripts&#92;report-agent-telemetry.ps1</code>, <code>.&#92;scripts&#92;report-agent-decision.ps1</code>, and <code>.&#92;scripts&#92;report-agent-index.ps1</code> to write local dashboard artifacts.</p>
     </div>
   </section>`;
 }
