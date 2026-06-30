@@ -36,15 +36,24 @@ test.describe("share intake replay", { concurrency: false }, () => {
 
   test("rejects stale jobs with visible evidence", async () => {
     const protocolSource = await readFile("tests/fixtures/service-protocol.clean.jsonl", "utf8");
-    const jobFixture = JSON.parse(await readFile("tests/fixtures/job-source.stale.json", "utf8"));
     const parsed = parseServiceProtocolJsonl(protocolSource);
-    const jobSource = makeFakeJobSource(jobFixture.jobs);
-    const replay = replayShareIntake(parsed.messages, jobSource, jobFixture.now_ts_unix);
+    const jobSource = makeFakeJobSource([
+      {
+        job_id: "synthetic-job-1",
+        source: "fake",
+        seed_hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        target: "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        difficulty: 10,
+        created_ts_unix: 1,
+        expires_ts_unix: 4
+      }
+    ]);
+    const replay = replayShareIntake(parsed.messages, jobSource, 10);
 
     assert.equal(replay.summary.total_submits, 1);
     assert.equal(replay.summary.accepted_submits, 0);
     assert.equal(replay.summary.rejected_submits, 1);
-    assert.equal(replay.outcomes[0].reason, "unknown_job");
+    assert.equal(replay.outcomes[0].reason, "job_expired");
     assert.equal(replay.outcomes[0].credited_difficulty, 0);
   });
 
