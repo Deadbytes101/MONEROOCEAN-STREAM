@@ -167,7 +167,9 @@ mod tests {
             sequence: 2,
             ..event
         });
-        let error = ledger.replay().expect_err("duplicate share should fail replay");
+        let error = ledger
+            .replay()
+            .expect_err("duplicate share should fail replay");
 
         assert_eq!(
             ledger_error_json(&error),
