@@ -7,6 +7,7 @@ import "./agent-local-evidence.mjs";
 import "./service-protocol.mjs";
 import "./session-registry.mjs";
 import "./job-source.mjs";
+import "./share-intake.mjs";
 import "./bridge-file-report.mjs";
 import "./wallet-workers-render-policy.mjs";
 import "./setup-settings.mjs";
