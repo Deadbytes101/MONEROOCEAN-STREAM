@@ -32,6 +32,7 @@ try {
         @{ name = "phase_e_difficulty_policy"; kind = "json"; path = "reports\dbyte-difficulty-policy.json"; required = $false },
         @{ name = "phase_f_accounting_projection"; kind = "json"; path = "reports\dbyte-accounting-projection.json"; required = $false },
         @{ name = "phase_g_settlement_plan"; kind = "json"; path = "reports\dbyte-settlement-plan.json"; required = $false },
+        @{ name = "phase_h_local_dry_run"; kind = "json"; path = "reports\dbyte-local-service-dry-run.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -192,6 +193,30 @@ try {
             $Entry.plan_total_fee_estimate_units = [int64]$PhaseGJson.summary.total_fee_estimate_units
             $Entry.plan_total_net_amount_units = [int64]$PhaseGJson.summary.total_net_amount_units
             $Entry.plan_secret_material_stored = [bool]$PhaseGJson.summary.secret_material_stored
+        }
+
+        if ([string]$Report.name -eq "phase_h_local_dry_run" -and $Exists) {
+            $PhaseHJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.dry_run_schema = [int]$PhaseHJson.schema
+            $Entry.dry_run_status = [string]$PhaseHJson.status
+            $Entry.dry_run_input_valid = [bool]$PhaseHJson.input_valid
+            $Entry.dry_run_job_source_valid = [bool]$PhaseHJson.job_source_valid
+            $Entry.dry_run_valid = [bool]$PhaseHJson.dry_run_valid
+            $Entry.dry_run_mode = [string]$PhaseHJson.mode
+            $Entry.dry_run_listener_enabled = [bool]$PhaseHJson.listener_enabled
+            $Entry.dry_run_external_bind_enabled = [bool]$PhaseHJson.external_bind_enabled
+            $Entry.dry_run_live_worker_intake_enabled = [bool]$PhaseHJson.live_worker_intake_enabled
+            $Entry.dry_run_startup_status = [string]$PhaseHJson.startup.status
+            $Entry.dry_run_shutdown_status = [string]$PhaseHJson.shutdown.status
+            $Entry.dry_run_input_messages = [int64]$PhaseHJson.counters.input_messages
+            $Entry.dry_run_malformed_messages = [int64]$PhaseHJson.counters.malformed_messages
+            $Entry.dry_run_rate_limited_messages = [int64]$PhaseHJson.counters.rate_limited_messages
+            $Entry.dry_run_error_count = [int64]$PhaseHJson.counters.error_count
+            $Entry.dry_run_accepted_submits = [int64]$PhaseHJson.counters.accepted_submits
+            $Entry.dry_run_rejected_submits = [int64]$PhaseHJson.counters.rejected_submits
+            $Entry.dry_run_plan_rows = [int64]$PhaseHJson.counters.plan_rows
+            $Entry.dry_run_dashboard_source = [string]$PhaseHJson.dashboard_projection.source
+            $Entry.dry_run_replayable = [bool]$PhaseHJson.replayable
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
