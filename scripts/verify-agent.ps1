@@ -38,6 +38,85 @@ try {
         }
     }
 
+    function Assert-BridgeCompareReport {
+        param(
+            [Parameter(Mandatory = $true)]
+            [object]$Report,
+
+            [Parameter(Mandatory = $true)]
+            [string]$Label
+        )
+
+        if ($Report.schema -ne 1) {
+            throw "$Label schema must be 1"
+        }
+        if ($Report.status -ne "ok") {
+            throw "$Label status must be ok"
+        }
+        if ($Report.matches.total_events -ne $true) {
+            throw "$Label total_events must match"
+        }
+        if ($Report.matches.accepted_events -ne $true) {
+            throw "$Label accepted_events must match"
+        }
+        if ($Report.matches.rejected_events -ne $true) {
+            throw "$Label rejected_events must match"
+        }
+        if ($Report.matches.credited_difficulty -ne $true) {
+            throw "$Label credited_difficulty must match"
+        }
+    }
+
+    function Assert-PoolCoreReplayEntry {
+        param(
+            [Parameter(Mandatory = $true)]
+            [object]$Entry,
+
+            [Parameter(Mandatory = $true)]
+            [string]$Name,
+
+            [Parameter(Mandatory = $true)]
+            [int]$TotalEvents,
+
+            [Parameter(Mandatory = $true)]
+            [int]$AcceptedEvents,
+
+            [Parameter(Mandatory = $true)]
+            [int]$RejectedEvents,
+
+            [Parameter(Mandatory = $true)]
+            [int]$CreditedDifficulty,
+
+            [Parameter(Mandatory = $true)]
+            [int]$SessionCount
+        )
+
+        if (!$Entry) {
+            throw "report index missing $Name artifact entry"
+        }
+        if ($Entry.replay_schema -ne 1) {
+            throw "$Name index entry must include replay_schema 1"
+        }
+        if ($Entry.replay_status -ne "ok") {
+            throw "$Name index entry must include replay_status ok"
+        }
+        if ($Entry.replay_total_events -ne $TotalEvents) {
+            throw "$Name replay should contain $TotalEvents events"
+        }
+        if ($Entry.replay_accepted_events -ne $AcceptedEvents) {
+            throw "$Name replay should contain $AcceptedEvents accepted events"
+        }
+        if ($Entry.replay_rejected_events -ne $RejectedEvents) {
+            throw "$Name replay should contain $RejectedEvents rejected events"
+        }
+        if ($Entry.replay_credited_difficulty -ne $CreditedDifficulty) {
+            throw "$Name replay should credit difficulty $CreditedDifficulty"
+        }
+        if ($Entry.replay_session_count -ne $SessionCount) {
+            throw "$Name replay should contain $SessionCount session rows"
+        }
+    }
+
     $Manifest = "crates\dbyte-agent\Cargo.toml"
     $Config = "configs\agent.example.toml"
     $CleanLedger = "crates\dbyte-agent\fixtures\clean-ledger.events"
@@ -62,7 +141,9 @@ try {
     $ProjectionReport = "reports\dbyte-replay-projection.json"
     $ProjectionReportScript = Join-Path $Root "scripts\report-replay-projection.mjs"
     $PoolLedgerFixtureReport = "reports\dbyte-pool-ledger-fixture-report.json"
+    $PoolLedgerFileReport = "reports\dbyte-pool-ledger-file-report.json"
     $BridgeCompareReport = "reports\dbyte-bridge-compare.json"
+    $BridgeFileCompareReport = "reports\dbyte-bridge-file-compare.json"
     $BridgeCompareScript = Join-Path $Root "scripts\report-bridge-compare.mjs"
     $BridgeFileFixture = "tests\fixtures\pool-core-bridge.ledger"
     $BridgeFileReport = "reports\dbyte-bridge-file.json"
@@ -258,27 +339,28 @@ try {
     }
 
     $BridgeCompareJson = Get-Content $BridgeCompareReport -Raw | ConvertFrom-Json
-    if ($BridgeCompareJson.schema -ne 1) {
-        throw "bridge compare schema must be 1"
-    }
-    if ($BridgeCompareJson.status -ne "ok") {
-        throw "bridge compare status must be ok"
-    }
-    if ($BridgeCompareJson.matches.total_events -ne $true) {
-        throw "bridge compare total_events must match"
-    }
-    if ($BridgeCompareJson.matches.accepted_events -ne $true) {
-        throw "bridge compare accepted_events must match"
-    }
-    if ($BridgeCompareJson.matches.rejected_events -ne $true) {
-        throw "bridge compare rejected_events must match"
-    }
-    if ($BridgeCompareJson.matches.credited_difficulty -ne $true) {
-        throw "bridge compare credited_difficulty must match"
-    }
+    Assert-BridgeCompareReport $BridgeCompareJson "bridge compare"
 
     Write-Host "bridge.compare.report=$BridgeCompareReport"
     Write-Host "AGENT BRIDGE COMPARE VERIFIED"
+
+    if (!(Test-Path $PoolLedgerFileReport)) {
+        throw "missing pool core file artifact: $PoolLedgerFileReport"
+    }
+
+    Invoke-Checked "file compare report export" {
+        node $BridgeCompareScript --projection $ProjectionReport --pool $PoolLedgerFileReport --out $BridgeFileCompareReport
+    }
+
+    if (!(Test-Path $BridgeFileCompareReport)) {
+        throw "missing file compare artifact: $BridgeFileCompareReport"
+    }
+
+    $BridgeFileCompareJson = Get-Content $BridgeFileCompareReport -Raw | ConvertFrom-Json
+    Assert-BridgeCompareReport $BridgeFileCompareJson "file compare"
+
+    Write-Host "bridge.file.compare.report=$BridgeFileCompareReport"
+    Write-Host "AGENT FILE COMPARE VERIFIED"
 
     Invoke-Checked "bridge file report export" {
         node $BridgeFileScript --in $BridgeFileFixture --out $BridgeFileReport
@@ -371,6 +453,14 @@ try {
         throw "bridge_compare index entry must remain optional in this phase"
     }
 
+    $BridgeFileCompareEntry = $IndexJson.reports | Where-Object { $_.name -eq "bridge_file_compare" -and $_.exists -and $_.status -eq "present" }
+    if (!$BridgeFileCompareEntry) {
+        throw "report index missing bridge_file_compare artifact entry"
+    }
+    if ($BridgeFileCompareEntry.required -ne $false) {
+        throw "bridge_file_compare index entry must remain optional in this phase"
+    }
+
     $BridgeFileEntry = $IndexJson.reports | Where-Object { $_.name -eq "bridge_file" -and $_.exists -and $_.status -eq "present" }
     if (!$BridgeFileEntry) {
         throw "report index missing bridge_file artifact entry"
@@ -380,44 +470,13 @@ try {
     }
 
     $PoolCoreEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" }
-    if (!$PoolCoreEntry) {
-        throw "report index missing pool_core_ledger artifact entry"
-    }
-    if ($PoolCoreEntry.replay_schema -ne 1) {
-        throw "pool_core_ledger index entry must include replay_schema 1"
-    }
-    if ($PoolCoreEntry.replay_status -ne "ok") {
-        throw "pool_core_ledger index entry must include replay_status ok"
-    }
-    if ($PoolCoreEntry.replay_total_events -ne 0) {
-        throw "pool_core_ledger default replay should contain zero events"
-    }
+    Assert-PoolCoreReplayEntry $PoolCoreEntry "pool_core_ledger" 0 0 0 0 0
 
     $PoolCoreFixtureEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_fixture_ledger" -and $_.exists -and $_.status -eq "present" }
-    if (!$PoolCoreFixtureEntry) {
-        throw "report index missing pool_core_fixture_ledger artifact entry"
-    }
-    if ($PoolCoreFixtureEntry.replay_schema -ne 1) {
-        throw "pool_core_fixture_ledger index entry must include replay_schema 1"
-    }
-    if ($PoolCoreFixtureEntry.replay_status -ne "ok") {
-        throw "pool_core_fixture_ledger index entry must include replay_status ok"
-    }
-    if ($PoolCoreFixtureEntry.replay_total_events -ne 2) {
-        throw "pool_core_fixture_ledger replay should contain two events"
-    }
-    if ($PoolCoreFixtureEntry.replay_accepted_events -ne 1) {
-        throw "pool_core_fixture_ledger replay should contain one accepted event"
-    }
-    if ($PoolCoreFixtureEntry.replay_rejected_events -ne 1) {
-        throw "pool_core_fixture_ledger replay should contain one rejected event"
-    }
-    if ($PoolCoreFixtureEntry.replay_credited_difficulty -ne 10) {
-        throw "pool_core_fixture_ledger replay should credit difficulty 10"
-    }
-    if ($PoolCoreFixtureEntry.replay_session_count -ne 2) {
-        throw "pool_core_fixture_ledger replay should contain two session rows"
-    }
+    Assert-PoolCoreReplayEntry $PoolCoreFixtureEntry "pool_core_fixture_ledger" 2 1 1 10 2
+
+    $PoolCoreFileEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_file_ledger" -and $_.exists -and $_.status -eq "present" }
+    Assert-PoolCoreReplayEntry $PoolCoreFileEntry "pool_core_file_ledger" 2 1 1 10 2
 
     Write-Host "index.report=$IndexReport"
     Write-Host "AGENT REPORT INDEX VERIFIED"
