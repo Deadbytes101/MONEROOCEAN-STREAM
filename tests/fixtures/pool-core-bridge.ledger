@@ -1,0 +1,8 @@
+# kind,wallet_or_session,worker_or_job,difficulty_or_nonce,optional_difficulty
+session,wallet-one,worker-a,10
+session,wallet-two,worker-b,10
+job,1000,10
+assign,1,1
+assign,2,1
+submit,2,1,7,10
+submit,1,1,8,1
