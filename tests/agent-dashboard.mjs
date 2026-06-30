@@ -43,22 +43,53 @@ const DECISION = {
   ledger_last_invalid_reason: "<none>"
 };
 
+const INDEX = {
+  index_schema: 1,
+  index_scope: "read_only",
+  index_ts_unix: NOW,
+  index_status: "ok",
+  report_count: 2,
+  missing_required_count: 0,
+  reports: [
+    {
+      name: "telemetry_json",
+      kind: "json",
+      path: "reports\\dbyte-agent-telemetry.json",
+      required: true,
+      exists: true,
+      status: "present",
+      sha256: "a".repeat(64),
+      size_bytes: 412
+    },
+    {
+      name: "decision",
+      kind: "json",
+      path: "reports\\dbyte-agent-decision.json",
+      required: true,
+      exists: true,
+      status: "present",
+      sha256: "b".repeat(64),
+      size_bytes: 653
+    }
+  ]
+};
+
 test.describe("agent dashboard artifacts", { concurrency: false }, () => {
   test("agent route is public and stable", () => {
     assert.deepEqual(parseRoute("#/agent"), { n: "agent", p: "#/agent", q: {} });
   });
 
-  test("agent summary renders telemetry, decision JSON, and health rollup", async () => {
-    await withFetchFixtures({
-      "reports/dbyte-agent-telemetry.json": TELEMETRY,
-      "reports/dbyte-agent-decision.json": DECISION
-    }, async () => {
+  test("agent summary renders telemetry, decision JSON, index JSON, and health rollup", async () => {
+    await withFetchFixtures(agentFixtures(), async () => {
       const html = await agentSummaryPanel();
 
       assert.match(html, /DBYTE Agent Health/);
       assert.match(html, /local_artifacts_fresh/);
       assert.match(html, /unit-rig/);
       assert.match(html, /DBYTE Decision/);
+      assert.match(html, /DBYTE Report Index/);
+      assert.match(html, /telemetry_json/);
+      assert.match(html, /present/);
       assert.match(html, /read_only/);
       assert.match(html, /ledger_clean/);
       assert.match(html, /observe/);
@@ -66,15 +97,16 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /Freshness/);
       assert.match(html, /fresh/);
       assert.match(html, /reports\/dbyte-agent-decision\.json/);
+      assert.match(html, /reports\/dbyte-agent-index\.json/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
 
   test("agent health rollup marks stale telemetry and decision artifacts as attention", async () => {
-    await withFetchFixtures({
-      "reports/dbyte-agent-telemetry.json": { ...TELEMETRY, telemetry_ts_unix: STALE_TS },
-      "reports/dbyte-agent-decision.json": { ...DECISION, decision_ts_unix: STALE_TS }
-    }, async () => {
+    await withFetchFixtures(agentFixtures({
+      telemetry: { ...TELEMETRY, telemetry_ts_unix: STALE_TS },
+      decision: { ...DECISION, decision_ts_unix: STALE_TS }
+    }), async () => {
       const html = await agentSummaryPanel();
 
       assert.match(html, /DBYTE Agent Health/);
@@ -87,10 +119,9 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
   });
 
   test("agent health rollup marks blocked decisions as blocked", async () => {
-    await withFetchFixtures({
-      "reports/dbyte-agent-telemetry.json": TELEMETRY,
-      "reports/dbyte-agent-decision.json": { ...DECISION, decision_status: "blocked", decision_reason: "file_mismatch", decision_next: "verify_file" }
-    }, async () => {
+    await withFetchFixtures(agentFixtures({
+      decision: { ...DECISION, decision_status: "blocked", decision_reason: "file_mismatch", decision_next: "verify_file" }
+    }), async () => {
       const html = await agentSummaryPanel();
 
       assert.match(html, /DBYTE Agent Health/);
@@ -101,9 +132,25 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     });
   });
 
+  test("agent health rollup marks missing report index as attention", async () => {
+    await withFetchFixtures({
+      "reports/dbyte-agent-telemetry.json": TELEMETRY,
+      "reports/dbyte-agent-decision.json": DECISION
+    }, async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /missing_index/);
+      assert.match(html, /DBYTE Report Index/);
+      assert.match(html, /report-agent-index\.ps1/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
   test("agent summary shows a decision artifact command when decision JSON is missing", async () => {
     await withFetchFixtures({
-      "reports/dbyte-agent-telemetry.json": TELEMETRY
+      "reports/dbyte-agent-telemetry.json": TELEMETRY,
+      "reports/dbyte-agent-index.json": INDEX
     }, async () => {
       const html = await agentSummaryPanel();
 
@@ -116,6 +163,14 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     });
   });
 });
+
+function agentFixtures(overrides = {}) {
+  return {
+    "reports/dbyte-agent-telemetry.json": overrides.telemetry || TELEMETRY,
+    "reports/dbyte-agent-decision.json": overrides.decision || DECISION,
+    "reports/dbyte-agent-index.json": overrides.index || INDEX
+  };
+}
 
 async function withFetchFixtures(fixtures, callback) {
   const originalFetch = globalThis.fetch;
