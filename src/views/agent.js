@@ -3,23 +3,24 @@ import { escapeHtml, kpi } from "./common.js";
 
 const TELEMETRY_JSON_PATH = "reports/dbyte-agent-telemetry.json";
 const DECISION_JSON_PATH = "reports/dbyte-agent-decision.json";
+const INDEX_JSON_PATH = "reports/dbyte-agent-index.json";
 const TELEMETRY_STALE_SECONDS = 300;
 const DECISION_STALE_SECONDS = 300;
 
 export async function agentView() {
-  const [telemetry, decision] = await loadAgentArtifacts();
-  if (!telemetry && !decision) return unavailableView();
-  return agentPanels(telemetry, decision, "DBYTE Agent", "Local runtime telemetry from the DBYTE agent JSON artifact.");
+  const [telemetry, decision, index] = await loadAgentArtifacts();
+  if (!telemetry && !decision && !index) return unavailableView();
+  return agentPanels(telemetry, decision, index, "DBYTE Agent", "Local runtime telemetry from the DBYTE agent JSON artifact.");
 }
 
 export async function agentSummaryPanel() {
-  const [telemetry, decision] = await loadAgentArtifacts();
-  if (!telemetry && !decision) return unavailableView("DBYTE Agent", "Local agent JSON artifacts are not available yet.");
-  return agentPanels(telemetry, decision, "DBYTE Agent", "Dashboard-facing local telemetry and decision JSON.");
+  const [telemetry, decision, index] = await loadAgentArtifacts();
+  if (!telemetry && !decision && !index) return unavailableView("DBYTE Agent", "Local agent JSON artifacts are not available yet.");
+  return agentPanels(telemetry, decision, index, "DBYTE Agent", "Dashboard-facing local telemetry and decision JSON.");
 }
 
 async function loadAgentArtifacts() {
-  return Promise.all([loadJson(TELEMETRY_JSON_PATH), loadJson(DECISION_JSON_PATH)]);
+  return Promise.all([loadJson(TELEMETRY_JSON_PATH), loadJson(DECISION_JSON_PATH), loadJson(INDEX_JSON_PATH)]);
 }
 
 async function loadJson(path) {
@@ -32,24 +33,26 @@ async function loadJson(path) {
   }
 }
 
-function agentPanels(telemetry, decision, title, subtitle) {
+function agentPanels(telemetry, decision, index, title, subtitle) {
   return [
-    healthPanel(telemetry, decision),
+    healthPanel(telemetry, decision, index),
     telemetry ? telemetryPanel(telemetry, title, subtitle) : missingTelemetryPanel(title),
-    decision ? decisionPanel(decision) : missingDecisionPanel()
+    decision ? decisionPanel(decision) : missingDecisionPanel(),
+    index ? indexPanel(index) : missingIndexPanel()
   ].join("");
 }
 
-function healthPanel(telemetry, decision) {
-  const health = agentHealth(telemetry, decision);
+function healthPanel(telemetry, decision, index) {
+  const health = agentHealth(telemetry, decision, index);
   const telemetryFreshness = telemetry ? artifactFreshness(Number(telemetry.telemetry_ts_unix) || 0, TELEMETRY_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
   const decisionFreshness = decision ? artifactFreshness(Number(decision.decision_ts_unix) || 0, DECISION_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
+  const indexStatus = index ? String(index.index_status || "unknown") : "missing_artifact";
 
   return `<section class=panel>
     <div class=panel-header>
       <div>
         <h2>DBYTE Agent Health</h2>
-        <p class=muted>Single display-only operator state from local telemetry, decision, and freshness artifacts.</p>
+        <p class=muted>Single display-only operator state from local telemetry, decision, index, and freshness artifacts.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
@@ -58,14 +61,18 @@ function healthPanel(telemetry, decision) {
       ${kpi("Next", health.next, "Suggested operator action label.")}
       ${kpi("Telemetry", freshnessValue(telemetryFreshness), "Telemetry artifact freshness.")}
       ${kpi("Decision", freshnessValue(decisionFreshness), "Decision artifact freshness.")}
-      ${kpi("Mode", "display_only", "This panel renders local report state only.")}
+      ${kpi("Index", { html: `<span class="${reportStatusClass(indexStatus)}">${escapeHtml(indexStatus)}</span>` }, "Report index status.")}
     </div>
   </section>`;
 }
 
-function agentHealth(telemetry, decision) {
+function agentHealth(telemetry, decision, index) {
   if (!telemetry) return { status: "attention", reason: "missing_telemetry", next: "generate_telemetry" };
   if (!decision) return { status: "attention", reason: "missing_decision", next: "generate_decision" };
+  if (!index) return { status: "attention", reason: "missing_index", next: "generate_index" };
+
+  const indexStatus = String(index.index_status || "unknown");
+  if (indexStatus !== "ok") return { status: "attention", reason: `index_${indexStatus}`, next: "inspect_index" };
 
   const telemetryFreshness = artifactFreshness(Number(telemetry.telemetry_ts_unix) || 0, TELEMETRY_STALE_SECONDS);
   if (telemetryFreshness.label !== "fresh") return { status: "attention", reason: `telemetry_${telemetryFreshness.label}`, next: "refresh_telemetry" };
@@ -165,6 +172,48 @@ function decisionPanel(decision) {
   </section>`;
 }
 
+function indexPanel(index) {
+  const status = String(index.index_status || "unknown");
+  const scope = String(index.index_scope || "unknown");
+  const generatedAt = Number(index.index_ts_unix) || 0;
+  const reportCount = Number(index.report_count) || 0;
+  const missingRequiredCount = Number(index.missing_required_count) || 0;
+  const reports = Array.isArray(index.reports) ? index.reports : [];
+
+  return `<section class=panel>
+    <div class=panel-header>
+      <div>
+        <h2>DBYTE Report Index</h2>
+        <p class=muted>Display-only inventory of required local agent report files.</p>
+      </div>
+    </div>
+    <div class="card grid kpi-grid">
+      ${kpi("Index", { html: `<span class="${reportStatusClass(status)}">${escapeHtml(status)}</span>` }, "Overall report index status.")}
+      ${kpi("Scope", scope, "Report index scope.")}
+      ${kpi("Reports", formatNumber(reportCount), "Report files tracked by the index.")}
+      ${kpi("Missing", formatNumber(missingRequiredCount), "Required reports missing from disk.")}
+      ${kpi("Generated", formatAge(generatedAt), "How old the local index artifact is.")}
+      ${kpi("JSON", INDEX_JSON_PATH, "Local report index JSON path.")}
+    </div>
+    <div class="card table-wrap">
+      <table aria-label="DBYTE agent report index details">
+        <thead><tr><th>Name</th><th>Status</th><th>Size</th><th>SHA256</th></tr></thead>
+        <tbody>${reports.map(reportRow).join("")}</tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+function reportRow(report) {
+  const status = String(report.status || "unknown");
+  return `<tr>
+    <th>${escapeHtml(report.name || "--")}</th>
+    <td><span class="${reportStatusClass(status)}">${escapeHtml(status)}</span></td>
+    <td>${escapeHtml(formatNumber(Number(report.size_bytes) || 0))}</td>
+    <td><code>${escapeHtml(report.sha256 || "--")}</code></td>
+  </tr>`;
+}
+
 function missingTelemetryPanel(title = "DBYTE Agent") {
   return `<section class=panel>
     <div class=panel-header>
@@ -193,6 +242,20 @@ function missingDecisionPanel() {
   </section>`;
 }
 
+function missingIndexPanel() {
+  return `<section class=panel>
+    <div class=panel-header>
+      <div>
+        <h2>DBYTE Report Index</h2>
+        <p class=muted>Local report index JSON is not available yet.</p>
+      </div>
+    </div>
+    <div class=card>
+      <p>Run <code>.\\scripts\\report-agent-index.ps1</code> to write <code>${escapeHtml(INDEX_JSON_PATH)}</code>.</p>
+    </div>
+  </section>`;
+}
+
 function unavailableView(title = "DBYTE Agent", subtitle = "Local telemetry JSON is not available yet.") {
   return `<section class=panel>
     <div class=panel-header>
@@ -202,7 +265,7 @@ function unavailableView(title = "DBYTE Agent", subtitle = "Local telemetry JSON
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\\scripts\\report-agent-telemetry.ps1</code> and <code>.\\scripts\\report-agent-decision.ps1</code> to write local dashboard artifacts.</p>
+      <p>Run <code>.\\scripts\\report-agent-telemetry.ps1</code>, <code>.\\scripts\\report-agent-decision.ps1</code>, and <code>.\\scripts\\report-agent-index.ps1</code> to write local dashboard artifacts.</p>
     </div>
   </section>`;
 }
@@ -226,6 +289,12 @@ function nowUnix() {
 function decisionStatusClass(status) {
   if (status === "ok") return "green";
   if (status === "blocked") return "red";
+  return "muted";
+}
+
+function reportStatusClass(status) {
+  if (status === "ok" || status === "present") return "green";
+  if (status === "missing" || status === "attention") return "red";
   return "muted";
 }
 

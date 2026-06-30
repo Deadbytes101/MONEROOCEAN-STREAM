@@ -64,6 +64,40 @@ createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/reports/dbyte-agent-index.json") {
+    writeJson(response, {
+      index_schema: 1,
+      index_scope: "read_only",
+      index_ts_unix: Math.floor(Date.now() / 1000),
+      index_status: "ok",
+      report_count: 2,
+      missing_required_count: 0,
+      reports: [
+        {
+          name: "telemetry_json",
+          kind: "json",
+          path: "reports\\dbyte-agent-telemetry.json",
+          required: true,
+          exists: true,
+          status: "present",
+          sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          size_bytes: 412
+        },
+        {
+          name: "decision",
+          kind: "json",
+          path: "reports\\dbyte-agent-decision.json",
+          required: true,
+          exists: true,
+          status: "present",
+          sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          size_bytes: 653
+        }
+      ]
+    });
+    return;
+  }
+
   if (url.pathname === "/sw.js") {
     writeText(response, "text/javascript; charset=utf-8", "self.addEventListener('install', () => self.skipWaiting());\n");
     return;
