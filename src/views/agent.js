@@ -197,7 +197,7 @@ function indexPanel(index) {
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE agent report index details">
-        <thead><tr><th>Name</th><th>Status</th><th>Size</th><th>SHA256</th></tr></thead>
+        <thead><tr><th>Name</th><th>Status</th><th>Path</th><th>Size</th><th>SHA256</th></tr></thead>
         <tbody>${reports.map(reportRow).join("")}</tbody>
       </table>
     </div>
@@ -209,6 +209,7 @@ function reportRow(report) {
   return `<tr>
     <th>${escapeHtml(report.name || "--")}</th>
     <td><span class="${reportStatusClass(status)}">${escapeHtml(status)}</span></td>
+    <td><code>${escapeHtml(report.path || "--")}</code></td>
     <td>${escapeHtml(formatNumber(Number(report.size_bytes) || 0))}</td>
     <td><code>${escapeHtml(report.sha256 || "--")}</code></td>
   </tr>`;
