@@ -1,0 +1,23 @@
+{
+  "now_ts_unix": 100,
+  "jobs": [
+    {
+      "job_id": "synthetic-job-1",
+      "source": "fake",
+      "seed_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target": "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "difficulty": 10,
+      "created_ts_unix": 90,
+      "expires_ts_unix": 130
+    },
+    {
+      "job_id": "synthetic-job-2",
+      "source": "fake",
+      "seed_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target": "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "difficulty": 20,
+      "created_ts_unix": 95,
+      "expires_ts_unix": 140
+    }
+  ]
+}
