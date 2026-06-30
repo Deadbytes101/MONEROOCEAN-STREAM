@@ -229,7 +229,7 @@ function missingTelemetryPanel(title = "DBYTE Agent") {
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\scripts\report-agent-telemetry.ps1</code> to write <code>${escapeHtml(TELEMETRY_JSON_PATH)}</code>.</p>
+      <p>Run <code>.&#92;scripts&#92;report-agent-telemetry.ps1</code> to write <code>${escapeHtml(TELEMETRY_JSON_PATH)}</code>.</p>
     </div>
   </section>`;
 }
@@ -243,7 +243,7 @@ function missingDecisionPanel() {
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\scripts\report-agent-decision.ps1</code> to write <code>${escapeHtml(DECISION_JSON_PATH)}</code>.</p>
+      <p>Run <code>.&#92;scripts&#92;report-agent-decision.ps1</code> to write <code>${escapeHtml(DECISION_JSON_PATH)}</code>.</p>
     </div>
   </section>`;
 }
@@ -257,7 +257,7 @@ function missingIndexPanel() {
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\scripts\report-agent-index.ps1</code> to write <code>${escapeHtml(INDEX_JSON_PATH)}</code>.</p>
+      <p>Run <code>.&#92;scripts&#92;report-agent-index.ps1</code> to write <code>${escapeHtml(INDEX_JSON_PATH)}</code>.</p>
     </div>
   </section>`;
 }
@@ -271,7 +271,7 @@ function unavailableView(title = "DBYTE Agent", subtitle = "Local telemetry JSON
       </div>
     </div>
     <div class=card>
-      <p>Run <code>.\scripts\report-agent-telemetry.ps1</code>, <code>.\scripts\report-agent-decision.ps1</code>, and <code>.\scripts\report-agent-index.ps1</code> to write local dashboard artifacts.</p>
+      <p>Run <code>.&#92;scripts&#92;report-agent-telemetry.ps1</code>, <code>.&#92;scripts&#92;report-agent-decision.ps1</code>, and <code>.&#92;scripts&#92;report-agent-index.ps1</code> to write local dashboard artifacts.</p>
     </div>
   </section>`;
 }
