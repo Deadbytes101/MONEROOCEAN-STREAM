@@ -1,0 +1,7 @@
+{"schema":1,"message":"connect","session_id":"synthetic-session-1","worker":"synthetic-worker-a","ts_unix":1}
+{"schema":1,"message":"authorize","session_id":"synthetic-session-1","account_id":"synthetic-account-a","worker":"synthetic-worker-a","ts_unix":2}
+{"schema":1,"message":"subscribe","session_id":"synthetic-session-1","worker":"synthetic-worker-a","ts_unix":3}
+{"schema":1,"message":"job","session_id":"synthetic-session-1","job_id":"synthetic-job-1","difficulty":10,"ts_unix":4}
+{"schema":1,"message":"submit","session_id":"synthetic-session-1","job_id":"synthetic-job-1","nonce":"00000001","share_difficulty":10,"ts_unix":5}
+{"schema":1,"message":"accepted","session_id":"synthetic-session-1","job_id":"synthetic-job-1","credited_difficulty":10,"ts_unix":6}
+{"schema":1,"message":"disconnect","session_id":"synthetic-session-1","reason":"worker_closed","ts_unix":7}
