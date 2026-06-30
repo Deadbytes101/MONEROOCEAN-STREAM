@@ -24,7 +24,8 @@ try {
         @{ name = "release_seal"; kind = "text"; path = "reports\dbyte-agent-release.seal.txt"; required = $true },
         @{ name = "checker"; kind = "text"; path = "reports\dbyte-agent-check.txt"; required = $true },
         @{ name = "verify_ledger"; kind = "json"; path = "reports\verify-agent.json"; required = $true },
-        @{ name = "pool_core_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-report.json"; required = $true }
+        @{ name = "pool_core_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-report.json"; required = $true },
+        @{ name = "pool_core_fixture_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-fixture-report.json"; required = $true }
     )
 
     $Items = foreach ($Report in $Reports) {
@@ -53,7 +54,7 @@ try {
             size_bytes = [int64]$SizeBytes
         }
 
-        if ([string]$Report.name -eq "pool_core_ledger" -and $Exists) {
+        if ([string]$Report.name -like "pool_core*_ledger" -and $Exists) {
             $PoolCoreJson = Get-Content $Path -Raw | ConvertFrom-Json
             $Sessions = @($PoolCoreJson.sessions)
             $Entry.replay_schema = [int]$PoolCoreJson.schema
