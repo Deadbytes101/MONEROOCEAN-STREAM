@@ -38,12 +38,12 @@ console.log(`bridge.compare.credited_difficulty=${matches.credited_difficulty}`)
 
 if (!ok) process.exitCode = 1;
 
-function counters(report) {
+function counters(sourceReport) {
   return {
-    total_events: report.total_events,
-    accepted_events: report.accepted_events,
-    rejected_events: report.rejected_events,
-    credited_difficulty: report.credited_difficulty
+    total_events: sourceReport.total_events,
+    accepted_events: sourceReport.accepted_events,
+    rejected_events: sourceReport.rejected_events,
+    credited_difficulty: sourceReport.credited_difficulty
   };
 }
 
