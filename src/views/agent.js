@@ -242,10 +242,13 @@ function poolCoreArtifactPanel(index) {
   const fileStatus = fileReport ? String(fileReport.status || "unknown") : "missing";
   const bridgeStatus = bridgeReport ? String(bridgeReport.status || "unknown") : "missing";
   const bridgeCompareResultStatus = bridgeReport ? String(bridgeReport.compare_status || "--") : "--";
+  const bridgeKpiStatus = bridgeReport ? String(bridgeReport.compare_status || bridgeStatus) : "missing";
   const bridgeFileCompareStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.status || "unknown") : "missing";
   const bridgeFileCompareResultStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.compare_status || "--") : "--";
+  const bridgeFileCompareKpiStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.compare_status || bridgeFileCompareStatus) : "missing";
   const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.status || "unknown") : "missing";
   const bridgeFileResultStatus = bridgeFileArtifact ? String(bridgeFileArtifact.bridge_status || "--") : "--";
+  const bridgeFileKpiStatus = bridgeFileArtifact ? String(bridgeFileArtifact.bridge_status || bridgeFileStatus) : "missing";
   const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
   const fixturePath = fixtureReport ? String(fixtureReport.path || POOL_CORE_FIXTURE_LEDGER_REPORT_PATH) : POOL_CORE_FIXTURE_LEDGER_REPORT_PATH;
   const filePath = fileReport ? String(fileReport.path || POOL_CORE_FILE_LEDGER_REPORT_PATH) : POOL_CORE_FILE_LEDGER_REPORT_PATH;
@@ -278,9 +281,9 @@ function poolCoreArtifactPanel(index) {
       ${kpi("Default", { html: `<span class="${reportStatusClass(replayStatus)}">${escapeHtml(replayStatus)}</span>` }, "Zero-init pool-core replay report status embedded in the index entry.")}
       ${kpi("Fixture", { html: `<span class="${reportStatusClass(fixtureReplayStatus)}">${escapeHtml(fixtureReplayStatus)}</span>` }, "Deterministic non-zero pool-core fixture replay report status embedded in the index entry.")}
       ${kpi("File", { html: `<span class="${reportStatusClass(fileReplayStatus)}">${escapeHtml(fileReplayStatus)}</span>` }, "Deterministic pool-core file replay report status embedded in the index entry.")}
-      ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeStatus)}">${escapeHtml(bridgeStatus)}</span>` }, "Bridge comparison artifact inventory status embedded in the index entry.")}
-      ${kpi("Bridge file compare", { html: `<span class="${reportStatusClass(bridgeFileCompareStatus)}">${escapeHtml(bridgeFileCompareStatus)}</span>` }, "Bridge file comparison artifact inventory status embedded in the index entry.")}
-      ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileStatus)}">${escapeHtml(bridgeFileStatus)}</span>` }, "Bridge file artifact inventory status embedded in the index entry.")}
+      ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeKpiStatus)}">${escapeHtml(bridgeKpiStatus)}</span>` }, "Bridge comparison result status embedded in the index entry.")}
+      ${kpi("Bridge file compare", { html: `<span class="${reportStatusClass(bridgeFileCompareKpiStatus)}">${escapeHtml(bridgeFileCompareKpiStatus)}</span>` }, "Bridge file comparison result status embedded in the index entry.")}
+      ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileKpiStatus)}">${escapeHtml(bridgeFileKpiStatus)}</span>` }, "Bridge file parse result status embedded in the index entry.")}
       ${kpi("Default events", formatNumber(totalEvents), "Zero-init replay event count embedded in the index entry.")}
       ${kpi("Fixture events", formatNumber(fixtureTotalEvents), "Fixture replay event count embedded in the index entry.")}
       ${kpi("File events", formatNumber(fileTotalEvents), "File replay event count embedded in the index entry.")}
