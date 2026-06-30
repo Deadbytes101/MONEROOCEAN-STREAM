@@ -90,6 +90,7 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /DBYTE Report Index/);
       assert.match(html, /Path/);
       assert.match(html, /Required/);
+      assert.match(html, /Index age/);
       assert.match(html, /<td>yes<\/td>/);
       assert.match(html, /telemetry_json/);
       assert.match(html, /reports\/dbyte-agent-telemetry\.json/);
@@ -102,6 +103,21 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /fresh/);
       assert.match(html, /reports\/dbyte-agent-decision\.json/);
       assert.match(html, /reports\/dbyte-agent-index\.json/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("agent health rollup marks stale report index as attention", async () => {
+    await withFetchFixtures(agentFixtures({
+      index: { ...INDEX, index_ts_unix: STALE_TS }
+    }), async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /attention/);
+      assert.match(html, /index_stale_artifact/);
+      assert.match(html, /refresh_index/);
+      assert.match(html, /stale_artifact/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
