@@ -8,11 +8,13 @@ const POOL_CORE_LEDGER_REPORT_NAME = "pool_core_ledger";
 const POOL_CORE_FIXTURE_LEDGER_REPORT_NAME = "pool_core_fixture_ledger";
 const POOL_CORE_FILE_LEDGER_REPORT_NAME = "pool_core_file_ledger";
 const BRIDGE_COMPARE_REPORT_NAME = "bridge_compare";
+const BRIDGE_FILE_COMPARE_REPORT_NAME = "bridge_file_compare";
 const BRIDGE_FILE_REPORT_NAME = "bridge_file";
 const POOL_CORE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-report.json";
 const POOL_CORE_FIXTURE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-fixture-report.json";
 const POOL_CORE_FILE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-file-report.json";
 const BRIDGE_COMPARE_REPORT_PATH = "reports/dbyte-bridge-compare.json";
+const BRIDGE_FILE_COMPARE_REPORT_PATH = "reports/dbyte-bridge-file-compare.json";
 const BRIDGE_FILE_REPORT_PATH = "reports/dbyte-bridge-file.json";
 const TELEMETRY_STALE_SECONDS = 300;
 const DECISION_STALE_SECONDS = 300;
@@ -65,11 +67,13 @@ function healthPanel(telemetry, decision, index) {
   const poolCoreFixtureReport = poolCoreFixtureLedgerReport(reports);
   const poolCoreFileReport = poolCoreFileLedgerReport(reports);
   const bridgeReport = bridgeCompareReport(reports);
+  const bridgeFileCompareArtifact = bridgeFileCompareReport(reports);
   const bridgeFileArtifact = bridgeFileReport(reports);
   const poolCoreStatus = poolCoreReplayStatus(poolCoreReport);
   const poolCoreFixtureStatus = poolCoreReplayStatus(poolCoreFixtureReport);
   const poolCoreFileStatus = poolCoreReplayStatus(poolCoreFileReport);
   const bridgeStatus = bridgeReport ? String(bridgeReport.status || "unknown") : "missing";
+  const bridgeFileCompareStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.status || "unknown") : "missing";
   const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.status || "unknown") : "missing";
 
   return `<section class=panel>
@@ -91,6 +95,7 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Pool fixture", { html: `<span class="${reportStatusClass(poolCoreFixtureStatus)}">${escapeHtml(poolCoreFixtureStatus)}</span>` }, "Pool-core deterministic fixture replay report status from the local report index.")}
       ${kpi("Pool file", { html: `<span class="${reportStatusClass(poolCoreFileStatus)}">${escapeHtml(poolCoreFileStatus)}</span>` }, "Pool-core deterministic file replay report status from the local report index.")}
       ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeStatus)}">${escapeHtml(bridgeStatus)}</span>` }, "Bridge comparison report inventory status from the local report index.")}
+      ${kpi("Bridge file compare", { html: `<span class="${reportStatusClass(bridgeFileCompareStatus)}">${escapeHtml(bridgeFileCompareStatus)}</span>` }, "Bridge file comparison report inventory status from the local report index.")}
       ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileStatus)}">${escapeHtml(bridgeFileStatus)}</span>` }, "Bridge file report inventory status from the local report index.")}
     </div>
   </section>`;
@@ -230,16 +235,19 @@ function poolCoreArtifactPanel(index) {
   const fixtureReport = poolCoreFixtureLedgerReport(reports);
   const fileReport = poolCoreFileLedgerReport(reports);
   const bridgeReport = bridgeCompareReport(reports);
+  const bridgeFileCompareArtifact = bridgeFileCompareReport(reports);
   const bridgeFileArtifact = bridgeFileReport(reports);
   const status = report ? String(report.status || "unknown") : "missing";
   const fixtureStatus = fixtureReport ? String(fixtureReport.status || "unknown") : "missing";
   const fileStatus = fileReport ? String(fileReport.status || "unknown") : "missing";
   const bridgeStatus = bridgeReport ? String(bridgeReport.status || "unknown") : "missing";
+  const bridgeFileCompareStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.status || "unknown") : "missing";
   const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.status || "unknown") : "missing";
   const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
   const fixturePath = fixtureReport ? String(fixtureReport.path || POOL_CORE_FIXTURE_LEDGER_REPORT_PATH) : POOL_CORE_FIXTURE_LEDGER_REPORT_PATH;
   const filePath = fileReport ? String(fileReport.path || POOL_CORE_FILE_LEDGER_REPORT_PATH) : POOL_CORE_FILE_LEDGER_REPORT_PATH;
   const bridgePath = bridgeReport ? String(bridgeReport.path || BRIDGE_COMPARE_REPORT_PATH) : BRIDGE_COMPARE_REPORT_PATH;
+  const bridgeFileComparePath = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.path || BRIDGE_FILE_COMPARE_REPORT_PATH) : BRIDGE_FILE_COMPARE_REPORT_PATH;
   const bridgeFilePath = bridgeFileArtifact ? String(bridgeFileArtifact.path || BRIDGE_FILE_REPORT_PATH) : BRIDGE_FILE_REPORT_PATH;
   const replayStatus = poolCoreReplayStatus(report);
   const fixtureReplayStatus = poolCoreReplayStatus(fixtureReport);
@@ -260,7 +268,7 @@ function poolCoreArtifactPanel(index) {
     <div class=panel-header>
       <div>
         <h2>DBYTE Pool Core Evidence</h2>
-        <p class=muted>Display-only pool-core zero-init, deterministic fixture replay, deterministic file replay, bridge comparison, and bridge file artifacts discovered through the local report index.</p>
+        <p class=muted>Display-only pool-core zero-init, deterministic fixture replay, deterministic file replay, bridge comparison, file-output comparison, and bridge file artifacts discovered through the local report index.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
@@ -268,6 +276,7 @@ function poolCoreArtifactPanel(index) {
       ${kpi("Fixture", { html: `<span class="${reportStatusClass(fixtureReplayStatus)}">${escapeHtml(fixtureReplayStatus)}</span>` }, "Deterministic non-zero pool-core fixture replay report status embedded in the index entry.")}
       ${kpi("File", { html: `<span class="${reportStatusClass(fileReplayStatus)}">${escapeHtml(fileReplayStatus)}</span>` }, "Deterministic pool-core file replay report status embedded in the index entry.")}
       ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeStatus)}">${escapeHtml(bridgeStatus)}</span>` }, "Bridge comparison artifact inventory status embedded in the index entry.")}
+      ${kpi("Bridge file compare", { html: `<span class="${reportStatusClass(bridgeFileCompareStatus)}">${escapeHtml(bridgeFileCompareStatus)}</span>` }, "Bridge file comparison artifact inventory status embedded in the index entry.")}
       ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileStatus)}">${escapeHtml(bridgeFileStatus)}</span>` }, "Bridge file artifact inventory status embedded in the index entry.")}
       ${kpi("Default events", formatNumber(totalEvents), "Zero-init replay event count embedded in the index entry.")}
       ${kpi("Fixture events", formatNumber(fixtureTotalEvents), "Fixture replay event count embedded in the index entry.")}
@@ -310,6 +319,9 @@ function poolCoreArtifactPanel(index) {
           ${detailRow("Bridge index name", bridgeReport ? bridgeReport.name : BRIDGE_COMPARE_REPORT_NAME)}
           ${detailRow("Bridge index status", bridgeStatus)}
           ${detailRow("Bridge path", bridgePath)}
+          ${detailRow("Bridge file compare index name", bridgeFileCompareArtifact ? bridgeFileCompareArtifact.name : BRIDGE_FILE_COMPARE_REPORT_NAME)}
+          ${detailRow("Bridge file compare index status", bridgeFileCompareStatus)}
+          ${detailRow("Bridge file compare path", bridgeFileComparePath)}
           ${detailRow("Bridge file index name", bridgeFileArtifact ? bridgeFileArtifact.name : BRIDGE_FILE_REPORT_NAME)}
           ${detailRow("Bridge file index status", bridgeFileStatus)}
           ${detailRow("Bridge file path", bridgeFilePath)}
@@ -381,6 +393,10 @@ function poolCoreFileLedgerReport(reports) {
 
 function bridgeCompareReport(reports) {
   return reports.find((report) => String(report.name || "") === BRIDGE_COMPARE_REPORT_NAME) || null;
+}
+
+function bridgeFileCompareReport(reports) {
+  return reports.find((report) => String(report.name || "") === BRIDGE_FILE_COMPARE_REPORT_NAME) || null;
 }
 
 function bridgeFileReport(reports) {

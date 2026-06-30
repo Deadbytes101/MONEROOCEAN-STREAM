@@ -46,7 +46,7 @@ const INDEX = {
   index_scope: "read_only",
   index_ts_unix: NOW,
   index_status: "ok",
-  report_count: 7,
+  report_count: 8,
   missing_required_count: 0,
   reports: [
     {
@@ -131,13 +131,23 @@ const INDEX = {
       size_bytes: 640
     },
     {
+      name: "bridge_file_compare",
+      kind: "json",
+      path: "reports/dbyte-bridge-file-compare.json",
+      required: false,
+      exists: true,
+      status: "present",
+      sha256: "g".repeat(64),
+      size_bytes: 640
+    },
+    {
       name: "bridge_file",
       kind: "json",
       path: "reports/dbyte-bridge-file.json",
       required: false,
       exists: true,
       status: "present",
-      sha256: "g".repeat(64),
+      sha256: "h".repeat(64),
       size_bytes: 520
     }
   ]
@@ -158,16 +168,22 @@ test("agent summary renders bridge evidence from the report index", async () => 
     assert.match(html, /pool_core_file_ledger/);
     assert.match(html, /reports\/dbyte-pool-ledger-file-report\.json/);
     assert.match(html, /Bridge compare/);
+    assert.match(html, /Bridge file compare/);
     assert.match(html, /Bridge file/);
     assert.match(html, /Bridge index name/);
     assert.match(html, /Bridge index status/);
     assert.match(html, /Bridge path/);
+    assert.match(html, /Bridge file compare index name/);
+    assert.match(html, /Bridge file compare index status/);
+    assert.match(html, /Bridge file compare path/);
     assert.match(html, /Bridge file index name/);
     assert.match(html, /Bridge file index status/);
     assert.match(html, /Bridge file path/);
     assert.match(html, /bridge_compare/);
+    assert.match(html, /bridge_file_compare/);
     assert.match(html, /bridge_file/);
     assert.match(html, /reports\/dbyte-bridge-compare\.json/);
+    assert.match(html, /reports\/dbyte-bridge-file-compare\.json/);
     assert.match(html, /reports\/dbyte-bridge-file\.json/);
     assert.match(html, /<td>no<\/td>/);
     assert.doesNotMatch(html, /undefined|NaN/);
