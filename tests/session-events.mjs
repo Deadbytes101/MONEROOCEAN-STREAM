@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -141,6 +141,67 @@ test.describe("session event parser", { concurrency: false }, () => {
       assert.equal(report.rejected_events, 1);
       assert.equal(report.credited_difficulty, 10);
       assert.equal(report.sessions.length, 1);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test("compares projection counters against pool core fixture output", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "dbyte-bridge-compare-"));
+    const summaryOutput = join(directory, "summary.json");
+    const projectionOutput = join(directory, "projection.json");
+    const poolOutput = join(directory, "pool.json");
+    const compareOutput = join(directory, "compare.json");
+
+    try {
+      await execFileAsync(execPath, [
+        "scripts/report-session-events.mjs",
+        "--in",
+        "tests/fixtures/session-events.clean.jsonl",
+        "--out",
+        summaryOutput
+      ]);
+      await execFileAsync(execPath, [
+        "scripts/report-replay-projection.mjs",
+        "--in",
+        summaryOutput,
+        "--out",
+        projectionOutput
+      ]);
+      const { stdout: poolStdout } = await execFileAsync("cargo", [
+        "run",
+        "--manifest-path",
+        "crates/dbyte-pool-core/Cargo.toml",
+        "--quiet",
+        "--bin",
+        "dbyte-pool-ledger-report",
+        "--",
+        "--fixture",
+        "two-session"
+      ]);
+      await writeFile(poolOutput, poolStdout, "utf8");
+      const { stdout } = await execFileAsync(execPath, [
+        "scripts/report-bridge-compare.mjs",
+        "--projection",
+        projectionOutput,
+        "--pool",
+        poolOutput,
+        "--out",
+        compareOutput
+      ]);
+      const report = JSON.parse(await readFile(compareOutput, "utf8"));
+
+      assert.match(stdout, /bridge\.compare\.status=ok/);
+      assert.equal(report.schema, 1);
+      assert.equal(report.status, "ok");
+      assert.deepEqual(report.matches, {
+        total_events: true,
+        accepted_events: true,
+        rejected_events: true,
+        credited_difficulty: true
+      });
+      assert.equal(report.projection.credited_difficulty, 10);
+      assert.equal(report.pool.credited_difficulty, 10);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
