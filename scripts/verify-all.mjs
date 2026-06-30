@@ -23,6 +23,7 @@ runStep("javascript and browser tests", execPath, [
 runStep("phase A gate", execPath, ["scripts/verify-phase-a.mjs"]);
 runStep("phase B gate", execPath, ["scripts/verify-phase-b.mjs"]);
 runStep("phase C gate", execPath, ["scripts/verify-phase-c.mjs"]);
+runStep("phase D gate", execPath, ["scripts/verify-phase-d.mjs"]);
 runPowerShellStep("agent gate", "scripts/verify-agent.ps1");
 runStep("static build", execPath, ["scripts/build-static.mjs"]);
 
