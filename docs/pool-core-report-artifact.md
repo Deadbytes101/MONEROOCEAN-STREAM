@@ -36,6 +36,23 @@ POOL LEDGER REPORT VERIFIED
 POOL CORE TEST GATE PASSED
 ```
 
+## Index surface
+
+The agent report index includes this artifact as `pool_core_ledger`.
+
+Expected index entry:
+
+```json
+{
+  "name": "pool_core_ledger",
+  "kind": "json",
+  "path": "reports\\dbyte-pool-ledger-report.json",
+  "required": true,
+  "exists": true,
+  "status": "present"
+}
+```
+
 ## Current default shape
 
 The default report is an empty, valid replay report:
