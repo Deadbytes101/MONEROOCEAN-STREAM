@@ -30,6 +30,7 @@ try {
         @{ name = "phase_c_job_source"; kind = "json"; path = "reports\dbyte-job-source.json"; required = $false },
         @{ name = "phase_d_share_intake"; kind = "json"; path = "reports\dbyte-share-intake.json"; required = $false },
         @{ name = "phase_e_difficulty_policy"; kind = "json"; path = "reports\dbyte-difficulty-policy.json"; required = $false },
+        @{ name = "phase_f_accounting_projection"; kind = "json"; path = "reports\dbyte-accounting-projection.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -152,6 +153,24 @@ try {
             $Entry.policy_minimum_assigned_difficulty = [int64]$PhaseEJson.summary.minimum_assigned_difficulty
             $Entry.policy_maximum_assigned_difficulty = [int64]$PhaseEJson.summary.maximum_assigned_difficulty
             $Entry.policy_reason_count = [int64]$PhaseEJson.summary.reason_count
+        }
+
+        if ([string]$Report.name -eq "phase_f_accounting_projection" -and $Exists) {
+            $PhaseFJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.accounting_schema = [int]$PhaseFJson.schema
+            $Entry.accounting_status = [string]$PhaseFJson.status
+            $Entry.accounting_input_valid = [bool]$PhaseFJson.input_valid
+            $Entry.accounting_registry_valid = [bool]$PhaseFJson.registry_valid
+            $Entry.accounting_intake_valid = [bool]$PhaseFJson.intake_valid
+            $Entry.accounting_valid = [bool]$PhaseFJson.accounting_valid
+            $Entry.accounting_total_credited_difficulty = [int64]$PhaseFJson.summary.total_credited_difficulty
+            $Entry.accounting_intake_credited_difficulty = [int64]$PhaseFJson.summary.intake_credited_difficulty
+            $Entry.accounting_worker_count = [int64]$PhaseFJson.summary.worker_count
+            $Entry.accounting_group_count = [int64]$PhaseFJson.summary.group_count
+            $Entry.accounting_rejected_shares = [int64]$PhaseFJson.summary.rejected_shares
+            $Entry.accounting_value_movement_count = [int64]$PhaseFJson.summary.value_movement_count
+            $Entry.accounting_credited_matches_intake = [bool]$PhaseFJson.checks.credited_matches_intake
+            $Entry.accounting_no_value_movement = [bool]$PhaseFJson.checks.no_value_movement
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
