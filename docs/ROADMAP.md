@@ -92,7 +92,7 @@ Goal: show truth, not hype.
 
 The advanced track is documented in [DBYTE-OCEAN Advanced Core Architecture](ADVANCED_CORE_ARCHITECTURE.md) and broken into mergeable steps in [DBYTE-OCEAN Implementation Sequence](IMPLEMENTATION_SEQUENCE.md).
 
-The order is:
+The original order was:
 
 ```text
 1. Evidence index expansion
@@ -104,6 +104,27 @@ The order is:
 7. Dashboard projection
 ```
 
-The next implementation target is Phase 1 only: add `local_agent_evidence` to the report index and dashboard health rollup tests.
+This track has now produced the evidence spine needed for the service-core pivot: replay reports, bridge compare reports, bridge file reports, report index enrichment, dashboard projection, and verify gates.
 
-Do not implement live route mutation until the runtime evidence, replay bridge, backend observations, and policy dry-run reports are all stable.
+## Service-core production track
+
+The service-core track is documented in [DBYTE-OCEAN Service Core Sequence](SERVICE_CORE_SEQUENCE.md).
+
+The order is:
+
+```text
+1. Protocol boundary
+2. Session registry
+3. Job source abstraction
+4. Share intake service
+5. Difficulty policy
+6. Accounting projection
+7. Payout planner
+8. Live service dry-run
+9. Controlled listener
+10. Production readiness gate
+```
+
+The next implementation target is Phase A only: add the protocol message model, sanitized synthetic fixtures, parser tests, and a protocol summary report.
+
+Do not add a live network listener, external bind, automatic payout execution, or live route mutation until the protocol, session, share intake, accounting, payout planning, service-runner, and production readiness reports are all stable.
