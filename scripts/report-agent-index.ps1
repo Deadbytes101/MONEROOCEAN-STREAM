@@ -73,6 +73,16 @@ try {
             $Entry.replay_session_count = [int64]$Sessions.Count
         }
 
+        if ([string]$Report.name -like "bridge*compare" -and $Exists) {
+            $CompareJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.compare_schema = [int]$CompareJson.schema
+            $Entry.compare_status = [string]$CompareJson.status
+            $Entry.compare_total_events = [bool]$CompareJson.matches.total_events
+            $Entry.compare_accepted_events = [bool]$CompareJson.matches.accepted_events
+            $Entry.compare_rejected_events = [bool]$CompareJson.matches.rejected_events
+            $Entry.compare_credited_difficulty = [bool]$CompareJson.matches.credited_difficulty
+        }
+
         $Entry
     }
 
