@@ -196,7 +196,12 @@ impl FakePoolHarness {
         Ok(session_id)
     }
 
-    pub fn create_job(&mut self, height: u64, required_difficulty: u64, seed_hash: Hash32) -> JobId {
+    pub fn create_job(
+        &mut self,
+        height: u64,
+        required_difficulty: u64,
+        seed_hash: Hash32,
+    ) -> JobId {
         let job_id = JobId(self.next_job_id);
         self.next_job_id += 1;
         let job = MiningJob {
