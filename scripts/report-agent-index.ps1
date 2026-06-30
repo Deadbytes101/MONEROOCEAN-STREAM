@@ -42,7 +42,7 @@ try {
             $Status = "present"
         }
 
-        [ordered]@{
+        $Entry = [ordered]@{
             name = [string]$Report.name
             kind = [string]$Report.kind
             path = $Path
@@ -52,6 +52,20 @@ try {
             sha256 = $Sha256
             size_bytes = [int64]$SizeBytes
         }
+
+        if ([string]$Report.name -eq "pool_core_ledger" -and $Exists) {
+            $PoolCoreJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Sessions = @($PoolCoreJson.sessions)
+            $Entry.replay_schema = [int]$PoolCoreJson.schema
+            $Entry.replay_status = [string]$PoolCoreJson.status
+            $Entry.replay_total_events = [int64]$PoolCoreJson.total_events
+            $Entry.replay_accepted_events = [int64]$PoolCoreJson.accepted_events
+            $Entry.replay_rejected_events = [int64]$PoolCoreJson.rejected_events
+            $Entry.replay_credited_difficulty = [int64]$PoolCoreJson.credited_difficulty
+            $Entry.replay_session_count = [int64]$Sessions.Count
+        }
+
+        $Entry
     }
 
     $MissingRequired = @($Items | Where-Object { $_.required -and -not $_.exists })
