@@ -67,6 +67,41 @@ try {
         }
     }
 
+    function Assert-BridgeCompareIndexEntry {
+        param(
+            [Parameter(Mandatory = $true)]
+            [object]$Entry,
+
+            [Parameter(Mandatory = $true)]
+            [string]$Name
+        )
+
+        if (!$Entry) {
+            throw "report index missing $Name artifact entry"
+        }
+        if ($Entry.required -ne $false) {
+            throw "$Name index entry must remain optional in this phase"
+        }
+        if ($Entry.compare_schema -ne 1) {
+            throw "$Name index entry must include compare_schema 1"
+        }
+        if ($Entry.compare_status -ne "ok") {
+            throw "$Name index entry must include compare_status ok"
+        }
+        if ($Entry.compare_total_events -ne $true) {
+            throw "$Name index entry must include total_events match"
+        }
+        if ($Entry.compare_accepted_events -ne $true) {
+            throw "$Name index entry must include accepted_events match"
+        }
+        if ($Entry.compare_rejected_events -ne $true) {
+            throw "$Name index entry must include rejected_events match"
+        }
+        if ($Entry.compare_credited_difficulty -ne $true) {
+            throw "$Name index entry must include credited_difficulty match"
+        }
+    }
+
     function Assert-PoolCoreReplayEntry {
         param(
             [Parameter(Mandatory = $true)]
@@ -446,20 +481,10 @@ try {
     }
 
     $BridgeCompareEntry = $IndexJson.reports | Where-Object { $_.name -eq "bridge_compare" -and $_.exists -and $_.status -eq "present" }
-    if (!$BridgeCompareEntry) {
-        throw "report index missing bridge_compare artifact entry"
-    }
-    if ($BridgeCompareEntry.required -ne $false) {
-        throw "bridge_compare index entry must remain optional in this phase"
-    }
+    Assert-BridgeCompareIndexEntry $BridgeCompareEntry "bridge_compare"
 
     $BridgeFileCompareEntry = $IndexJson.reports | Where-Object { $_.name -eq "bridge_file_compare" -and $_.exists -and $_.status -eq "present" }
-    if (!$BridgeFileCompareEntry) {
-        throw "report index missing bridge_file_compare artifact entry"
-    }
-    if ($BridgeFileCompareEntry.required -ne $false) {
-        throw "bridge_file_compare index entry must remain optional in this phase"
-    }
+    Assert-BridgeCompareIndexEntry $BridgeFileCompareEntry "bridge_file_compare"
 
     $BridgeFileEntry = $IndexJson.reports | Where-Object { $_.name -eq "bridge_file" -and $_.exists -and $_.status -eq "present" }
     if (!$BridgeFileEntry) {
