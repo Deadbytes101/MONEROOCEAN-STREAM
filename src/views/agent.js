@@ -4,6 +4,8 @@ import { escapeHtml, kpi } from "./common.js";
 const TELEMETRY_JSON_PATH = "reports/dbyte-agent-telemetry.json";
 const DECISION_JSON_PATH = "reports/dbyte-agent-decision.json";
 const INDEX_JSON_PATH = "reports/dbyte-agent-index.json";
+const POOL_CORE_LEDGER_REPORT_NAME = "pool_core_ledger";
+const POOL_CORE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-report.json";
 const TELEMETRY_STALE_SECONDS = 300;
 const DECISION_STALE_SECONDS = 300;
 const INDEX_STALE_SECONDS = 300;
@@ -39,6 +41,7 @@ function agentPanels(telemetry, decision, index, title, subtitle) {
     healthPanel(telemetry, decision, index),
     telemetry ? telemetryPanel(telemetry, title, subtitle) : missingTelemetryPanel(title),
     decision ? decisionPanel(decision) : missingDecisionPanel(),
+    index ? poolCoreArtifactPanel(index) : "",
     index ? indexPanel(index) : missingIndexPanel()
   ].join("");
 }
@@ -49,6 +52,9 @@ function healthPanel(telemetry, decision, index) {
   const decisionFreshness = decision ? artifactFreshness(Number(decision.decision_ts_unix) || 0, DECISION_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
   const indexFreshness = index ? artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS) : { label: "missing_artifact", className: "red" };
   const indexStatus = index ? String(index.index_status || "unknown") : "missing_artifact";
+  const reports = indexReports(index);
+  const poolCoreReport = poolCoreLedgerReport(reports);
+  const poolCoreStatus = poolCoreReport ? String(poolCoreReport.status || "unknown") : "missing";
 
   return `<section class=panel>
     <div class=panel-header>
@@ -65,6 +71,7 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Decision", freshnessValue(decisionFreshness), "Decision artifact freshness.")}
       ${kpi("Index", { html: `<span class="${reportStatusClass(indexStatus)}">${escapeHtml(indexStatus)}</span>` }, "Report index status.")}
       ${kpi("Index age", freshnessValue(indexFreshness), "Report index artifact freshness.")}
+      ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core replay report entry from the local report index.")}
     </div>
   </section>`;
 }
@@ -76,6 +83,9 @@ function agentHealth(telemetry, decision, index) {
 
   const indexStatus = String(index.index_status || "unknown");
   if (indexStatus !== "ok") return { status: "attention", reason: `index_${indexStatus}`, next: "inspect_index" };
+
+  const reports = indexReports(index);
+  if (!poolCoreLedgerReport(reports)) return { status: "attention", reason: "missing_pool_core_ledger", next: "refresh_index" };
 
   const indexFreshness = artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS);
   if (indexFreshness.label !== "fresh") return { status: "attention", reason: `index_${indexFreshness.label}`, next: "refresh_index" };
@@ -178,19 +188,57 @@ function decisionPanel(decision) {
   </section>`;
 }
 
+function poolCoreArtifactPanel(index) {
+  const reports = indexReports(index);
+  const report = poolCoreLedgerReport(reports);
+  const status = report ? String(report.status || "unknown") : "missing";
+  const exists = report ? report.exists === true : false;
+  const kind = report ? String(report.kind || "unknown") : "json";
+  const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
+  const sizeBytes = report ? Number(report.size_bytes) || 0 : 0;
+  const sha256 = report ? String(report.sha256 || "--") : "--";
+
+  return `<section class=panel>
+    <div class=panel-header>
+      <div>
+        <h2>DBYTE Pool Core Evidence</h2>
+        <p class=muted>Display-only pool-core replay artifact discovered through the local report index.</p>
+      </div>
+    </div>
+    <div class="card grid kpi-grid">
+      ${kpi("Status", { html: `<span class="${reportStatusClass(status)}">${escapeHtml(status)}</span>` }, "Pool-core report artifact status from the index.")}
+      ${kpi("Exists", exists ? "yes" : "no", "Whether the indexed pool-core report artifact is present on disk.")}
+      ${kpi("Kind", kind, "Indexed artifact format.")}
+      ${kpi("Size", formatNumber(sizeBytes), "Indexed artifact size in bytes.")}
+      ${kpi("Path", path, "Local pool-core report artifact path.")}
+    </div>
+    <div class="card table-wrap">
+      <table aria-label="DBYTE pool core evidence details">
+        <tbody>
+          ${detailRow("Index name", report ? report.name : POOL_CORE_LEDGER_REPORT_NAME)}
+          ${detailRow("Status", status)}
+          ${detailRow("Required", report ? requiredLabel(report.required) : "yes")}
+          ${detailRow("Path", path)}
+          ${detailRow("SHA256", sha256)}
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
 function indexPanel(index) {
   const status = String(index.index_status || "unknown");
   const scope = String(index.index_scope || "unknown");
   const generatedAt = Number(index.index_ts_unix) || 0;
   const reportCount = Number(index.report_count) || 0;
   const missingRequiredCount = Number(index.missing_required_count) || 0;
-  const reports = Array.isArray(index.reports) ? index.reports : [];
+  const reports = indexReports(index);
 
   return `<section class=panel>
     <div class=panel-header>
       <div>
         <h2>DBYTE Report Index</h2>
-        <p class=muted>Display-only inventory of required local agent report files.</p>
+        <p class=muted>Display-only inventory of required local agent and pool-core report files.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
@@ -220,6 +268,14 @@ function reportRow(report) {
     <td>${escapeHtml(formatNumber(Number(report.size_bytes) || 0))}</td>
     <td><code>${escapeHtml(report.sha256 || "--")}</code></td>
   </tr>`;
+}
+
+function indexReports(index) {
+  return index && Array.isArray(index.reports) ? index.reports : [];
+}
+
+function poolCoreLedgerReport(reports) {
+  return reports.find((report) => String(report.name || "") === POOL_CORE_LEDGER_REPORT_NAME) || null;
 }
 
 function requiredLabel(required) {
