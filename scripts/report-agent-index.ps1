@@ -33,6 +33,7 @@ try {
         @{ name = "phase_f_accounting_projection"; kind = "json"; path = "reports\dbyte-accounting-projection.json"; required = $false },
         @{ name = "phase_g_settlement_plan"; kind = "json"; path = "reports\dbyte-settlement-plan.json"; required = $false },
         @{ name = "phase_h_local_dry_run"; kind = "json"; path = "reports\dbyte-local-service-dry-run.json"; required = $false },
+        @{ name = "phase_i_service_readiness"; kind = "json"; path = "reports\dbyte-service-readiness.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -217,6 +218,25 @@ try {
             $Entry.dry_run_plan_rows = [int64]$PhaseHJson.counters.plan_rows
             $Entry.dry_run_dashboard_source = [string]$PhaseHJson.dashboard_projection.source
             $Entry.dry_run_replayable = [bool]$PhaseHJson.replayable
+        }
+
+        if ([string]$Report.name -eq "phase_i_service_readiness" -and $Exists) {
+            $PhaseIJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.readiness_schema = [int]$PhaseIJson.schema
+            $Entry.readiness_status = [string]$PhaseIJson.status
+            $Entry.readiness_valid = [bool]$PhaseIJson.readiness_valid
+            $Entry.readiness_mode = [string]$PhaseIJson.mode
+            $Entry.readiness_config_mode = [string]$PhaseIJson.config.mode
+            $Entry.readiness_config_enabled = [bool]$PhaseIJson.config.enabled
+            $Entry.readiness_report_only = [bool]$PhaseIJson.summary.report_only
+            $Entry.readiness_runtime_enabled = [bool]$PhaseIJson.summary.runtime_enabled
+            $Entry.readiness_blocker_count = [int64]$PhaseIJson.summary.blocker_count
+            $Entry.readiness_next_step = [string]$PhaseIJson.summary.next_step
+            $Entry.readiness_phase_h_gate_ok = [bool]$PhaseIJson.checks.phase_h_gate_ok
+            $Entry.readiness_local_mode = [bool]$PhaseIJson.checks.local_mode
+            $Entry.readiness_payload_limit_present = [bool]$PhaseIJson.checks.payload_limit_present
+            $Entry.readiness_message_limit_present = [bool]$PhaseIJson.checks.message_limit_present
+            $Entry.readiness_operator_approval_required = [bool]$PhaseIJson.checks.operator_approval_required
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {

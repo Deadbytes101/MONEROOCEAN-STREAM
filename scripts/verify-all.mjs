@@ -28,6 +28,7 @@ runStep("phase E gate", execPath, ["scripts/verify-phase-e.mjs"]);
 runStep("phase F gate", execPath, ["scripts/verify-phase-f.mjs"]);
 runStep("phase G gate", execPath, ["scripts/verify-phase-g.mjs"]);
 runStep("phase H gate", execPath, ["scripts/verify-phase-h.mjs"]);
+runStep("phase I gate", execPath, ["scripts/verify-phase-i.mjs"]);
 runPowerShellStep("agent gate", "scripts/verify-agent.ps1");
 runStep("static build", execPath, ["scripts/build-static.mjs"]);
 
