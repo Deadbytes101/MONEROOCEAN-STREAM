@@ -160,7 +160,17 @@ const INDEX = {
       exists: true,
       status: "present",
       sha256: "h".repeat(64),
-      size_bytes: 520
+      size_bytes: 520,
+      bridge_schema: 1,
+      bridge_status: "ok",
+      bridge_valid: true,
+      bridge_total_events: 2,
+      bridge_accepted_events: 1,
+      bridge_rejected_events: 1,
+      bridge_credited_difficulty: 10,
+      bridge_session_count: 2,
+      bridge_job_count: 1,
+      bridge_assignment_count: 2
     }
   ]
 };
@@ -200,6 +210,15 @@ test("agent summary renders bridge evidence from the report index", async () => 
     assert.match(html, /Bridge file compare path/);
     assert.match(html, /Bridge file index name/);
     assert.match(html, /Bridge file index status/);
+    assert.match(html, /Bridge file status/);
+    assert.match(html, /Bridge file valid/);
+    assert.match(html, /Bridge file total events/);
+    assert.match(html, /Bridge file accepted events/);
+    assert.match(html, /Bridge file rejected events/);
+    assert.match(html, /Bridge file credited difficulty/);
+    assert.match(html, /Bridge file sessions/);
+    assert.match(html, /Bridge file jobs/);
+    assert.match(html, /Bridge file assignments/);
     assert.match(html, /Bridge file path/);
     assert.match(html, /bridge_compare/);
     assert.match(html, /bridge_file_compare/);
