@@ -245,6 +245,7 @@ function poolCoreArtifactPanel(index) {
   const bridgeFileCompareStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.status || "unknown") : "missing";
   const bridgeFileCompareResultStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.compare_status || "--") : "--";
   const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.status || "unknown") : "missing";
+  const bridgeFileResultStatus = bridgeFileArtifact ? String(bridgeFileArtifact.bridge_status || "--") : "--";
   const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
   const fixturePath = fixtureReport ? String(fixtureReport.path || POOL_CORE_FIXTURE_LEDGER_REPORT_PATH) : POOL_CORE_FIXTURE_LEDGER_REPORT_PATH;
   const filePath = fileReport ? String(fileReport.path || POOL_CORE_FILE_LEDGER_REPORT_PATH) : POOL_CORE_FILE_LEDGER_REPORT_PATH;
@@ -336,6 +337,15 @@ function poolCoreArtifactPanel(index) {
           ${detailRow("Bridge file compare path", bridgeFileComparePath)}
           ${detailRow("Bridge file index name", bridgeFileArtifact ? bridgeFileArtifact.name : BRIDGE_FILE_REPORT_NAME)}
           ${detailRow("Bridge file index status", bridgeFileStatus)}
+          ${detailRow("Bridge file status", bridgeFileResultStatus)}
+          ${detailRow("Bridge file valid", booleanFieldLabel(bridgeFileArtifact, "bridge_valid"))}
+          ${detailRow("Bridge file total events", numberFieldLabel(bridgeFileArtifact, "bridge_total_events"))}
+          ${detailRow("Bridge file accepted events", numberFieldLabel(bridgeFileArtifact, "bridge_accepted_events"))}
+          ${detailRow("Bridge file rejected events", numberFieldLabel(bridgeFileArtifact, "bridge_rejected_events"))}
+          ${detailRow("Bridge file credited difficulty", numberFieldLabel(bridgeFileArtifact, "bridge_credited_difficulty"))}
+          ${detailRow("Bridge file sessions", numberFieldLabel(bridgeFileArtifact, "bridge_session_count"))}
+          ${detailRow("Bridge file jobs", numberFieldLabel(bridgeFileArtifact, "bridge_job_count"))}
+          ${detailRow("Bridge file assignments", numberFieldLabel(bridgeFileArtifact, "bridge_assignment_count"))}
           ${detailRow("Bridge file path", bridgeFilePath)}
         </tbody>
       </table>
@@ -421,8 +431,17 @@ function poolCoreReplayStatus(report) {
 }
 
 function compareMatchLabel(report, key) {
+  return booleanFieldLabel(report, key);
+}
+
+function booleanFieldLabel(report, key) {
   if (!report || !(key in report)) return "--";
   return report[key] === true ? "yes" : "no";
+}
+
+function numberFieldLabel(report, key) {
+  if (!report || !(key in report)) return "--";
+  return formatNumber(Number(report[key]) || 0);
 }
 
 function requiredLabel(required) {
