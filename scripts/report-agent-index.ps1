@@ -24,6 +24,7 @@ try {
         @{ name = "release_seal"; kind = "text"; path = "reports\dbyte-agent-release.seal.txt"; required = $true },
         @{ name = "checker"; kind = "text"; path = "reports\dbyte-agent-check.txt"; required = $true },
         @{ name = "verify_ledger"; kind = "json"; path = "reports\verify-agent.json"; required = $true },
+        @{ name = "local_agent_evidence"; kind = "json"; path = "reports\dbyte-agent-local-evidence.json"; required = $false },
         @{ name = "pool_core_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-report.json"; required = $true },
         @{ name = "pool_core_fixture_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-fixture-report.json"; required = $true }
     )
