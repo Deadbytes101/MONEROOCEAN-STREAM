@@ -122,7 +122,7 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /unit-rig/);
       assert.match(html, /DBYTE Decision/);
       assert.match(html, /DBYTE Pool Core Evidence/);
-      assert.match(html, /zero-init and deterministic fixture replay artifacts/);
+      assert.match(html, /zero-init, deterministic fixture replay, and bridge comparison artifacts/);
       assert.match(html, /pool_core_ledger/);
       assert.match(html, /pool_core_fixture_ledger/);
       assert.match(html, /reports\/dbyte-pool-ledger-report\.json/);
@@ -141,6 +141,7 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /Index age/);
       assert.match(html, /Pool core/);
       assert.match(html, /Pool fixture/);
+      assert.match(html, /Bridge compare/);
       assert.match(html, /<td>yes<\/td>/);
       assert.match(html, /telemetry_json/);
       assert.match(html, /reports\/dbyte-agent-telemetry\.json/);
