@@ -19,7 +19,7 @@ runStep("phase A report export", execPath, [
   phaseReport
 ]);
 
-const phaseJson = JSON.parse(readFileSync(phaseReport, "utf8"));
+const phaseJson = readJson(phaseReport);
 assertEqual(phaseJson.schema, 1, "phase A schema must be 1");
 assertEqual(phaseJson.status, "ok", "phase A status must be ok");
 assertEqual(phaseJson.valid, true, "phase A report must be valid");
@@ -37,7 +37,7 @@ runStep("phase A index export", shellCommand(), shellArgs([
   indexReport
 ]));
 
-const indexJson = JSON.parse(readFileSync(indexReport, "utf8"));
+const indexJson = readJson(indexReport);
 const entry = indexJson.reports.find((report) => report.name === "phase_a_summary");
 if (!entry) throw new Error("phase_a_summary index entry is missing");
 assertEqual(entry.required, false, "phase_a_summary must remain optional");
@@ -61,6 +61,10 @@ console.log("PHASE A VERIFY PASSED");
 function runStep(name, command, args) {
   console.log(`== ${name} ==`);
   execFileSync(command, args, { stdio: "inherit" });
+}
+
+function readJson(path) {
+  return JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, ""));
 }
 
 function shellCommand() {
