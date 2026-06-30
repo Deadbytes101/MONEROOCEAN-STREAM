@@ -27,6 +27,7 @@ try {
         @{ name = "local_agent_evidence"; kind = "json"; path = "reports\dbyte-agent-local-evidence.json"; required = $false },
         @{ name = "phase_a_summary"; kind = "json"; path = "reports\dbyte-service-protocol-summary.json"; required = $false },
         @{ name = "phase_b_registry"; kind = "json"; path = "reports\dbyte-session-registry.json"; required = $false },
+        @{ name = "phase_c_job_source"; kind = "json"; path = "reports\dbyte-job-source.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -104,6 +105,20 @@ try {
             $Entry.registry_rejected = [int64]$PhaseBJson.summary.rejected
             $Entry.registry_credited_difficulty = [int64]$PhaseBJson.summary.credited_difficulty
             $Entry.registry_error_count = [int64]$PhaseBJson.summary.error_count
+        }
+
+        if ([string]$Report.name -eq "phase_c_job_source" -and $Exists) {
+            $PhaseCJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.job_schema = [int]$PhaseCJson.schema
+            $Entry.job_status = [string]$PhaseCJson.status
+            $Entry.job_source_kind = [string]$PhaseCJson.source_kind
+            $Entry.job_valid = [bool]$PhaseCJson.valid
+            $Entry.job_total_jobs = [int64]$PhaseCJson.summary.total_jobs
+            $Entry.job_active_jobs = [int64]$PhaseCJson.summary.active_jobs
+            $Entry.job_stale_jobs = [int64]$PhaseCJson.summary.stale_jobs
+            $Entry.job_error_count = [int64]$PhaseCJson.summary.error_count
+            $Entry.job_minimum_difficulty = [int64]$PhaseCJson.summary.minimum_difficulty
+            $Entry.job_maximum_difficulty = [int64]$PhaseCJson.summary.maximum_difficulty
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
