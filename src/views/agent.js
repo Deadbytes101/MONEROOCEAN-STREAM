@@ -241,7 +241,9 @@ function poolCoreArtifactPanel(index) {
   const fixtureStatus = fixtureReport ? String(fixtureReport.status || "unknown") : "missing";
   const fileStatus = fileReport ? String(fileReport.status || "unknown") : "missing";
   const bridgeStatus = bridgeReport ? String(bridgeReport.status || "unknown") : "missing";
+  const bridgeCompareResultStatus = bridgeReport ? String(bridgeReport.compare_status || "--") : "--";
   const bridgeFileCompareStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.status || "unknown") : "missing";
+  const bridgeFileCompareResultStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.compare_status || "--") : "--";
   const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.status || "unknown") : "missing";
   const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
   const fixturePath = fixtureReport ? String(fixtureReport.path || POOL_CORE_FIXTURE_LEDGER_REPORT_PATH) : POOL_CORE_FIXTURE_LEDGER_REPORT_PATH;
@@ -318,9 +320,19 @@ function poolCoreArtifactPanel(index) {
           ${detailRow("File session rows", formatNumber(fileSessionCount))}
           ${detailRow("Bridge index name", bridgeReport ? bridgeReport.name : BRIDGE_COMPARE_REPORT_NAME)}
           ${detailRow("Bridge index status", bridgeStatus)}
+          ${detailRow("Bridge compare status", bridgeCompareResultStatus)}
+          ${detailRow("Bridge total events match", compareMatchLabel(bridgeReport, "compare_total_events"))}
+          ${detailRow("Bridge accepted events match", compareMatchLabel(bridgeReport, "compare_accepted_events"))}
+          ${detailRow("Bridge rejected events match", compareMatchLabel(bridgeReport, "compare_rejected_events"))}
+          ${detailRow("Bridge credited difficulty match", compareMatchLabel(bridgeReport, "compare_credited_difficulty"))}
           ${detailRow("Bridge path", bridgePath)}
           ${detailRow("Bridge file compare index name", bridgeFileCompareArtifact ? bridgeFileCompareArtifact.name : BRIDGE_FILE_COMPARE_REPORT_NAME)}
           ${detailRow("Bridge file compare index status", bridgeFileCompareStatus)}
+          ${detailRow("Bridge file compare status", bridgeFileCompareResultStatus)}
+          ${detailRow("Bridge file total events match", compareMatchLabel(bridgeFileCompareArtifact, "compare_total_events"))}
+          ${detailRow("Bridge file accepted events match", compareMatchLabel(bridgeFileCompareArtifact, "compare_accepted_events"))}
+          ${detailRow("Bridge file rejected events match", compareMatchLabel(bridgeFileCompareArtifact, "compare_rejected_events"))}
+          ${detailRow("Bridge file credited difficulty match", compareMatchLabel(bridgeFileCompareArtifact, "compare_credited_difficulty"))}
           ${detailRow("Bridge file compare path", bridgeFileComparePath)}
           ${detailRow("Bridge file index name", bridgeFileArtifact ? bridgeFileArtifact.name : BRIDGE_FILE_REPORT_NAME)}
           ${detailRow("Bridge file index status", bridgeFileStatus)}
@@ -406,6 +418,11 @@ function bridgeFileReport(reports) {
 function poolCoreReplayStatus(report) {
   if (!report) return "missing";
   return String(report.replay_status || report.status || "unknown");
+}
+
+function compareMatchLabel(report, key) {
+  if (!report || !(key in report)) return "--";
+  return report[key] === true ? "yes" : "no";
 }
 
 function requiredLabel(required) {
