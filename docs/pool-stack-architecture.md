@@ -37,6 +37,7 @@ Current useful pieces:
 - Local telemetry, decision, and report index artifacts.
 - Freshness checks for telemetry, decision, and report index JSON.
 - Release manifest, checker report, manifest seal, and readback checks.
+- Pool-core typed session, job, share, rejection, replay, and report artifact seed.
 - Full local gate through `npm run verify`.
 
 ## Target stack
@@ -62,8 +63,8 @@ DBYTE Pool Stack
 │  └─ reorg and orphan observation
 ├─ payout engine
 │  ├─ payout threshold policy
-│  ├─ dry-run payout report
-│  ├─ signed payout intent
+│  ├─ payout preview report
+│  ├─ payout intent file
 │  └─ operator-approved send path
 ├─ miner stack
 │  ├─ local rig profile
@@ -105,14 +106,23 @@ no live mining required
 
 Purpose: make share history replayable and inspectable.
 
-Deliverables:
+Completed seed:
+
+- in-memory share event model
+- replay verifier
+- deterministic replay summary
+- duplicate accepted share detection
+- sequence gap detection
+- default pool-core report JSON artifact
+- local gate that exports and verifies `reports/dbyte-pool-ledger-report.json`
+
+Remaining deliverables:
 
 - append-only share event file
-- replay verifier
 - per-wallet share totals
 - per-worker hashrate windows
 - invalid share counters
-- report JSON for dashboard display
+- dashboard display for pool-core accounting reports
 
 Exit gate:
 
@@ -184,10 +194,10 @@ operator can override policy
 no hidden miner control path exists
 ```
 
-## First real engineering step
+## Next real engineering step
 
-The next code-bearing change should not be another dashboard polish pass.
+The next code-bearing change should keep improving Phase 2 evidence.
 
-The next code-bearing change should create `crates/dbyte-pool-core/` with only typed models, reject reasons, and deterministic tests. Real networking should wait until the model tests are stable.
+The next code-bearing change should connect the pool-core report artifact into the report index or dashboard as read-only evidence before opening any network boundary.
 
 Simple rule: build the truth model before opening the socket.
