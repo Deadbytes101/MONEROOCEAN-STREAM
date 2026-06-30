@@ -178,7 +178,7 @@ pub struct LedgerEvent {
 
 impl LedgerEvent {
     fn accepted_key(&self) -> Option<ShareKey> {
-        match self.outcome {
+        match &self.outcome {
             LedgerOutcome::Accepted { .. } => Some(ShareKey {
                 session_id: self.session_id?,
                 job_id: self.job_id?,
@@ -278,7 +278,10 @@ pub fn replay_ledger(events: &[LedgerEvent]) -> Result<LedgerReplay, LedgerError
         replay.total_events += 1;
 
         match &event.outcome {
-            LedgerOutcome::Accepted { credited_difficulty } => {
+            LedgerOutcome::Accepted {
+                credited_difficulty,
+            } => {
+                let credited_difficulty = *credited_difficulty;
                 let Some(key) = event.accepted_key() else {
                     return Err(LedgerError::SequenceGap {
                         expected,
