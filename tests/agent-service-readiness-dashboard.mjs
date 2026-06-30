@@ -68,6 +68,54 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
+
+  test("renders missing Phase I readiness evidence without breaking the healthy agent summary", async () => {
+    const reports = REPORTS.filter((report) => report.name !== "phase_i_service_readiness");
+
+    await withFetchFixtures({
+      "reports/dbyte-agent-telemetry.json": TELEMETRY,
+      "reports/dbyte-agent-decision.json": DECISION,
+      "reports/dbyte-agent-index.json": indexFixture(reports)
+    }, async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /local_artifacts_fresh/);
+      assert.match(html, /DBYTE Service Readiness Evidence/);
+      assert.match(html, /phase_i_service_readiness/);
+      assert.match(html, /missing/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("renders attention Phase I readiness evidence from the report index", async () => {
+    const reports = REPORTS.map((report) => report.name === "phase_i_service_readiness"
+      ? {
+          ...report,
+          readiness_status: "attention",
+          readiness_valid: false,
+          readiness_runtime_enabled: true,
+          readiness_blocker_count: 2,
+          readiness_next_step: "fix_readiness_blockers",
+          readiness_local_mode: false
+        }
+      : report);
+
+    await withFetchFixtures({
+      "reports/dbyte-agent-telemetry.json": TELEMETRY,
+      "reports/dbyte-agent-decision.json": DECISION,
+      "reports/dbyte-agent-index.json": indexFixture(reports)
+    }, async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Service Readiness Evidence/);
+      assert.match(html, /attention/);
+      assert.match(html, /fix_readiness_blockers/);
+      assert.match(html, />2<\/td>/);
+      assert.match(html, /no/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
 });
 
 function indexFixture(reports) {
