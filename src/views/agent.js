@@ -99,7 +99,7 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Index age", freshnessValue(indexFreshness), "Report index artifact freshness.")}
       ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core zero-init replay report status from the local report index.")}
       ${kpi("Pool fixture", { html: `<span class="${reportStatusClass(poolCoreFixtureStatus)}">${escapeHtml(poolCoreFixtureStatus)}</span>` }, "Pool-core deterministic fixture replay report status from the local report index.")}
-      ${kpi("Pool file", { html: `<span class="${reportStatusClass(poolCoreFileStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core deterministic file replay report status from the local report index.")}
+      ${kpi("Pool file", { html: `<span class="${reportStatusClass(poolCoreFileStatus)}">${escapeHtml(poolCoreFileStatus)}</span>` }, "Pool-core deterministic file replay report status from the local report index.")}
       ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeStatus)}">${escapeHtml(bridgeStatus)}</span>` }, "Bridge comparison result status from the local report index.")}
       ${kpi("Bridge file compare", { html: `<span class="${reportStatusClass(bridgeFileCompareStatus)}">${escapeHtml(bridgeFileCompareStatus)}</span>` }, "Bridge file comparison result status from the local report index.")}
       ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileStatus)}">${escapeHtml(bridgeFileStatus)}</span>` }, "Bridge file parse result status from the local report index.")}
