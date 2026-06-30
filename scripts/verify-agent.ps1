@@ -163,6 +163,9 @@ try {
     if ($IndexJson.index_status -ne "ok") {
         throw "report index did not approve generated reports"
     }
+    if (!($IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" })) {
+        throw "report index missing pool_core_ledger artifact entry"
+    }
 
     Write-Host "index.report=$IndexReport"
     Write-Host "AGENT REPORT INDEX VERIFIED"
