@@ -20,6 +20,7 @@ runStep("javascript and browser tests", execPath, [
   "--test-concurrency=1",
   "tests/all.mjs"
 ]);
+runStep("phase A gate", execPath, ["scripts/verify-phase-a.mjs"]);
 runPowerShellStep("agent gate", "scripts/verify-agent.ps1");
 runStep("static build", execPath, ["scripts/build-static.mjs"]);
 

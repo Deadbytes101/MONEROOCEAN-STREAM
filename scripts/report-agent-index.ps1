@@ -25,6 +25,7 @@ try {
         @{ name = "checker"; kind = "text"; path = "reports\dbyte-agent-check.txt"; required = $true },
         @{ name = "verify_ledger"; kind = "json"; path = "reports\verify-agent.json"; required = $true },
         @{ name = "local_agent_evidence"; kind = "json"; path = "reports\dbyte-agent-local-evidence.json"; required = $false },
+        @{ name = "phase_a_summary"; kind = "json"; path = "reports\dbyte-service-protocol-summary.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -71,6 +72,20 @@ try {
             $Entry.replay_rejected_events = [int64]$PoolCoreJson.rejected_events
             $Entry.replay_credited_difficulty = [int64]$PoolCoreJson.credited_difficulty
             $Entry.replay_session_count = [int64]$Sessions.Count
+        }
+
+        if ([string]$Report.name -eq "phase_a_summary" -and $Exists) {
+            $PhaseAJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.phase_schema = [int]$PhaseAJson.schema
+            $Entry.phase_status = [string]$PhaseAJson.status
+            $Entry.phase_valid = [bool]$PhaseAJson.valid
+            $Entry.phase_valid_messages = [int64]$PhaseAJson.valid_messages
+            $Entry.phase_invalid_messages = [int64]$PhaseAJson.invalid_messages
+            $Entry.phase_total_messages = [int64]$PhaseAJson.summary.total_messages
+            $Entry.phase_accepted = [int64]$PhaseAJson.summary.accepted
+            $Entry.phase_rejected = [int64]$PhaseAJson.summary.rejected
+            $Entry.phase_credited_difficulty = [int64]$PhaseAJson.summary.credited_difficulty
+            $Entry.phase_session_count = [int64]$PhaseAJson.summary.session_count
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
