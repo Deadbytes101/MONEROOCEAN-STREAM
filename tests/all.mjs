@@ -9,6 +9,7 @@ import "./session-registry.mjs";
 import "./job-source.mjs";
 import "./share-intake.mjs";
 import "./difficulty-policy.mjs";
+import "./accounting-projection.mjs";
 import "./bridge-file-report.mjs";
 import "./wallet-workers-render-policy.mjs";
 import "./setup-settings.mjs";
