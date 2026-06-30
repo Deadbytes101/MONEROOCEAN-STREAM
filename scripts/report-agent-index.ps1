@@ -83,6 +83,20 @@ try {
             $Entry.compare_credited_difficulty = [bool]$CompareJson.matches.credited_difficulty
         }
 
+        if ([string]$Report.name -eq "bridge_file" -and $Exists) {
+            $BridgeFileJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.bridge_schema = [int]$BridgeFileJson.schema
+            $Entry.bridge_status = [string]$BridgeFileJson.status
+            $Entry.bridge_valid = [bool]$BridgeFileJson.valid
+            $Entry.bridge_total_events = [int64]$BridgeFileJson.summary.total_events
+            $Entry.bridge_accepted_events = [int64]$BridgeFileJson.summary.accepted_events
+            $Entry.bridge_rejected_events = [int64]$BridgeFileJson.summary.rejected_events
+            $Entry.bridge_credited_difficulty = [int64]$BridgeFileJson.summary.credited_difficulty
+            $Entry.bridge_session_count = [int64]$BridgeFileJson.summary.session_count
+            $Entry.bridge_job_count = [int64]$BridgeFileJson.summary.job_count
+            $Entry.bridge_assignment_count = [int64]$BridgeFileJson.summary.assignment_count
+        }
+
         $Entry
     }
 
