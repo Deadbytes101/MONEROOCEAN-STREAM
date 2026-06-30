@@ -72,9 +72,9 @@ function healthPanel(telemetry, decision, index) {
   const poolCoreStatus = poolCoreReplayStatus(poolCoreReport);
   const poolCoreFixtureStatus = poolCoreReplayStatus(poolCoreFixtureReport);
   const poolCoreFileStatus = poolCoreReplayStatus(poolCoreFileReport);
-  const bridgeStatus = bridgeReport ? String(bridgeReport.status || "unknown") : "missing";
-  const bridgeFileCompareStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.status || "unknown") : "missing";
-  const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.status || "unknown") : "missing";
+  const bridgeStatus = bridgeReport ? String(bridgeReport.compare_status || bridgeReport.status || "unknown") : "missing";
+  const bridgeFileCompareStatus = bridgeFileCompareArtifact ? String(bridgeFileCompareArtifact.compare_status || bridgeFileCompareArtifact.status || "unknown") : "missing";
+  const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.bridge_status || bridgeFileArtifact.status || "unknown") : "missing";
 
   return `<section class=panel>
     <div class=panel-header>
@@ -94,9 +94,9 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core zero-init replay report status from the local report index.")}
       ${kpi("Pool fixture", { html: `<span class="${reportStatusClass(poolCoreFixtureStatus)}">${escapeHtml(poolCoreFixtureStatus)}</span>` }, "Pool-core deterministic fixture replay report status from the local report index.")}
       ${kpi("Pool file", { html: `<span class="${reportStatusClass(poolCoreFileStatus)}">${escapeHtml(poolCoreFileStatus)}</span>` }, "Pool-core deterministic file replay report status from the local report index.")}
-      ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeStatus)}">${escapeHtml(bridgeStatus)}</span>` }, "Bridge comparison report inventory status from the local report index.")}
-      ${kpi("Bridge file compare", { html: `<span class="${reportStatusClass(bridgeFileCompareStatus)}">${escapeHtml(bridgeFileCompareStatus)}</span>` }, "Bridge file comparison report inventory status from the local report index.")}
-      ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileStatus)}">${escapeHtml(bridgeFileStatus)}</span>` }, "Bridge file report inventory status from the local report index.")}
+      ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeStatus)}">${escapeHtml(bridgeStatus)}</span>` }, "Bridge comparison result status from the local report index.")}
+      ${kpi("Bridge file compare", { html: `<span class="${reportStatusClass(bridgeFileCompareStatus)}">${escapeHtml(bridgeFileCompareStatus)}</span>` }, "Bridge file comparison result status from the local report index.")}
+      ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileStatus)}">${escapeHtml(bridgeFileStatus)}</span>` }, "Bridge file parse result status from the local report index.")}
     </div>
   </section>`;
 }
