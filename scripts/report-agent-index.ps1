@@ -30,7 +30,8 @@ try {
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
         @{ name = "bridge_file"; kind = "json"; path = "reports\dbyte-bridge-file.json"; required = $false },
         @{ name = "pool_core_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-report.json"; required = $true },
-        @{ name = "pool_core_fixture_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-fixture-report.json"; required = $true }
+        @{ name = "pool_core_fixture_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-fixture-report.json"; required = $true },
+        @{ name = "pool_core_file_ledger"; kind = "json"; path = "reports\dbyte-pool-ledger-file-report.json"; required = $true }
     )
 
     $Items = foreach ($Report in $Reports) {
