@@ -88,7 +88,9 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /unit-rig/);
       assert.match(html, /DBYTE Decision/);
       assert.match(html, /DBYTE Report Index/);
+      assert.match(html, /Path/);
       assert.match(html, /telemetry_json/);
+      assert.match(html, /reports\\dbyte-agent-telemetry\.json/);
       assert.match(html, /present/);
       assert.match(html, /read_only/);
       assert.match(html, /ledger_clean/);
