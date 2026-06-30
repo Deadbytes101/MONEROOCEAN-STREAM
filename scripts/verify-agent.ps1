@@ -54,6 +54,8 @@ try {
     $ReleaseManifest = "reports\dbyte-agent-release.json"
     $ReleaseManifestSeal = "reports\dbyte-agent-release.seal.txt"
     $ReleaseScript = Join-Path $Root "scripts\build-agent-release.ps1"
+    $LocalEvidenceReport = "reports\dbyte-agent-local-evidence.json"
+    $LocalEvidenceReportScript = Join-Path $Root "scripts\report-agent-local-evidence.ps1"
     $IndexReport = "reports\dbyte-agent-index.json"
     $IndexReportScript = Join-Path $Root "scripts\report-agent-index.ps1"
 
@@ -148,6 +150,31 @@ try {
     Write-Host "seal.manifest_sha256=$ReleaseManifestSha256"
     Write-Host "AGENT SEAL READBACK VERIFIED"
 
+    Invoke-Checked "local evidence report export" {
+        & $LocalEvidenceReportScript -Out $LocalEvidenceReport -Config $Config -ReleaseManifest $ReleaseManifest
+    }
+
+    if (!(Test-Path $LocalEvidenceReport)) {
+        throw "missing local evidence artifact: $LocalEvidenceReport"
+    }
+
+    $LocalEvidenceJson = Get-Content $LocalEvidenceReport -Raw | ConvertFrom-Json
+    if ($LocalEvidenceJson.schema -ne 1) {
+        throw "local evidence schema must be 1"
+    }
+    if ($LocalEvidenceJson.status -ne "ok") {
+        throw "local evidence status must be ok"
+    }
+    if ($LocalEvidenceJson.approval -ne "manifest_verified") {
+        throw "local evidence approval must be manifest_verified"
+    }
+    if ($LocalEvidenceJson.approved_binary_sha256 -ne $ReleaseManifestSha256 -and $LocalEvidenceJson.release_manifest_sha256 -ne $ReleaseManifestSha256) {
+        throw "local evidence must record release manifest sha256"
+    }
+
+    Write-Host "local.evidence.report=$LocalEvidenceReport"
+    Write-Host "AGENT LOCAL EVIDENCE VERIFIED"
+
     Invoke-Checked "report index export" {
         & $IndexReportScript -Out $IndexReport
     }
@@ -162,6 +189,14 @@ try {
     }
     if ($IndexJson.index_status -ne "ok") {
         throw "report index did not approve generated reports"
+    }
+
+    $LocalEvidenceEntry = $IndexJson.reports | Where-Object { $_.name -eq "local_agent_evidence" -and $_.exists -and $_.status -eq "present" }
+    if (!$LocalEvidenceEntry) {
+        throw "report index missing local_agent_evidence artifact entry"
+    }
+    if ($LocalEvidenceEntry.required -ne $false) {
+        throw "local_agent_evidence index entry must remain optional in this phase"
     }
 
     $PoolCoreEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" }
