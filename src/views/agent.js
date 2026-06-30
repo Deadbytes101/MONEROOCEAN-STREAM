@@ -54,7 +54,7 @@ function healthPanel(telemetry, decision, index) {
   const indexStatus = index ? String(index.index_status || "unknown") : "missing_artifact";
   const reports = indexReports(index);
   const poolCoreReport = poolCoreLedgerReport(reports);
-  const poolCoreStatus = poolCoreReport ? String(poolCoreReport.status || "unknown") : "missing";
+  const poolCoreStatus = poolCoreReplayStatus(poolCoreReport);
 
   return `<section class=panel>
     <div class=panel-header>
@@ -71,7 +71,7 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Decision", freshnessValue(decisionFreshness), "Decision artifact freshness.")}
       ${kpi("Index", { html: `<span class="${reportStatusClass(indexStatus)}">${escapeHtml(indexStatus)}</span>` }, "Report index status.")}
       ${kpi("Index age", freshnessValue(indexFreshness), "Report index artifact freshness.")}
-      ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core replay report entry from the local report index.")}
+      ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core replay report status from the local report index.")}
     </div>
   </section>`;
 }
@@ -85,7 +85,11 @@ function agentHealth(telemetry, decision, index) {
   if (indexStatus !== "ok") return { status: "attention", reason: `index_${indexStatus}`, next: "inspect_index" };
 
   const reports = indexReports(index);
-  if (!poolCoreLedgerReport(reports)) return { status: "attention", reason: "missing_pool_core_ledger", next: "refresh_index" };
+  const poolCoreReport = poolCoreLedgerReport(reports);
+  if (!poolCoreReport) return { status: "attention", reason: "missing_pool_core_ledger", next: "refresh_index" };
+
+  const replayStatus = String(poolCoreReport.replay_status || "");
+  if (replayStatus && replayStatus !== "ok") return { status: "attention", reason: `pool_core_${replayStatus}`, next: "inspect_pool_core_report" };
 
   const indexFreshness = artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS);
   if (indexFreshness.label !== "fresh") return { status: "attention", reason: `index_${indexFreshness.label}`, next: "refresh_index" };
@@ -197,6 +201,12 @@ function poolCoreArtifactPanel(index) {
   const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
   const sizeBytes = report ? Number(report.size_bytes) || 0 : 0;
   const sha256 = report ? String(report.sha256 || "--") : "--";
+  const replayStatus = poolCoreReplayStatus(report);
+  const totalEvents = report ? Number(report.replay_total_events) || 0 : 0;
+  const acceptedEvents = report ? Number(report.replay_accepted_events) || 0 : 0;
+  const rejectedEvents = report ? Number(report.replay_rejected_events) || 0 : 0;
+  const creditedDifficulty = report ? Number(report.replay_credited_difficulty) || 0 : 0;
+  const sessionCount = report ? Number(report.replay_session_count) || 0 : 0;
 
   return `<section class=panel>
     <div class=panel-header>
@@ -207,19 +217,32 @@ function poolCoreArtifactPanel(index) {
     </div>
     <div class="card grid kpi-grid">
       ${kpi("Status", { html: `<span class="${reportStatusClass(status)}">${escapeHtml(status)}</span>` }, "Pool-core report artifact status from the index.")}
-      ${kpi("Exists", exists ? "yes" : "no", "Whether the indexed pool-core report artifact is present on disk.")}
-      ${kpi("Kind", kind, "Indexed artifact format.")}
-      ${kpi("Size", formatNumber(sizeBytes), "Indexed artifact size in bytes.")}
+      ${kpi("Replay", { html: `<span class="${reportStatusClass(replayStatus)}">${escapeHtml(replayStatus)}</span>` }, "Pool-core replay status embedded in the index entry.")}
+      ${kpi("Events", formatNumber(totalEvents), "Total pool-core replay events embedded in the index entry.")}
+      ${kpi("Accepted", formatNumber(acceptedEvents), "Accepted replay events embedded in the index entry.")}
+      ${kpi("Rejected", formatNumber(rejectedEvents), "Rejected replay events embedded in the index entry.")}
+      ${kpi("Credited", formatNumber(creditedDifficulty), "Credited difficulty total embedded in the index entry.")}
+      ${kpi("Sessions", formatNumber(sessionCount), "Session rows embedded in the index entry.")}
       ${kpi("Path", path, "Local pool-core report artifact path.")}
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE pool core evidence details">
         <tbody>
           ${detailRow("Index name", report ? report.name : POOL_CORE_LEDGER_REPORT_NAME)}
-          ${detailRow("Status", status)}
+          ${detailRow("Index status", status)}
+          ${detailRow("Replay status", replayStatus)}
+          ${detailRow("Exists", exists ? "yes" : "no")}
+          ${detailRow("Kind", kind)}
           ${detailRow("Required", report ? requiredLabel(report.required) : "yes")}
           ${detailRow("Path", path)}
+          ${detailRow("Size", formatNumber(sizeBytes))}
           ${detailRow("SHA256", sha256)}
+          ${detailRow("Schema", report ? report.replay_schema : "--")}
+          ${detailRow("Total events", formatNumber(totalEvents))}
+          ${detailRow("Accepted events", formatNumber(acceptedEvents))}
+          ${detailRow("Rejected events", formatNumber(rejectedEvents))}
+          ${detailRow("Credited difficulty", formatNumber(creditedDifficulty))}
+          ${detailRow("Session rows", formatNumber(sessionCount))}
         </tbody>
       </table>
     </div>
@@ -276,6 +299,11 @@ function indexReports(index) {
 
 function poolCoreLedgerReport(reports) {
   return reports.find((report) => String(report.name || "") === POOL_CORE_LEDGER_REPORT_NAME) || null;
+}
+
+function poolCoreReplayStatus(report) {
+  if (!report) return "missing";
+  return String(report.replay_status || report.status || "unknown");
 }
 
 function requiredLabel(required) {
@@ -362,7 +390,7 @@ function decisionStatusClass(status) {
 
 function reportStatusClass(status) {
   if (status === "ok" || status === "present") return "green";
-  if (status === "missing" || status === "attention") return "red";
+  if (status === "missing" || status === "attention" || status === "blocked") return "red";
   return "muted";
 }
 

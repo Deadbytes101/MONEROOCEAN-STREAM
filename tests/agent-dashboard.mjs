@@ -79,7 +79,14 @@ const INDEX = {
       exists: true,
       status: "present",
       sha256: "c".repeat(64),
-      size_bytes: 154
+      size_bytes: 154,
+      replay_schema: 1,
+      replay_status: "ok",
+      replay_total_events: 2,
+      replay_accepted_events: 1,
+      replay_rejected_events: 1,
+      replay_credited_difficulty: 10,
+      replay_session_count: 2
     }
   ]
 };
@@ -101,6 +108,12 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /pool-core replay artifact discovered through the local report index/);
       assert.match(html, /pool_core_ledger/);
       assert.match(html, /reports\/dbyte-pool-ledger-report\.json/);
+      assert.match(html, /Replay/);
+      assert.match(html, /Total events/);
+      assert.match(html, /Accepted events/);
+      assert.match(html, /Rejected events/);
+      assert.match(html, /Credited difficulty/);
+      assert.match(html, /Session rows/);
       assert.match(html, /DBYTE Report Index/);
       assert.match(html, /Path/);
       assert.match(html, /Required/);
@@ -118,6 +131,26 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /fresh/);
       assert.match(html, /reports\/dbyte-agent-decision\.json/);
       assert.match(html, /reports\/dbyte-agent-index\.json/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("agent health rollup marks blocked pool-core replay status as attention", async () => {
+    await withFetchFixtures(agentFixtures({
+      index: {
+        ...INDEX,
+        reports: INDEX.reports.map((report) => report.name === "pool_core_ledger"
+          ? { ...report, replay_status: "blocked" }
+          : report)
+      }
+    }), async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /attention/);
+      assert.match(html, /pool_core_blocked/);
+      assert.match(html, /inspect_pool_core_report/);
+      assert.match(html, /DBYTE Pool Core Evidence/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });

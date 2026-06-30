@@ -163,8 +163,19 @@ try {
     if ($IndexJson.index_status -ne "ok") {
         throw "report index did not approve generated reports"
     }
-    if (!($IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" })) {
+
+    $PoolCoreEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" }
+    if (!$PoolCoreEntry) {
         throw "report index missing pool_core_ledger artifact entry"
+    }
+    if ($PoolCoreEntry.replay_schema -ne 1) {
+        throw "pool_core_ledger index entry must include replay_schema 1"
+    }
+    if ($PoolCoreEntry.replay_status -ne "ok") {
+        throw "pool_core_ledger index entry must include replay_status ok"
+    }
+    if ($PoolCoreEntry.replay_total_events -ne 0) {
+        throw "pool_core_ledger default replay should contain zero events"
     }
 
     Write-Host "index.report=$IndexReport"
