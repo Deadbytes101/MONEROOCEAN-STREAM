@@ -102,6 +102,50 @@ try {
         }
     }
 
+    function Assert-BridgeFileIndexEntry {
+        param(
+            [Parameter(Mandatory = $true)]
+            [object]$Entry
+        )
+
+        if (!$Entry) {
+            throw "report index missing bridge_file artifact entry"
+        }
+        if ($Entry.required -ne $false) {
+            throw "bridge_file index entry must remain optional in this phase"
+        }
+        if ($Entry.bridge_schema -ne 1) {
+            throw "bridge_file index entry must include bridge_schema 1"
+        }
+        if ($Entry.bridge_status -ne "ok") {
+            throw "bridge_file index entry must include bridge_status ok"
+        }
+        if ($Entry.bridge_valid -ne $true) {
+            throw "bridge_file index entry must include bridge_valid true"
+        }
+        if ($Entry.bridge_total_events -ne 2) {
+            throw "bridge_file index entry should contain two events"
+        }
+        if ($Entry.bridge_accepted_events -ne 1) {
+            throw "bridge_file index entry should contain one accepted event"
+        }
+        if ($Entry.bridge_rejected_events -ne 1) {
+            throw "bridge_file index entry should contain one rejected event"
+        }
+        if ($Entry.bridge_credited_difficulty -ne 10) {
+            throw "bridge_file index entry should credit difficulty 10"
+        }
+        if ($Entry.bridge_session_count -ne 2) {
+            throw "bridge_file index entry should contain two sessions"
+        }
+        if ($Entry.bridge_job_count -ne 1) {
+            throw "bridge_file index entry should contain one job"
+        }
+        if ($Entry.bridge_assignment_count -ne 2) {
+            throw "bridge_file index entry should contain two assignments"
+        }
+    }
+
     function Assert-PoolCoreReplayEntry {
         param(
             [Parameter(Mandatory = $true)]
@@ -487,12 +531,7 @@ try {
     Assert-BridgeCompareIndexEntry $BridgeFileCompareEntry "bridge_file_compare"
 
     $BridgeFileEntry = $IndexJson.reports | Where-Object { $_.name -eq "bridge_file" -and $_.exists -and $_.status -eq "present" }
-    if (!$BridgeFileEntry) {
-        throw "report index missing bridge_file artifact entry"
-    }
-    if ($BridgeFileEntry.required -ne $false) {
-        throw "bridge_file index entry must remain optional in this phase"
-    }
+    Assert-BridgeFileIndexEntry $BridgeFileEntry
 
     $PoolCoreEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" }
     Assert-PoolCoreReplayEntry $PoolCoreEntry "pool_core_ledger" 0 0 0 0 0
