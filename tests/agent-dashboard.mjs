@@ -48,7 +48,7 @@ const INDEX = {
   index_scope: "read_only",
   index_ts_unix: NOW,
   index_status: "ok",
-  report_count: 2,
+  report_count: 3,
   missing_required_count: 0,
   reports: [
     {
@@ -70,6 +70,16 @@ const INDEX = {
       status: "present",
       sha256: "b".repeat(64),
       size_bytes: 653
+    },
+    {
+      name: "pool_core_ledger",
+      kind: "json",
+      path: "reports/dbyte-pool-ledger-report.json",
+      required: true,
+      exists: true,
+      status: "present",
+      sha256: "c".repeat(64),
+      size_bytes: 154
     }
   ]
 };
@@ -79,7 +89,7 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     assert.deepEqual(parseRoute("#/agent"), { n: "agent", p: "#/agent", q: {} });
   });
 
-  test("agent summary renders telemetry, decision JSON, index JSON, and health rollup", async () => {
+  test("agent summary renders telemetry, decision JSON, index JSON, pool-core evidence, and health rollup", async () => {
     await withFetchFixtures(agentFixtures(), async () => {
       const html = await agentSummaryPanel();
 
@@ -87,10 +97,15 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /local_artifacts_fresh/);
       assert.match(html, /unit-rig/);
       assert.match(html, /DBYTE Decision/);
+      assert.match(html, /DBYTE Pool Core Evidence/);
+      assert.match(html, /pool-core replay artifact discovered through the local report index/);
+      assert.match(html, /pool_core_ledger/);
+      assert.match(html, /reports\/dbyte-pool-ledger-report\.json/);
       assert.match(html, /DBYTE Report Index/);
       assert.match(html, /Path/);
       assert.match(html, /Required/);
       assert.match(html, /Index age/);
+      assert.match(html, /Pool core/);
       assert.match(html, /<td>yes<\/td>/);
       assert.match(html, /telemetry_json/);
       assert.match(html, /reports\/dbyte-agent-telemetry\.json/);
@@ -118,6 +133,26 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /index_stale_artifact/);
       assert.match(html, /refresh_index/);
       assert.match(html, /stale_artifact/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("agent health rollup marks missing pool-core index entry as attention", async () => {
+    await withFetchFixtures(agentFixtures({
+      index: {
+        ...INDEX,
+        report_count: 2,
+        reports: INDEX.reports.filter((report) => report.name !== "pool_core_ledger")
+      }
+    }), async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /attention/);
+      assert.match(html, /missing_pool_core_ledger/);
+      assert.match(html, /refresh_index/);
+      assert.match(html, /DBYTE Pool Core Evidence/);
+      assert.match(html, /reports\/dbyte-pool-ledger-report\.json/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
