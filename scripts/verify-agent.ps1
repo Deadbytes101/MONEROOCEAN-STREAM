@@ -61,6 +61,9 @@ try {
     $SessionEventsSummaryScript = Join-Path $Root "scripts\report-session-events.mjs"
     $ProjectionReport = "reports\dbyte-replay-projection.json"
     $ProjectionReportScript = Join-Path $Root "scripts\report-replay-projection.mjs"
+    $PoolLedgerFixtureReport = "reports\dbyte-pool-ledger-fixture-report.json"
+    $BridgeCompareReport = "reports\dbyte-bridge-compare.json"
+    $BridgeCompareScript = Join-Path $Root "scripts\report-bridge-compare.mjs"
     $IndexReport = "reports\dbyte-agent-index.json"
     $IndexReportScript = Join-Path $Root "scripts\report-agent-index.ps1"
 
@@ -239,6 +242,41 @@ try {
     Write-Host "projection.report=$ProjectionReport"
     Write-Host "AGENT PROJECTION VERIFIED"
 
+    if (!(Test-Path $PoolLedgerFixtureReport)) {
+        throw "missing pool core fixture artifact: $PoolLedgerFixtureReport"
+    }
+
+    Invoke-Checked "bridge compare report export" {
+        node $BridgeCompareScript --projection $ProjectionReport --pool $PoolLedgerFixtureReport --out $BridgeCompareReport
+    }
+
+    if (!(Test-Path $BridgeCompareReport)) {
+        throw "missing bridge compare artifact: $BridgeCompareReport"
+    }
+
+    $BridgeCompareJson = Get-Content $BridgeCompareReport -Raw | ConvertFrom-Json
+    if ($BridgeCompareJson.schema -ne 1) {
+        throw "bridge compare schema must be 1"
+    }
+    if ($BridgeCompareJson.status -ne "ok") {
+        throw "bridge compare status must be ok"
+    }
+    if ($BridgeCompareJson.matches.total_events -ne $true) {
+        throw "bridge compare total_events must match"
+    }
+    if ($BridgeCompareJson.matches.accepted_events -ne $true) {
+        throw "bridge compare accepted_events must match"
+    }
+    if ($BridgeCompareJson.matches.rejected_events -ne $true) {
+        throw "bridge compare rejected_events must match"
+    }
+    if ($BridgeCompareJson.matches.credited_difficulty -ne $true) {
+        throw "bridge compare credited_difficulty must match"
+    }
+
+    Write-Host "bridge.compare.report=$BridgeCompareReport"
+    Write-Host "AGENT BRIDGE COMPARE VERIFIED"
+
     Invoke-Checked "report index export" {
         & $IndexReportScript -Out $IndexReport
     }
@@ -277,6 +315,14 @@ try {
     }
     if ($ProjectionEntry.required -ne $false) {
         throw "replay_projection index entry must remain optional in this phase"
+    }
+
+    $BridgeCompareEntry = $IndexJson.reports | Where-Object { $_.name -eq "bridge_compare" -and $_.exists -and $_.status -eq "present" }
+    if (!$BridgeCompareEntry) {
+        throw "report index missing bridge_compare artifact entry"
+    }
+    if ($BridgeCompareEntry.required -ne $false) {
+        throw "bridge_compare index entry must remain optional in this phase"
     }
 
     $PoolCoreEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" }
