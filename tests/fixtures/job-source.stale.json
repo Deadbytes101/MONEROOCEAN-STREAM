@@ -1,0 +1,14 @@
+{
+  "now_ts_unix": 150,
+  "jobs": [
+    {
+      "job_id": "synthetic-job-stale",
+      "source": "fake",
+      "seed_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "target": "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "difficulty": 10,
+      "created_ts_unix": 90,
+      "expires_ts_unix": 120
+    }
+  ]
+}
