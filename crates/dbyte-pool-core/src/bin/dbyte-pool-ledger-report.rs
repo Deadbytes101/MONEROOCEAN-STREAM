@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
-use dbyte_pool_core::{FakePoolHarness, Hash32, LedgerReplay, ShareLedger, ShareResult, ShareSubmit};
+use dbyte_pool_core::{
+    FakePoolHarness, Hash32, LedgerReplay, ShareLedger, ShareResult, ShareSubmit,
+};
 use std::env;
 
 fn main() {
@@ -51,7 +53,9 @@ fn two_session_fixture_report() -> LedgerReplay {
     assert!(matches!(rejected_result, ShareResult::Rejected(_)));
     ledger.append_result(&rejected_submit, &rejected_result);
 
-    ledger.replay().expect("fixture ledger replay should be valid")
+    ledger
+        .replay()
+        .expect("fixture ledger replay should be valid")
 }
 
 fn submit(
