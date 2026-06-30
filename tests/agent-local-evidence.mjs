@@ -1,3 +1,5 @@
+import "./session-events.mjs";
+
 import test from "node:test";
 import assert from "node:assert/strict";
 import { agentSummaryPanel } from "../src/views/agent.js";
