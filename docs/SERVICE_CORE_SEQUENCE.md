@@ -35,6 +35,32 @@ This is the proof layer. The next work is to grow it into a service layer withou
 
 Each part must emit a report before the next part can depend on it.
 
+## Current implementation status
+
+```text
+Phase A: implemented, reported, and gated
+Phase B: implemented, reported, and gated
+Phase C: implemented, reported, and gated
+Phase D: implemented, reported, and gated
+Phase E: implemented, reported, and gated
+Phase F: implemented, reported, and gated
+Phase G: implemented, reported, and gated
+Phase H: implemented, reported, dashboarded, and gated
+Phase I: not implemented
+Phase J: not implemented
+```
+
+Current safe boundary:
+
+```text
+no external worker traffic
+no live worker intake
+no settlement execution
+no payout execution
+reports are generated from synthetic fixtures and local artifacts
+operator-facing dashboard evidence is read from the report index
+```
+
 ## Phase A: Protocol boundary
 
 Goal: define the worker protocol surface without adding a network listener.
@@ -227,6 +253,8 @@ unknown sessions cannot submit work
 operator report shows every live session
 ```
 
+Phase I must not start by accepting external traffic. The first implementation step must be a report-only readiness check that proves the configuration, limits, and operator-visible reports are present before any listener work is enabled.
+
 ## Phase J: Readiness gate
 
 Required evidence before the service is called ready:
@@ -246,4 +274,6 @@ Required evidence before the service is called ready:
 
 ## Next implementation PR
 
-The next code PR should be Phase A only: protocol message model, synthetic fixtures, parser tests, and a protocol summary report. Do not add a network listener in that PR.
+The next code PR should be Phase I readiness planning only: configuration schema, report fields, and tests that prove the listener remains disabled unless the operator explicitly enables it.
+
+Do not accept external worker traffic in the next PR. Do not execute settlement or payout actions in the next PR.
