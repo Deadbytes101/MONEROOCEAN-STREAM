@@ -43,6 +43,29 @@ const DECISION = {
   ledger_last_invalid_reason: "<none>"
 };
 
+const POOL_CORE_LEDGER = {
+  schema: 1,
+  status: "ok",
+  total_events: 2,
+  accepted_events: 1,
+  rejected_events: 1,
+  credited_difficulty: 10,
+  sessions: [
+    {
+      session_id: 1,
+      accepted_shares: 1,
+      rejected_shares: 0,
+      credited_difficulty: 10
+    },
+    {
+      session_id: 2,
+      accepted_shares: 0,
+      rejected_shares: 1,
+      credited_difficulty: 0
+    }
+  ]
+};
+
 const INDEX = {
   index_schema: 1,
   index_scope: "read_only",
@@ -101,6 +124,12 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /pool-core replay artifact discovered through the local report index/);
       assert.match(html, /pool_core_ledger/);
       assert.match(html, /reports\/dbyte-pool-ledger-report\.json/);
+      assert.match(html, /Replay/);
+      assert.match(html, /Total events/);
+      assert.match(html, /Accepted events/);
+      assert.match(html, /Rejected events/);
+      assert.match(html, /Credited difficulty/);
+      assert.match(html, /Session rows/);
       assert.match(html, /DBYTE Report Index/);
       assert.match(html, /Path/);
       assert.match(html, /Required/);
@@ -118,6 +147,23 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /fresh/);
       assert.match(html, /reports\/dbyte-agent-decision\.json/);
       assert.match(html, /reports\/dbyte-agent-index\.json/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("agent health rollup marks missing pool-core report JSON as attention", async () => {
+    const fixtures = agentFixtures();
+    delete fixtures["reports/dbyte-pool-ledger-report.json"];
+
+    await withFetchFixtures(fixtures, async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /attention/);
+      assert.match(html, /missing_pool_core_report/);
+      assert.match(html, /generate_pool_core_report/);
+      assert.match(html, /DBYTE Pool Core Evidence/);
+      assert.match(html, /Replay/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
@@ -190,7 +236,8 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
   test("agent health rollup marks missing report index as attention", async () => {
     await withFetchFixtures({
       "reports/dbyte-agent-telemetry.json": TELEMETRY,
-      "reports/dbyte-agent-decision.json": DECISION
+      "reports/dbyte-agent-decision.json": DECISION,
+      "reports/dbyte-pool-ledger-report.json": POOL_CORE_LEDGER
     }, async () => {
       const html = await agentSummaryPanel();
 
@@ -205,7 +252,8 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
   test("agent summary shows a decision artifact command when decision JSON is missing", async () => {
     await withFetchFixtures({
       "reports/dbyte-agent-telemetry.json": TELEMETRY,
-      "reports/dbyte-agent-index.json": INDEX
+      "reports/dbyte-agent-index.json": INDEX,
+      "reports/dbyte-pool-ledger-report.json": POOL_CORE_LEDGER
     }, async () => {
       const html = await agentSummaryPanel();
 
@@ -223,7 +271,8 @@ function agentFixtures(overrides = {}) {
   return {
     "reports/dbyte-agent-telemetry.json": overrides.telemetry || TELEMETRY,
     "reports/dbyte-agent-decision.json": overrides.decision || DECISION,
-    "reports/dbyte-agent-index.json": overrides.index || INDEX
+    "reports/dbyte-agent-index.json": overrides.index || INDEX,
+    "reports/dbyte-pool-ledger-report.json": overrides.poolCoreLedger || POOL_CORE_LEDGER
   };
 }
 
