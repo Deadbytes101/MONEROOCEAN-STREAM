@@ -43,33 +43,7 @@ const REPORTS = [
   poolCoreReport("pool_core_ledger", "reports/dbyte-pool-ledger-report.json", 0, 0, 0, 0, 0),
   poolCoreReport("pool_core_fixture_ledger", "reports/dbyte-pool-ledger-fixture-report.json", 2, 1, 1, 10, 2),
   poolCoreReport("pool_core_file_ledger", "reports/dbyte-pool-ledger-file-report.json", 2, 1, 1, 10, 2),
-  {
-    name: "phase_h_local_dry_run",
-    kind: "json",
-    path: "reports/dbyte-local-service-dry-run.json",
-    required: false,
-    exists: true,
-    status: "present",
-    sha256: "f".repeat(64),
-    size_bytes: 512,
-    dry_run_schema: 1,
-    dry_run_status: "ok",
-    dry_run_input_valid: true,
-    dry_run_job_source_valid: true,
-    dry_run_valid: true,
-    dry_run_mode: "local_fixture_dry_run",
-    dry_run_startup_status: "ok",
-    dry_run_shutdown_status: "ok",
-    dry_run_input_messages: 7,
-    dry_run_malformed_messages: 0,
-    dry_run_rate_limited_messages: 0,
-    dry_run_error_count: 0,
-    dry_run_accepted_submits: 1,
-    dry_run_rejected_submits: 0,
-    dry_run_plan_rows: 1,
-    dry_run_dashboard_source: "report_files_only",
-    dry_run_replayable: true
-  }
+  dryRunReport()
 ];
 
 test.describe("agent service dry-run dashboard", { concurrency: false }, () => {
@@ -88,6 +62,45 @@ test.describe("agent service dry-run dashboard", { concurrency: false }, () => {
       assert.match(html, /report_files_only/);
       assert.match(html, /Replayable/);
       assert.match(html, /yes/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("renders missing Phase H evidence without breaking the healthy agent summary", async () => {
+    const reports = REPORTS.filter((report) => report.name !== "phase_h_local_dry_run");
+
+    await withFetchFixtures({
+      "reports/dbyte-agent-telemetry.json": TELEMETRY,
+      "reports/dbyte-agent-decision.json": DECISION,
+      "reports/dbyte-agent-index.json": indexFixture(reports)
+    }, async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /local_artifacts_fresh/);
+      assert.match(html, /DBYTE Service Dry-Run Evidence/);
+      assert.match(html, /phase_h_local_dry_run/);
+      assert.match(html, /missing/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("renders attention Phase H evidence from the report index", async () => {
+    const reports = REPORTS.map((report) => report.name === "phase_h_local_dry_run"
+      ? { ...report, dry_run_status: "attention", dry_run_error_count: 2, dry_run_replayable: false }
+      : report);
+
+    await withFetchFixtures({
+      "reports/dbyte-agent-telemetry.json": TELEMETRY,
+      "reports/dbyte-agent-decision.json": DECISION,
+      "reports/dbyte-agent-index.json": indexFixture(reports)
+    }, async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Service Dry-Run Evidence/);
+      assert.match(html, /attention/);
+      assert.match(html, />2<\/td>/);
+      assert.match(html, /no/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
@@ -122,6 +135,36 @@ function poolCoreReport(name, path, totalEvents, acceptedEvents, rejectedEvents,
     replay_rejected_events: rejectedEvents,
     replay_credited_difficulty: creditedDifficulty,
     replay_session_count: sessionCount
+  };
+}
+
+function dryRunReport() {
+  return {
+    name: "phase_h_local_dry_run",
+    kind: "json",
+    path: "reports/dbyte-local-service-dry-run.json",
+    required: false,
+    exists: true,
+    status: "present",
+    sha256: "f".repeat(64),
+    size_bytes: 512,
+    dry_run_schema: 1,
+    dry_run_status: "ok",
+    dry_run_input_valid: true,
+    dry_run_job_source_valid: true,
+    dry_run_valid: true,
+    dry_run_mode: "local_fixture_dry_run",
+    dry_run_startup_status: "ok",
+    dry_run_shutdown_status: "ok",
+    dry_run_input_messages: 7,
+    dry_run_malformed_messages: 0,
+    dry_run_rate_limited_messages: 0,
+    dry_run_error_count: 0,
+    dry_run_accepted_submits: 1,
+    dry_run_rejected_submits: 0,
+    dry_run_plan_rows: 1,
+    dry_run_dashboard_source: "report_files_only",
+    dry_run_replayable: true
   };
 }
 
