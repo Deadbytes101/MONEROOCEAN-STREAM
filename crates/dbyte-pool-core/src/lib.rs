@@ -211,6 +211,27 @@ pub struct LedgerReplay {
     pub per_session: HashMap<SessionId, SessionReplay>,
 }
 
+impl LedgerReplay {
+    pub fn summary(&self) -> LedgerReplaySummary {
+        LedgerReplaySummary {
+            total_events: self.total_events,
+            accepted_events: self.accepted_events,
+            rejected_events: self.rejected_events,
+            credited_difficulty: self.credited_difficulty,
+            session_count: self.per_session.len() as u64,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct LedgerReplaySummary {
+    pub total_events: u64,
+    pub accepted_events: u64,
+    pub rejected_events: u64,
+    pub credited_difficulty: u64,
+    pub session_count: u64,
+}
+
 #[derive(Debug, Default)]
 pub struct ShareLedger {
     next_sequence: u64,
@@ -649,6 +670,45 @@ mod tests {
         assert_eq!(session.accepted_shares, 1);
         assert_eq!(session.rejected_shares, 1);
         assert_eq!(session.credited_difficulty, 100);
+    }
+
+    #[test]
+    fn ledger_replay_summary_matches_replay_totals() {
+        let mut ledger = ShareLedger::new();
+        ledger.append_event(LedgerEvent {
+            sequence: 1,
+            session_id: Some(SessionId(1)),
+            job_id: Some(JobId(1)),
+            nonce: Some(7),
+            outcome: LedgerOutcome::Accepted {
+                credited_difficulty: 100,
+            },
+        });
+        ledger.append_event(LedgerEvent {
+            sequence: 2,
+            session_id: Some(SessionId(2)),
+            job_id: Some(JobId(1)),
+            nonce: Some(8),
+            outcome: LedgerOutcome::Rejected {
+                reason: RejectReason::LowDifficulty {
+                    required: 100,
+                    actual: 50,
+                },
+            },
+        });
+
+        let replay = ledger.replay().expect("ledger replay should succeed");
+
+        assert_eq!(
+            replay.summary(),
+            LedgerReplaySummary {
+                total_events: 2,
+                accepted_events: 1,
+                rejected_events: 1,
+                credited_difficulty: 100,
+                session_count: 2,
+            }
+        );
     }
 
     #[test]
