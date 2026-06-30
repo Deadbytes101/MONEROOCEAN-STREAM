@@ -195,6 +195,9 @@ test("agent summary renders bridge evidence from the report index", async () => 
     assert.match(html, /Bridge comparison result status from the local report index/);
     assert.match(html, /Bridge file comparison result status from the local report index/);
     assert.match(html, /Bridge file parse result status from the local report index/);
+    assert.match(html, /Bridge comparison result status embedded in the index entry/);
+    assert.match(html, /Bridge file comparison result status embedded in the index entry/);
+    assert.match(html, /Bridge file parse result status embedded in the index entry/);
     assert.match(html, /Bridge index name/);
     assert.match(html, /Bridge index status/);
     assert.match(html, /Bridge compare status/);
