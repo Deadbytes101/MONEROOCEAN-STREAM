@@ -29,6 +29,7 @@ try {
         @{ name = "phase_b_registry"; kind = "json"; path = "reports\dbyte-session-registry.json"; required = $false },
         @{ name = "phase_c_job_source"; kind = "json"; path = "reports\dbyte-job-source.json"; required = $false },
         @{ name = "phase_d_share_intake"; kind = "json"; path = "reports\dbyte-share-intake.json"; required = $false },
+        @{ name = "phase_e_difficulty_policy"; kind = "json"; path = "reports\dbyte-difficulty-policy.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -134,6 +135,23 @@ try {
             $Entry.intake_rejected_submits = [int64]$PhaseDJson.summary.rejected_submits
             $Entry.intake_credited_difficulty = [int64]$PhaseDJson.summary.credited_difficulty
             $Entry.intake_rejection_count = [int64]@($PhaseDJson.summary.rejection_reasons).Count
+        }
+
+        if ([string]$Report.name -eq "phase_e_difficulty_policy" -and $Exists) {
+            $PhaseEJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.policy_schema = [int]$PhaseEJson.schema
+            $Entry.policy_status = [string]$PhaseEJson.status
+            $Entry.policy_input_valid = [bool]$PhaseEJson.input_valid
+            $Entry.policy_registry_valid = [bool]$PhaseEJson.registry_valid
+            $Entry.policy_job_source_valid = [bool]$PhaseEJson.job_source_valid
+            $Entry.policy_valid = [bool]$PhaseEJson.policy_valid
+            $Entry.policy_mode = [string]$PhaseEJson.summary.policy_mode
+            $Entry.policy_dry_run = [bool]$PhaseEJson.summary.dry_run
+            $Entry.policy_session_count = [int64]$PhaseEJson.summary.session_count
+            $Entry.policy_recommended_changes = [int64]$PhaseEJson.summary.recommended_changes
+            $Entry.policy_minimum_assigned_difficulty = [int64]$PhaseEJson.summary.minimum_assigned_difficulty
+            $Entry.policy_maximum_assigned_difficulty = [int64]$PhaseEJson.summary.maximum_assigned_difficulty
+            $Entry.policy_reason_count = [int64]$PhaseEJson.summary.reason_count
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
