@@ -1,0 +1,5 @@
+{"schema":1,"event":"session_started","rig_id":"a960d-lab","ts_unix":1000}
+{"schema":1,"event":"sample_observed","rig_id":"a960d-lab","sample_value":1200,"sample_unit":"hps","ts_unix":1010}
+{"schema":1,"event":"unit_accepted","rig_id":"a960d-lab","credited_units":10,"latency_ms":90,"ts_unix":1020}
+{"schema":1,"event":"unit_rejected","rig_id":"a960d-lab","reason":"fixture_reject","ts_unix":1030}
+{"schema":1,"event":"session_exited","rig_id":"a960d-lab","exit_code":0,"reason":"fixture_complete","ts_unix":1040}
