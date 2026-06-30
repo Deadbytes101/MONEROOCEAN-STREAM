@@ -59,6 +59,8 @@ try {
     $SessionEventsFixture = "tests\fixtures\session-events.clean.jsonl"
     $SessionEventsSummaryReport = "reports\dbyte-session-events-summary.json"
     $SessionEventsSummaryScript = Join-Path $Root "scripts\report-session-events.mjs"
+    $ProjectionReport = "reports\dbyte-replay-projection.json"
+    $ProjectionReportScript = Join-Path $Root "scripts\report-replay-projection.mjs"
     $IndexReport = "reports\dbyte-agent-index.json"
     $IndexReportScript = Join-Path $Root "scripts\report-agent-index.ps1"
 
@@ -206,6 +208,37 @@ try {
     Write-Host "event.summary.report=$SessionEventsSummaryReport"
     Write-Host "AGENT EVENT SUMMARY VERIFIED"
 
+    Invoke-Checked "projection report export" {
+        node $ProjectionReportScript --in $SessionEventsSummaryReport --out $ProjectionReport
+    }
+
+    if (!(Test-Path $ProjectionReport)) {
+        throw "missing projection artifact: $ProjectionReport"
+    }
+
+    $ProjectionJson = Get-Content $ProjectionReport -Raw | ConvertFrom-Json
+    if ($ProjectionJson.schema -ne 1) {
+        throw "projection schema must be 1"
+    }
+    if ($ProjectionJson.status -ne "ok") {
+        throw "projection status must be ok"
+    }
+    if ($ProjectionJson.total_events -ne 2) {
+        throw "projection should contain two events"
+    }
+    if ($ProjectionJson.accepted_events -ne 1) {
+        throw "projection should contain one accepted event"
+    }
+    if ($ProjectionJson.rejected_events -ne 1) {
+        throw "projection should contain one rejected event"
+    }
+    if ($ProjectionJson.credited_difficulty -ne 10) {
+        throw "projection should credit difficulty 10"
+    }
+
+    Write-Host "projection.report=$ProjectionReport"
+    Write-Host "AGENT PROJECTION VERIFIED"
+
     Invoke-Checked "report index export" {
         & $IndexReportScript -Out $IndexReport
     }
@@ -236,6 +269,14 @@ try {
     }
     if ($SessionEventsSummaryEntry.required -ne $false) {
         throw "session_events_summary index entry must remain optional in this phase"
+    }
+
+    $ProjectionEntry = $IndexJson.reports | Where-Object { $_.name -eq "replay_projection" -and $_.exists -and $_.status -eq "present" }
+    if (!$ProjectionEntry) {
+        throw "report index missing replay_projection artifact entry"
+    }
+    if ($ProjectionEntry.required -ne $false) {
+        throw "replay_projection index entry must remain optional in this phase"
     }
 
     $PoolCoreEntry = $IndexJson.reports | Where-Object { $_.name -eq "pool_core_ledger" -and $_.exists -and $_.status -eq "present" }
