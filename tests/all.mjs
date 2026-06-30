@@ -13,6 +13,7 @@ import "./difficulty-policy.mjs";
 import "./accounting-projection.mjs";
 import "./settlement-plan.mjs";
 import "./local-service-dry-run.mjs";
+import "./service-readiness.mjs";
 import "./bridge-file-report.mjs";
 import "./wallet-workers-render-policy.mjs";
 import "./setup-settings.mjs";
