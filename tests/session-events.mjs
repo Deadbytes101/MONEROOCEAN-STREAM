@@ -11,6 +11,16 @@ import { projectSessionSummaryToReplayReport } from "../src/replay-projection.js
 
 const execFileAsync = promisify(execFile);
 
+const POOL_REPORT_COMMAND = [
+  "run",
+  "--manifest-path",
+  "crates/dbyte-pool-core/Cargo.toml",
+  "--quiet",
+  "--bin",
+  "dbyte-pool-ledger-report",
+  "--"
+];
+
 test.describe("session event parser", { concurrency: false }, () => {
   test("parses clean session event fixture and summarizes counters", async () => {
     const source = await readFile("tests/fixtures/session-events.clean.jsonl", "utf8");
@@ -154,28 +164,9 @@ test.describe("session event parser", { concurrency: false }, () => {
     const compareOutput = join(directory, "compare.json");
 
     try {
-      await execFileAsync(execPath, [
-        "scripts/report-session-events.mjs",
-        "--in",
-        "tests/fixtures/session-events.clean.jsonl",
-        "--out",
-        summaryOutput
-      ]);
-      await execFileAsync(execPath, [
-        "scripts/report-replay-projection.mjs",
-        "--in",
-        summaryOutput,
-        "--out",
-        projectionOutput
-      ]);
+      await writeProjectionReport(summaryOutput, projectionOutput);
       const { stdout: poolStdout } = await execFileAsync("cargo", [
-        "run",
-        "--manifest-path",
-        "crates/dbyte-pool-core/Cargo.toml",
-        "--quiet",
-        "--bin",
-        "dbyte-pool-ledger-report",
-        "--",
+        ...POOL_REPORT_COMMAND,
         "--fixture",
         "two-session"
       ]);
@@ -191,19 +182,73 @@ test.describe("session event parser", { concurrency: false }, () => {
       ]);
       const report = JSON.parse(await readFile(compareOutput, "utf8"));
 
-      assert.match(stdout, /bridge\.compare\.status=ok/);
-      assert.equal(report.schema, 1);
-      assert.equal(report.status, "ok");
-      assert.deepEqual(report.matches, {
-        total_events: true,
-        accepted_events: true,
-        rejected_events: true,
-        credited_difficulty: true
-      });
-      assert.equal(report.projection.credited_difficulty, 10);
-      assert.equal(report.pool.credited_difficulty, 10);
+      assertBridgeCompareReport(stdout, report);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test("compares projection counters against pool core file output", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "dbyte-file-compare-"));
+    const summaryOutput = join(directory, "summary.json");
+    const projectionOutput = join(directory, "projection.json");
+    const poolOutput = join(directory, "pool-file.json");
+    const compareOutput = join(directory, "compare-file.json");
+
+    try {
+      await writeProjectionReport(summaryOutput, projectionOutput);
+      const { stdout: poolStdout } = await execFileAsync("cargo", [
+        ...POOL_REPORT_COMMAND,
+        "--file",
+        "tests/fixtures/pool-core-bridge.ledger"
+      ]);
+      await writeFile(poolOutput, poolStdout, "utf8");
+      const { stdout } = await execFileAsync(execPath, [
+        "scripts/report-bridge-compare.mjs",
+        "--projection",
+        projectionOutput,
+        "--pool",
+        poolOutput,
+        "--out",
+        compareOutput
+      ]);
+      const report = JSON.parse(await readFile(compareOutput, "utf8"));
+
+      assertBridgeCompareReport(stdout, report);
+      assert.equal(report.pool_path, poolOutput);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
   });
 });
+
+async function writeProjectionReport(summaryOutput, projectionOutput) {
+  await execFileAsync(execPath, [
+    "scripts/report-session-events.mjs",
+    "--in",
+    "tests/fixtures/session-events.clean.jsonl",
+    "--out",
+    summaryOutput
+  ]);
+  await execFileAsync(execPath, [
+    "scripts/report-replay-projection.mjs",
+    "--in",
+    summaryOutput,
+    "--out",
+    projectionOutput
+  ]);
+}
+
+function assertBridgeCompareReport(stdout, report) {
+  assert.match(stdout, /bridge\.compare\.status=ok/);
+  assert.equal(report.schema, 1);
+  assert.equal(report.status, "ok");
+  assert.deepEqual(report.matches, {
+    total_events: true,
+    accepted_events: true,
+    rejected_events: true,
+    credited_difficulty: true
+  });
+  assert.equal(report.projection.credited_difficulty, 10);
+  assert.equal(report.pool.credited_difficulty, 10);
+}
