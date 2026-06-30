@@ -21,6 +21,7 @@ runStep("javascript and browser tests", execPath, [
   "tests/all.mjs"
 ]);
 runStep("phase A gate", execPath, ["scripts/verify-phase-a.mjs"]);
+runStep("phase B gate", execPath, ["scripts/verify-phase-b.mjs"]);
 runPowerShellStep("agent gate", "scripts/verify-agent.ps1");
 runStep("static build", execPath, ["scripts/build-static.mjs"]);
 
