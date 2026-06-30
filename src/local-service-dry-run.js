@@ -68,6 +68,7 @@ export function runLocalServiceDryRun(input = {}) {
       registry_sessions: registry.summary.session_count,
       job_source_jobs: jobSource.summary?.total_jobs || jobSource.templates.length,
       intake_status: intake.summary.rejected_submits === 0 ? "ok" : "attention",
+      policy_status: policy.summary.status,
       accounting_status: accounting.summary.status,
       settlement_status: settlement.summary.status
     },
