@@ -161,6 +161,159 @@ pub enum RejectReason {
     UnauthorizedWallet,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LedgerOutcome {
+    Accepted { credited_difficulty: u64 },
+    Rejected { reason: RejectReason },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LedgerEvent {
+    pub sequence: u64,
+    pub session_id: Option<SessionId>,
+    pub job_id: Option<JobId>,
+    pub nonce: Option<u64>,
+    pub outcome: LedgerOutcome,
+}
+
+impl LedgerEvent {
+    fn accepted_key(&self) -> Option<ShareKey> {
+        match self.outcome {
+            LedgerOutcome::Accepted { .. } => Some(ShareKey {
+                session_id: self.session_id?,
+                job_id: self.job_id?,
+                nonce: self.nonce?,
+            }),
+            LedgerOutcome::Rejected { .. } => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LedgerError {
+    SequenceGap { expected: u64, actual: u64 },
+    DuplicateAcceptedShare { sequence: u64, key: ShareKey },
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SessionReplay {
+    pub accepted_shares: u64,
+    pub rejected_shares: u64,
+    pub credited_difficulty: u64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LedgerReplay {
+    pub total_events: u64,
+    pub accepted_events: u64,
+    pub rejected_events: u64,
+    pub credited_difficulty: u64,
+    pub per_session: HashMap<SessionId, SessionReplay>,
+}
+
+#[derive(Debug, Default)]
+pub struct ShareLedger {
+    next_sequence: u64,
+    events: Vec<LedgerEvent>,
+}
+
+impl ShareLedger {
+    pub fn new() -> Self {
+        Self {
+            next_sequence: 1,
+            events: Vec::new(),
+        }
+    }
+
+    pub fn append_result(&mut self, submit: &ShareSubmit, result: &ShareResult) -> &LedgerEvent {
+        let outcome = match result {
+            ShareResult::Accepted(accepted) => LedgerOutcome::Accepted {
+                credited_difficulty: accepted.credited_difficulty,
+            },
+            ShareResult::Rejected(rejected) => LedgerOutcome::Rejected {
+                reason: rejected.reason.clone(),
+            },
+        };
+        let event = LedgerEvent {
+            sequence: self.next_sequence,
+            session_id: Some(submit.session_id),
+            job_id: Some(submit.job_id),
+            nonce: Some(submit.nonce),
+            outcome,
+        };
+        self.next_sequence += 1;
+        self.events.push(event);
+        self.events
+            .last()
+            .expect("ledger event was pushed before returning")
+    }
+
+    pub fn append_event(&mut self, event: LedgerEvent) {
+        self.next_sequence = self.next_sequence.max(event.sequence.saturating_add(1));
+        self.events.push(event);
+    }
+
+    pub fn events(&self) -> &[LedgerEvent] {
+        &self.events
+    }
+
+    pub fn replay(&self) -> Result<LedgerReplay, LedgerError> {
+        replay_ledger(&self.events)
+    }
+}
+
+pub fn replay_ledger(events: &[LedgerEvent]) -> Result<LedgerReplay, LedgerError> {
+    let mut replay = LedgerReplay::default();
+    let mut seen_accepted = HashSet::new();
+
+    for (index, event) in events.iter().enumerate() {
+        let expected = (index as u64) + 1;
+        if event.sequence != expected {
+            return Err(LedgerError::SequenceGap {
+                expected,
+                actual: event.sequence,
+            });
+        }
+
+        replay.total_events += 1;
+
+        match &event.outcome {
+            LedgerOutcome::Accepted { credited_difficulty } => {
+                let Some(key) = event.accepted_key() else {
+                    return Err(LedgerError::SequenceGap {
+                        expected,
+                        actual: event.sequence,
+                    });
+                };
+                if !seen_accepted.insert(key.clone()) {
+                    return Err(LedgerError::DuplicateAcceptedShare {
+                        sequence: event.sequence,
+                        key,
+                    });
+                }
+
+                replay.accepted_events += 1;
+                replay.credited_difficulty += credited_difficulty;
+                let session = replay.per_session.entry(key.session_id).or_default();
+                session.accepted_shares += 1;
+                session.credited_difficulty += credited_difficulty;
+            }
+            LedgerOutcome::Rejected { .. } => {
+                replay.rejected_events += 1;
+                if let Some(session_id) = event.session_id {
+                    replay
+                        .per_session
+                        .entry(session_id)
+                        .or_default()
+                        .rejected_shares += 1;
+                }
+            }
+        }
+    }
+
+    Ok(replay)
+}
+
 #[derive(Debug, Default)]
 pub struct FakePoolHarness {
     next_session_id: u64,
@@ -460,5 +613,91 @@ mod tests {
         let result = pool.register_session("   ", "worker-a", 10);
 
         assert_eq!(result, Err(RejectReason::UnauthorizedWallet));
+    }
+
+    #[test]
+    fn ledger_replay_counts_accepted_and_rejected_events() {
+        let mut pool = FakePoolHarness::new();
+        let mut ledger = ShareLedger::new();
+        let session_id = pool
+            .register_session("wallet-one", "worker-a", 100)
+            .expect("valid session");
+        let job_id = pool.create_job(1_000, 100, Hash32::zero());
+        pool.assign_job(session_id, job_id).expect("valid job");
+
+        let good_submit = submit(session_id, job_id, 1, 100);
+        let good_result = pool.submit_share(good_submit.clone());
+        ledger.append_result(&good_submit, &good_result);
+
+        let low_submit = submit(session_id, job_id, 2, 50);
+        let low_result = pool.submit_share(low_submit.clone());
+        ledger.append_result(&low_submit, &low_result);
+
+        let replay = ledger.replay().expect("ledger replay should succeed");
+        let session = replay
+            .per_session
+            .get(&session_id)
+            .expect("session replay should exist");
+
+        assert_eq!(replay.total_events, 2);
+        assert_eq!(replay.accepted_events, 1);
+        assert_eq!(replay.rejected_events, 1);
+        assert_eq!(replay.credited_difficulty, 100);
+        assert_eq!(session.accepted_shares, 1);
+        assert_eq!(session.rejected_shares, 1);
+        assert_eq!(session.credited_difficulty, 100);
+    }
+
+    #[test]
+    fn ledger_replay_rejects_sequence_gap() {
+        let mut ledger = ShareLedger::new();
+        ledger.append_event(LedgerEvent {
+            sequence: 2,
+            session_id: Some(SessionId(1)),
+            job_id: Some(JobId(1)),
+            nonce: Some(1),
+            outcome: LedgerOutcome::Accepted {
+                credited_difficulty: 100,
+            },
+        });
+
+        assert_eq!(
+            ledger.replay(),
+            Err(LedgerError::SequenceGap {
+                expected: 1,
+                actual: 2,
+            })
+        );
+    }
+
+    #[test]
+    fn ledger_replay_rejects_duplicate_accepted_share() {
+        let mut ledger = ShareLedger::new();
+        let event = LedgerEvent {
+            sequence: 1,
+            session_id: Some(SessionId(1)),
+            job_id: Some(JobId(1)),
+            nonce: Some(7),
+            outcome: LedgerOutcome::Accepted {
+                credited_difficulty: 100,
+            },
+        };
+        ledger.append_event(event.clone());
+        ledger.append_event(LedgerEvent {
+            sequence: 2,
+            ..event
+        });
+
+        assert_eq!(
+            ledger.replay(),
+            Err(LedgerError::DuplicateAcceptedShare {
+                sequence: 2,
+                key: ShareKey {
+                    session_id: SessionId(1),
+                    job_id: JobId(1),
+                    nonce: 7,
+                },
+            })
+        );
     }
 }
