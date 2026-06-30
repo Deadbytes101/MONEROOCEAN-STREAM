@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { execPath } from "node:process";
 
 const require = createRequire(import.meta.url);
+const TRANSIENT_BROWSER_ERRORS = ["ERR_NO_BUFFER_SPACE"];
 
 function packageBin(packageName, binName = packageName) {
   const packagePath = require.resolve(`${packageName}/package.json`);
@@ -21,7 +22,11 @@ function packageBin(packageName, binName = packageName) {
 test.describe("e2e browser suite", { concurrency: false }, () => {
   test("playwright browser checks", async (t) => {
     await buildStaticBundle();
-    const run = await runPlaywrightNodeSubtests(t);
+    let run = await runPlaywrightNodeSubtests(t);
+    if (shouldRetryPlaywright(run)) {
+      process.stderr.write("Retrying Playwright after transient browser resource error.\n");
+      run = await runPlaywrightNodeSubtests(t);
+    }
     assert.equal(run.code, 0, run.message);
     assert.equal(run.failures, 0, run.message);
   });
@@ -52,6 +57,7 @@ function runPlaywrightNodeSubtests(t) {
     let buffered = "";
     let stderr = "";
     let failures = 0;
+    const failureMessages = [];
     child.stdout.on("data", (chunk) => {
       buffered += chunk;
       const lines = buffered.split("\n");
@@ -68,14 +74,18 @@ function runPlaywrightNodeSubtests(t) {
       pending.then(() => resolve({
         code,
         failures,
-        message: stderr || `Playwright exited with code ${code}`
+        failureMessages,
+        message: stderr || failureMessages.join("\n") || `Playwright exited with code ${code}`
       }), reject);
     });
 
     function runProgressEvent(parent, line) {
       if (!line.trim()) return Promise.resolve();
       const event = JSON.parse(line);
-      if (event.type === "testEnd" && !event.ok && !event.skipped) failures += 1;
+      if (event.type === "testEnd" && !event.ok && !event.skipped) {
+        failures += 1;
+        failureMessages.push(event.message || event.name || "Playwright test failed");
+      }
       if (event.type !== "testEnd") return Promise.resolve();
       const options = event.skipped ? { skip: true } : {};
       return parent.test(event.name, options, () => {
@@ -83,4 +93,9 @@ function runPlaywrightNodeSubtests(t) {
       });
     }
   });
+}
+
+function shouldRetryPlaywright(run) {
+  if (run.code === 0 && run.failures === 0) return false;
+  return run.failureMessages.some((message) => TRANSIENT_BROWSER_ERRORS.some((marker) => message.includes(marker)));
 }
