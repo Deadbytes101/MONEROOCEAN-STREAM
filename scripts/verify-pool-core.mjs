@@ -33,7 +33,7 @@ function writePoolLedgerReport() {
     "dbyte-pool-ledger-report"
   ], { encoding: "utf8" });
   mkdirSync(dirname(ledgerReportPath), { recursive: true });
-  writeFileSync(ledgerReportPath, output.trimEnd() + "\n", "utf8");
+  writeFileSync(ledgerReportPath, `${output.trimEnd()}\n`, "utf8");
   const stat = statSync(ledgerReportPath);
   console.log(`pool.ledger.report=${ledgerReportPath}`);
   console.log(`pool.ledger.report_size_bytes=${stat.size}`);
