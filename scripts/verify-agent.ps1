@@ -54,6 +54,8 @@ try {
     $ReleaseManifest = "reports\dbyte-agent-release.json"
     $ReleaseManifestSeal = "reports\dbyte-agent-release.seal.txt"
     $ReleaseScript = Join-Path $Root "scripts\build-agent-release.ps1"
+    $IndexReport = "reports\dbyte-agent-index.json"
+    $IndexReportScript = Join-Path $Root "scripts\report-agent-index.ps1"
 
     Invoke-Checked "cargo fmt" {
         cargo fmt --manifest-path $Manifest -- --check
@@ -145,6 +147,25 @@ try {
     Write-Host "seal.readback=$ReleaseManifestSeal"
     Write-Host "seal.manifest_sha256=$ReleaseManifestSha256"
     Write-Host "AGENT SEAL READBACK VERIFIED"
+
+    Invoke-Checked "report index export" {
+        & $IndexReportScript -Out $IndexReport
+    }
+
+    if (!(Test-Path $IndexReport)) {
+        throw "missing report index artifact: $IndexReport"
+    }
+
+    $IndexJson = Get-Content $IndexReport -Raw | ConvertFrom-Json
+    if ($IndexJson.index_scope -ne "read_only") {
+        throw "report index must stay read-only"
+    }
+    if ($IndexJson.index_status -ne "ok") {
+        throw "report index did not approve generated reports"
+    }
+
+    Write-Host "index.report=$IndexReport"
+    Write-Host "AGENT REPORT INDEX VERIFIED"
 
     Write-Host "== gate passed =="
     Write-Host "AGENT TEST GATE PASSED"
