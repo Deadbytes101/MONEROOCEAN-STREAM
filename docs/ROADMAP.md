@@ -87,3 +87,23 @@ Goal: show truth, not hype.
 - Backend comparison.
 - Route decisions.
 - Reproducible reports.
+
+## Advanced core track
+
+The advanced track is documented in [DBYTE-OCEAN Advanced Core Architecture](ADVANCED_CORE_ARCHITECTURE.md) and broken into mergeable steps in [DBYTE-OCEAN Implementation Sequence](IMPLEMENTATION_SEQUENCE.md).
+
+The order is:
+
+```text
+1. Evidence index expansion
+2. Runtime session schema
+3. Runtime evidence report
+4. Share replay bridge
+5. Backend observation report
+6. Policy dry-run
+7. Dashboard projection
+```
+
+The next implementation target is Phase 1 only: add `local_agent_evidence` to the report index and dashboard health rollup tests.
+
+Do not implement live route mutation until the runtime evidence, replay bridge, backend observations, and policy dry-run reports are all stable.
