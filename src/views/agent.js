@@ -5,7 +5,9 @@ const TELEMETRY_JSON_PATH = "reports/dbyte-agent-telemetry.json";
 const DECISION_JSON_PATH = "reports/dbyte-agent-decision.json";
 const INDEX_JSON_PATH = "reports/dbyte-agent-index.json";
 const POOL_CORE_LEDGER_REPORT_NAME = "pool_core_ledger";
+const POOL_CORE_FIXTURE_LEDGER_REPORT_NAME = "pool_core_fixture_ledger";
 const POOL_CORE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-report.json";
+const POOL_CORE_FIXTURE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-fixture-report.json";
 const TELEMETRY_STALE_SECONDS = 300;
 const DECISION_STALE_SECONDS = 300;
 const INDEX_STALE_SECONDS = 300;
@@ -54,7 +56,9 @@ function healthPanel(telemetry, decision, index) {
   const indexStatus = index ? String(index.index_status || "unknown") : "missing_artifact";
   const reports = indexReports(index);
   const poolCoreReport = poolCoreLedgerReport(reports);
+  const poolCoreFixtureReport = poolCoreFixtureLedgerReport(reports);
   const poolCoreStatus = poolCoreReplayStatus(poolCoreReport);
+  const poolCoreFixtureStatus = poolCoreReplayStatus(poolCoreFixtureReport);
 
   return `<section class=panel>
     <div class=panel-header>
@@ -71,7 +75,8 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Decision", freshnessValue(decisionFreshness), "Decision artifact freshness.")}
       ${kpi("Index", { html: `<span class="${reportStatusClass(indexStatus)}">${escapeHtml(indexStatus)}</span>` }, "Report index status.")}
       ${kpi("Index age", freshnessValue(indexFreshness), "Report index artifact freshness.")}
-      ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core replay report status from the local report index.")}
+      ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core zero-init replay report status from the local report index.")}
+      ${kpi("Pool fixture", { html: `<span class="${reportStatusClass(poolCoreFixtureStatus)}">${escapeHtml(poolCoreFixtureStatus)}</span>` }, "Pool-core deterministic fixture replay report status from the local report index.")}
     </div>
   </section>`;
 }
@@ -88,8 +93,14 @@ function agentHealth(telemetry, decision, index) {
   const poolCoreReport = poolCoreLedgerReport(reports);
   if (!poolCoreReport) return { status: "attention", reason: "missing_pool_core_ledger", next: "refresh_index" };
 
+  const poolCoreFixtureReport = poolCoreFixtureLedgerReport(reports);
+  if (!poolCoreFixtureReport) return { status: "attention", reason: "missing_pool_core_fixture_ledger", next: "refresh_index" };
+
   const replayStatus = String(poolCoreReport.replay_status || "");
   if (replayStatus && replayStatus !== "ok") return { status: "attention", reason: `pool_core_${replayStatus}`, next: "inspect_pool_core_report" };
+
+  const fixtureReplayStatus = String(poolCoreFixtureReport.replay_status || "");
+  if (fixtureReplayStatus && fixtureReplayStatus !== "ok") return { status: "attention", reason: `pool_core_fixture_${fixtureReplayStatus}`, next: "inspect_pool_core_fixture_report" };
 
   const indexFreshness = artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS);
   if (indexFreshness.label !== "fresh") return { status: "attention", reason: `index_${indexFreshness.label}`, next: "refresh_index" };
@@ -195,54 +206,54 @@ function decisionPanel(decision) {
 function poolCoreArtifactPanel(index) {
   const reports = indexReports(index);
   const report = poolCoreLedgerReport(reports);
+  const fixtureReport = poolCoreFixtureLedgerReport(reports);
   const status = report ? String(report.status || "unknown") : "missing";
-  const exists = report ? report.exists === true : false;
-  const kind = report ? String(report.kind || "unknown") : "json";
+  const fixtureStatus = fixtureReport ? String(fixtureReport.status || "unknown") : "missing";
   const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
-  const sizeBytes = report ? Number(report.size_bytes) || 0 : 0;
-  const sha256 = report ? String(report.sha256 || "--") : "--";
+  const fixturePath = fixtureReport ? String(fixtureReport.path || POOL_CORE_FIXTURE_LEDGER_REPORT_PATH) : POOL_CORE_FIXTURE_LEDGER_REPORT_PATH;
   const replayStatus = poolCoreReplayStatus(report);
+  const fixtureReplayStatus = poolCoreReplayStatus(fixtureReport);
   const totalEvents = report ? Number(report.replay_total_events) || 0 : 0;
-  const acceptedEvents = report ? Number(report.replay_accepted_events) || 0 : 0;
-  const rejectedEvents = report ? Number(report.replay_rejected_events) || 0 : 0;
-  const creditedDifficulty = report ? Number(report.replay_credited_difficulty) || 0 : 0;
-  const sessionCount = report ? Number(report.replay_session_count) || 0 : 0;
+  const fixtureTotalEvents = fixtureReport ? Number(fixtureReport.replay_total_events) || 0 : 0;
+  const fixtureAcceptedEvents = fixtureReport ? Number(fixtureReport.replay_accepted_events) || 0 : 0;
+  const fixtureRejectedEvents = fixtureReport ? Number(fixtureReport.replay_rejected_events) || 0 : 0;
+  const fixtureCreditedDifficulty = fixtureReport ? Number(fixtureReport.replay_credited_difficulty) || 0 : 0;
+  const fixtureSessionCount = fixtureReport ? Number(fixtureReport.replay_session_count) || 0 : 0;
 
   return `<section class=panel>
     <div class=panel-header>
       <div>
         <h2>DBYTE Pool Core Evidence</h2>
-        <p class=muted>Display-only pool-core replay artifact discovered through the local report index.</p>
+        <p class=muted>Display-only pool-core zero-init and deterministic fixture replay artifacts discovered through the local report index.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
-      ${kpi("Status", { html: `<span class="${reportStatusClass(status)}">${escapeHtml(status)}</span>` }, "Pool-core report artifact status from the index.")}
-      ${kpi("Replay", { html: `<span class="${reportStatusClass(replayStatus)}">${escapeHtml(replayStatus)}</span>` }, "Pool-core replay status embedded in the index entry.")}
-      ${kpi("Events", formatNumber(totalEvents), "Total pool-core replay events embedded in the index entry.")}
-      ${kpi("Accepted", formatNumber(acceptedEvents), "Accepted replay events embedded in the index entry.")}
-      ${kpi("Rejected", formatNumber(rejectedEvents), "Rejected replay events embedded in the index entry.")}
-      ${kpi("Credited", formatNumber(creditedDifficulty), "Credited difficulty total embedded in the index entry.")}
-      ${kpi("Sessions", formatNumber(sessionCount), "Session rows embedded in the index entry.")}
-      ${kpi("Path", path, "Local pool-core report artifact path.")}
+      ${kpi("Default", { html: `<span class="${reportStatusClass(replayStatus)}">${escapeHtml(replayStatus)}</span>` }, "Zero-init pool-core replay report status embedded in the index entry.")}
+      ${kpi("Fixture", { html: `<span class="${reportStatusClass(fixtureReplayStatus)}">${escapeHtml(fixtureReplayStatus)}</span>` }, "Deterministic non-zero pool-core fixture replay report status embedded in the index entry.")}
+      ${kpi("Default events", formatNumber(totalEvents), "Zero-init replay event count embedded in the index entry.")}
+      ${kpi("Fixture events", formatNumber(fixtureTotalEvents), "Fixture replay event count embedded in the index entry.")}
+      ${kpi("Fixture accepted", formatNumber(fixtureAcceptedEvents), "Fixture accepted replay events embedded in the index entry.")}
+      ${kpi("Fixture rejected", formatNumber(fixtureRejectedEvents), "Fixture rejected replay events embedded in the index entry.")}
+      ${kpi("Fixture credited", formatNumber(fixtureCreditedDifficulty), "Fixture credited difficulty total embedded in the index entry.")}
+      ${kpi("Fixture sessions", formatNumber(fixtureSessionCount), "Fixture replay session rows embedded in the index entry.")}
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE pool core evidence details">
         <tbody>
-          ${detailRow("Index name", report ? report.name : POOL_CORE_LEDGER_REPORT_NAME)}
-          ${detailRow("Index status", status)}
-          ${detailRow("Replay status", replayStatus)}
-          ${detailRow("Exists", exists ? "yes" : "no")}
-          ${detailRow("Kind", kind)}
-          ${detailRow("Required", report ? requiredLabel(report.required) : "yes")}
-          ${detailRow("Path", path)}
-          ${detailRow("Size", formatNumber(sizeBytes))}
-          ${detailRow("SHA256", sha256)}
-          ${detailRow("Schema", report ? report.replay_schema : "--")}
-          ${detailRow("Total events", formatNumber(totalEvents))}
-          ${detailRow("Accepted events", formatNumber(acceptedEvents))}
-          ${detailRow("Rejected events", formatNumber(rejectedEvents))}
-          ${detailRow("Credited difficulty", formatNumber(creditedDifficulty))}
-          ${detailRow("Session rows", formatNumber(sessionCount))}
+          ${detailRow("Default index name", report ? report.name : POOL_CORE_LEDGER_REPORT_NAME)}
+          ${detailRow("Default index status", status)}
+          ${detailRow("Default replay status", replayStatus)}
+          ${detailRow("Default path", path)}
+          ${detailRow("Default total events", formatNumber(totalEvents))}
+          ${detailRow("Fixture index name", fixtureReport ? fixtureReport.name : POOL_CORE_FIXTURE_LEDGER_REPORT_NAME)}
+          ${detailRow("Fixture index status", fixtureStatus)}
+          ${detailRow("Fixture replay status", fixtureReplayStatus)}
+          ${detailRow("Fixture path", fixturePath)}
+          ${detailRow("Fixture total events", formatNumber(fixtureTotalEvents))}
+          ${detailRow("Fixture accepted events", formatNumber(fixtureAcceptedEvents))}
+          ${detailRow("Fixture rejected events", formatNumber(fixtureRejectedEvents))}
+          ${detailRow("Fixture credited difficulty", formatNumber(fixtureCreditedDifficulty))}
+          ${detailRow("Fixture session rows", formatNumber(fixtureSessionCount))}
         </tbody>
       </table>
     </div>
@@ -299,6 +310,10 @@ function indexReports(index) {
 
 function poolCoreLedgerReport(reports) {
   return reports.find((report) => String(report.name || "") === POOL_CORE_LEDGER_REPORT_NAME) || null;
+}
+
+function poolCoreFixtureLedgerReport(reports) {
+  return reports.find((report) => String(report.name || "") === POOL_CORE_FIXTURE_LEDGER_REPORT_NAME) || null;
 }
 
 function poolCoreReplayStatus(report) {
