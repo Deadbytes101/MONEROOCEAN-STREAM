@@ -6,10 +6,12 @@ const DECISION_JSON_PATH = "reports/dbyte-agent-decision.json";
 const INDEX_JSON_PATH = "reports/dbyte-agent-index.json";
 const POOL_CORE_LEDGER_REPORT_NAME = "pool_core_ledger";
 const POOL_CORE_FIXTURE_LEDGER_REPORT_NAME = "pool_core_fixture_ledger";
+const POOL_CORE_FILE_LEDGER_REPORT_NAME = "pool_core_file_ledger";
 const BRIDGE_COMPARE_REPORT_NAME = "bridge_compare";
 const BRIDGE_FILE_REPORT_NAME = "bridge_file";
 const POOL_CORE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-report.json";
 const POOL_CORE_FIXTURE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-fixture-report.json";
+const POOL_CORE_FILE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-file-report.json";
 const BRIDGE_COMPARE_REPORT_PATH = "reports/dbyte-bridge-compare.json";
 const BRIDGE_FILE_REPORT_PATH = "reports/dbyte-bridge-file.json";
 const TELEMETRY_STALE_SECONDS = 300;
@@ -61,10 +63,12 @@ function healthPanel(telemetry, decision, index) {
   const reports = indexReports(index);
   const poolCoreReport = poolCoreLedgerReport(reports);
   const poolCoreFixtureReport = poolCoreFixtureLedgerReport(reports);
+  const poolCoreFileReport = poolCoreFileLedgerReport(reports);
   const bridgeReport = bridgeCompareReport(reports);
   const bridgeFileArtifact = bridgeFileReport(reports);
   const poolCoreStatus = poolCoreReplayStatus(poolCoreReport);
   const poolCoreFixtureStatus = poolCoreReplayStatus(poolCoreFixtureReport);
+  const poolCoreFileStatus = poolCoreReplayStatus(poolCoreFileReport);
   const bridgeStatus = bridgeReport ? String(bridgeReport.status || "unknown") : "missing";
   const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.status || "unknown") : "missing";
 
@@ -85,6 +89,7 @@ function healthPanel(telemetry, decision, index) {
       ${kpi("Index age", freshnessValue(indexFreshness), "Report index artifact freshness.")}
       ${kpi("Pool core", { html: `<span class="${reportStatusClass(poolCoreStatus)}">${escapeHtml(poolCoreStatus)}</span>` }, "Pool-core zero-init replay report status from the local report index.")}
       ${kpi("Pool fixture", { html: `<span class="${reportStatusClass(poolCoreFixtureStatus)}">${escapeHtml(poolCoreFixtureStatus)}</span>` }, "Pool-core deterministic fixture replay report status from the local report index.")}
+      ${kpi("Pool file", { html: `<span class="${reportStatusClass(poolCoreFileStatus)}">${escapeHtml(poolCoreFileStatus)}</span>` }, "Pool-core deterministic file replay report status from the local report index.")}
       ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeStatus)}">${escapeHtml(bridgeStatus)}</span>` }, "Bridge comparison report inventory status from the local report index.")}
       ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileStatus)}">${escapeHtml(bridgeFileStatus)}</span>` }, "Bridge file report inventory status from the local report index.")}
     </div>
@@ -106,11 +111,17 @@ function agentHealth(telemetry, decision, index) {
   const poolCoreFixtureReport = poolCoreFixtureLedgerReport(reports);
   if (!poolCoreFixtureReport) return { status: "attention", reason: "missing_pool_core_fixture_ledger", next: "refresh_index" };
 
+  const poolCoreFileReport = poolCoreFileLedgerReport(reports);
+  if (!poolCoreFileReport) return { status: "attention", reason: "missing_pool_core_file_ledger", next: "refresh_index" };
+
   const replayStatus = String(poolCoreReport.replay_status || "");
   if (replayStatus && replayStatus !== "ok") return { status: "attention", reason: `pool_core_${replayStatus}`, next: "inspect_pool_core_report" };
 
   const fixtureReplayStatus = String(poolCoreFixtureReport.replay_status || "");
   if (fixtureReplayStatus && fixtureReplayStatus !== "ok") return { status: "attention", reason: `pool_core_fixture_${fixtureReplayStatus}`, next: "inspect_pool_core_fixture_report" };
+
+  const fileReplayStatus = String(poolCoreFileReport.replay_status || "");
+  if (fileReplayStatus && fileReplayStatus !== "ok") return { status: "attention", reason: `pool_core_file_${fileReplayStatus}`, next: "inspect_pool_core_file_report" };
 
   const indexFreshness = artifactFreshness(Number(index.index_ts_unix) || 0, INDEX_STALE_SECONDS);
   if (indexFreshness.label !== "fresh") return { status: "attention", reason: `index_${indexFreshness.label}`, next: "refresh_index" };
@@ -217,43 +228,58 @@ function poolCoreArtifactPanel(index) {
   const reports = indexReports(index);
   const report = poolCoreLedgerReport(reports);
   const fixtureReport = poolCoreFixtureLedgerReport(reports);
+  const fileReport = poolCoreFileLedgerReport(reports);
   const bridgeReport = bridgeCompareReport(reports);
   const bridgeFileArtifact = bridgeFileReport(reports);
   const status = report ? String(report.status || "unknown") : "missing";
   const fixtureStatus = fixtureReport ? String(fixtureReport.status || "unknown") : "missing";
+  const fileStatus = fileReport ? String(fileReport.status || "unknown") : "missing";
   const bridgeStatus = bridgeReport ? String(bridgeReport.status || "unknown") : "missing";
   const bridgeFileStatus = bridgeFileArtifact ? String(bridgeFileArtifact.status || "unknown") : "missing";
   const path = report ? String(report.path || POOL_CORE_LEDGER_REPORT_PATH) : POOL_CORE_LEDGER_REPORT_PATH;
   const fixturePath = fixtureReport ? String(fixtureReport.path || POOL_CORE_FIXTURE_LEDGER_REPORT_PATH) : POOL_CORE_FIXTURE_LEDGER_REPORT_PATH;
+  const filePath = fileReport ? String(fileReport.path || POOL_CORE_FILE_LEDGER_REPORT_PATH) : POOL_CORE_FILE_LEDGER_REPORT_PATH;
   const bridgePath = bridgeReport ? String(bridgeReport.path || BRIDGE_COMPARE_REPORT_PATH) : BRIDGE_COMPARE_REPORT_PATH;
   const bridgeFilePath = bridgeFileArtifact ? String(bridgeFileArtifact.path || BRIDGE_FILE_REPORT_PATH) : BRIDGE_FILE_REPORT_PATH;
   const replayStatus = poolCoreReplayStatus(report);
   const fixtureReplayStatus = poolCoreReplayStatus(fixtureReport);
+  const fileReplayStatus = poolCoreReplayStatus(fileReport);
   const totalEvents = report ? Number(report.replay_total_events) || 0 : 0;
   const fixtureTotalEvents = fixtureReport ? Number(fixtureReport.replay_total_events) || 0 : 0;
   const fixtureAcceptedEvents = fixtureReport ? Number(fixtureReport.replay_accepted_events) || 0 : 0;
   const fixtureRejectedEvents = fixtureReport ? Number(fixtureReport.replay_rejected_events) || 0 : 0;
   const fixtureCreditedDifficulty = fixtureReport ? Number(fixtureReport.replay_credited_difficulty) || 0 : 0;
   const fixtureSessionCount = fixtureReport ? Number(fixtureReport.replay_session_count) || 0 : 0;
+  const fileTotalEvents = fileReport ? Number(fileReport.replay_total_events) || 0 : 0;
+  const fileAcceptedEvents = fileReport ? Number(fileReport.replay_accepted_events) || 0 : 0;
+  const fileRejectedEvents = fileReport ? Number(fileReport.replay_rejected_events) || 0 : 0;
+  const fileCreditedDifficulty = fileReport ? Number(fileReport.replay_credited_difficulty) || 0 : 0;
+  const fileSessionCount = fileReport ? Number(fileReport.replay_session_count) || 0 : 0;
 
   return `<section class=panel>
     <div class=panel-header>
       <div>
         <h2>DBYTE Pool Core Evidence</h2>
-        <p class=muted>Display-only pool-core zero-init, deterministic fixture replay, and bridge comparison artifacts plus bridge file artifacts discovered through the local report index.</p>
+        <p class=muted>Display-only pool-core zero-init, deterministic fixture replay, deterministic file replay, bridge comparison, and bridge file artifacts discovered through the local report index.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
       ${kpi("Default", { html: `<span class="${reportStatusClass(replayStatus)}">${escapeHtml(replayStatus)}</span>` }, "Zero-init pool-core replay report status embedded in the index entry.")}
       ${kpi("Fixture", { html: `<span class="${reportStatusClass(fixtureReplayStatus)}">${escapeHtml(fixtureReplayStatus)}</span>` }, "Deterministic non-zero pool-core fixture replay report status embedded in the index entry.")}
+      ${kpi("File", { html: `<span class="${reportStatusClass(fileReplayStatus)}">${escapeHtml(fileReplayStatus)}</span>` }, "Deterministic pool-core file replay report status embedded in the index entry.")}
       ${kpi("Bridge compare", { html: `<span class="${reportStatusClass(bridgeStatus)}">${escapeHtml(bridgeStatus)}</span>` }, "Bridge comparison artifact inventory status embedded in the index entry.")}
       ${kpi("Bridge file", { html: `<span class="${reportStatusClass(bridgeFileStatus)}">${escapeHtml(bridgeFileStatus)}</span>` }, "Bridge file artifact inventory status embedded in the index entry.")}
       ${kpi("Default events", formatNumber(totalEvents), "Zero-init replay event count embedded in the index entry.")}
       ${kpi("Fixture events", formatNumber(fixtureTotalEvents), "Fixture replay event count embedded in the index entry.")}
+      ${kpi("File events", formatNumber(fileTotalEvents), "File replay event count embedded in the index entry.")}
       ${kpi("Fixture accepted", formatNumber(fixtureAcceptedEvents), "Fixture accepted replay events embedded in the index entry.")}
       ${kpi("Fixture rejected", formatNumber(fixtureRejectedEvents), "Fixture rejected replay events embedded in the index entry.")}
       ${kpi("Fixture credited", formatNumber(fixtureCreditedDifficulty), "Fixture credited difficulty total embedded in the index entry.")}
       ${kpi("Fixture sessions", formatNumber(fixtureSessionCount), "Fixture replay session rows embedded in the index entry.")}
+      ${kpi("File accepted", formatNumber(fileAcceptedEvents), "File accepted replay events embedded in the index entry.")}
+      ${kpi("File rejected", formatNumber(fileRejectedEvents), "File rejected replay events embedded in the index entry.")}
+      ${kpi("File credited", formatNumber(fileCreditedDifficulty), "File credited difficulty total embedded in the index entry.")}
+      ${kpi("File sessions", formatNumber(fileSessionCount), "File replay session rows embedded in the index entry.")}
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE pool core evidence details">
@@ -272,6 +298,15 @@ function poolCoreArtifactPanel(index) {
           ${detailRow("Fixture rejected events", formatNumber(fixtureRejectedEvents))}
           ${detailRow("Fixture credited difficulty", formatNumber(fixtureCreditedDifficulty))}
           ${detailRow("Fixture session rows", formatNumber(fixtureSessionCount))}
+          ${detailRow("File index name", fileReport ? fileReport.name : POOL_CORE_FILE_LEDGER_REPORT_NAME)}
+          ${detailRow("File index status", fileStatus)}
+          ${detailRow("File replay status", fileReplayStatus)}
+          ${detailRow("File path", filePath)}
+          ${detailRow("File total events", formatNumber(fileTotalEvents))}
+          ${detailRow("File accepted events", formatNumber(fileAcceptedEvents))}
+          ${detailRow("File rejected events", formatNumber(fileRejectedEvents))}
+          ${detailRow("File credited difficulty", formatNumber(fileCreditedDifficulty))}
+          ${detailRow("File session rows", formatNumber(fileSessionCount))}
           ${detailRow("Bridge index name", bridgeReport ? bridgeReport.name : BRIDGE_COMPARE_REPORT_NAME)}
           ${detailRow("Bridge index status", bridgeStatus)}
           ${detailRow("Bridge path", bridgePath)}
@@ -338,6 +373,10 @@ function poolCoreLedgerReport(reports) {
 
 function poolCoreFixtureLedgerReport(reports) {
   return reports.find((report) => String(report.name || "") === POOL_CORE_FIXTURE_LEDGER_REPORT_NAME) || null;
+}
+
+function poolCoreFileLedgerReport(reports) {
+  return reports.find((report) => String(report.name || "") === POOL_CORE_FILE_LEDGER_REPORT_NAME) || null;
 }
 
 function bridgeCompareReport(reports) {
