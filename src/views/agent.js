@@ -11,6 +11,7 @@ const BRIDGE_COMPARE_REPORT_NAME = "bridge_compare";
 const BRIDGE_FILE_COMPARE_REPORT_NAME = "bridge_file_compare";
 const BRIDGE_FILE_REPORT_NAME = "bridge_file";
 const PHASE_H_LOCAL_DRY_RUN_REPORT_NAME = "phase_h_local_dry_run";
+const PHASE_I_SERVICE_READINESS_REPORT_NAME = "phase_i_service_readiness";
 const POOL_CORE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-report.json";
 const POOL_CORE_FIXTURE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-fixture-report.json";
 const POOL_CORE_FILE_LEDGER_REPORT_PATH = "reports/dbyte-pool-ledger-file-report.json";
@@ -18,6 +19,7 @@ const BRIDGE_COMPARE_REPORT_PATH = "reports/dbyte-bridge-compare.json";
 const BRIDGE_FILE_COMPARE_REPORT_PATH = "reports/dbyte-bridge-file-compare.json";
 const BRIDGE_FILE_REPORT_PATH = "reports/dbyte-bridge-file.json";
 const PHASE_H_LOCAL_DRY_RUN_REPORT_PATH = "reports/dbyte-local-service-dry-run.json";
+const PHASE_I_SERVICE_READINESS_REPORT_PATH = "reports/dbyte-service-readiness.json";
 const TELEMETRY_STALE_SECONDS = 300;
 const DECISION_STALE_SECONDS = 300;
 const INDEX_STALE_SECONDS = 300;
@@ -55,6 +57,7 @@ function agentPanels(telemetry, decision, index, title, subtitle) {
     decision ? decisionPanel(decision) : missingDecisionPanel(),
     index ? poolCoreArtifactPanel(index) : "",
     index ? serviceDryRunPanel(index) : "",
+    index ? serviceReadinessPanel(index) : "",
     index ? indexPanel(index) : missingIndexPanel()
   ].join("");
 }
@@ -400,6 +403,51 @@ function serviceDryRunPanel(index) {
   </section>`;
 }
 
+function serviceReadinessPanel(index) {
+  const reports = indexReports(index);
+  const readinessReport = serviceReadinessReport(reports);
+  const status = readinessReport ? String(readinessReport.readiness_status || readinessReport.status || "unknown") : "missing";
+  const path = readinessReport ? String(readinessReport.path || PHASE_I_SERVICE_READINESS_REPORT_PATH) : PHASE_I_SERVICE_READINESS_REPORT_PATH;
+
+  return `<section class=panel>
+    <div class=panel-header>
+      <div>
+        <h2>DBYTE Service Readiness Evidence</h2>
+        <p class=muted>Display-only Phase I readiness projection from the local report index.</p>
+      </div>
+    </div>
+    <div class="card grid kpi-grid">
+      ${kpi("Readiness", { html: `<span class="${reportStatusClass(status)}">${escapeHtml(status)}</span>` }, "Readiness status embedded in the report index.")}
+      ${kpi("Mode", readinessReport ? readinessReport.readiness_config_mode : "--", "Configured readiness mode embedded in the report index.")}
+      ${kpi("Report-only", booleanFieldLabel(readinessReport, "readiness_report_only"), "Whether this readiness state is report-only.")}
+      ${kpi("Runtime", booleanFieldLabel(readinessReport, "readiness_runtime_enabled"), "Whether runtime enablement is visible in the readiness report.")}
+      ${kpi("Blockers", numberFieldLabel(readinessReport, "readiness_blocker_count"), "Readiness blocker count embedded in the report index.")}
+      ${kpi("Phase H", booleanFieldLabel(readinessReport, "readiness_phase_h_gate_ok"), "Whether the Phase H gate was accepted by readiness checks.")}
+    </div>
+    <div class="card table-wrap">
+      <table aria-label="DBYTE service readiness evidence details">
+        <tbody>
+          ${detailRow("Index name", readinessReport ? readinessReport.name : PHASE_I_SERVICE_READINESS_REPORT_NAME)}
+          ${detailRow("Index status", readinessReport ? readinessReport.status : "missing")}
+          ${detailRow("Readiness status", status)}
+          ${detailRow("Readiness mode", readinessReport ? readinessReport.readiness_mode : "--")}
+          ${detailRow("Config mode", readinessReport ? readinessReport.readiness_config_mode : "--")}
+          ${detailRow("Config enabled", booleanFieldLabel(readinessReport, "readiness_config_enabled"))}
+          ${detailRow("Report-only", booleanFieldLabel(readinessReport, "readiness_report_only"))}
+          ${detailRow("Runtime enabled", booleanFieldLabel(readinessReport, "readiness_runtime_enabled"))}
+          ${detailRow("Blockers", numberFieldLabel(readinessReport, "readiness_blocker_count"))}
+          ${detailRow("Next step", readinessReport ? readinessReport.readiness_next_step : "--")}
+          ${detailRow("Local mode", booleanFieldLabel(readinessReport, "readiness_local_mode"))}
+          ${detailRow("Payload limit", booleanFieldLabel(readinessReport, "readiness_payload_limit_present"))}
+          ${detailRow("Message limit", booleanFieldLabel(readinessReport, "readiness_message_limit_present"))}
+          ${detailRow("Operator approval", booleanFieldLabel(readinessReport, "readiness_operator_approval_required"))}
+          ${detailRow("Path", path)}
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
 function indexPanel(index) {
   const status = String(index.index_status || "unknown");
   const scope = String(index.index_scope || "unknown");
@@ -474,6 +522,10 @@ function bridgeFileReport(reports) {
 
 function localDryRunReport(reports) {
   return reports.find((report) => String(report.name || "") === PHASE_H_LOCAL_DRY_RUN_REPORT_NAME) || null;
+}
+
+function serviceReadinessReport(reports) {
+  return reports.find((report) => String(report.name || "") === PHASE_I_SERVICE_READINESS_REPORT_NAME) || null;
 }
 
 function poolCoreReplayStatus(report) {
