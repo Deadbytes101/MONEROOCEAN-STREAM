@@ -48,7 +48,7 @@ const INDEX = {
   index_scope: "read_only",
   index_ts_unix: NOW,
   index_status: "ok",
-  report_count: 4,
+  report_count: 5,
   missing_required_count: 0,
   reports: [
     {
@@ -104,6 +104,23 @@ const INDEX = {
       replay_rejected_events: 1,
       replay_credited_difficulty: 10,
       replay_session_count: 2
+    },
+    {
+      name: "pool_core_file_ledger",
+      kind: "json",
+      path: "reports/dbyte-pool-ledger-file-report.json",
+      required: true,
+      exists: true,
+      status: "present",
+      sha256: "e".repeat(64),
+      size_bytes: 401,
+      replay_schema: 1,
+      replay_status: "ok",
+      replay_total_events: 2,
+      replay_accepted_events: 1,
+      replay_rejected_events: 1,
+      replay_credited_difficulty: 10,
+      replay_session_count: 2
     }
   ]
 };
@@ -122,25 +139,35 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /unit-rig/);
       assert.match(html, /DBYTE Decision/);
       assert.match(html, /DBYTE Pool Core Evidence/);
-      assert.match(html, /zero-init, deterministic fixture replay, and bridge comparison artifacts/);
+      assert.match(html, /zero-init, deterministic fixture replay, deterministic file replay/);
       assert.match(html, /pool_core_ledger/);
       assert.match(html, /pool_core_fixture_ledger/);
+      assert.match(html, /pool_core_file_ledger/);
       assert.match(html, /reports\/dbyte-pool-ledger-report\.json/);
       assert.match(html, /reports\/dbyte-pool-ledger-fixture-report\.json/);
+      assert.match(html, /reports\/dbyte-pool-ledger-file-report\.json/);
       assert.match(html, /Default events/);
       assert.match(html, /Fixture events/);
+      assert.match(html, /File events/);
       assert.match(html, /Fixture accepted/);
       assert.match(html, /Fixture rejected/);
       assert.match(html, /Fixture credited/);
       assert.match(html, /Fixture sessions/);
+      assert.match(html, /File accepted/);
+      assert.match(html, /File rejected/);
+      assert.match(html, /File credited/);
+      assert.match(html, /File sessions/);
       assert.match(html, /Fixture total events/);
       assert.match(html, /Fixture session rows/);
+      assert.match(html, /File total events/);
+      assert.match(html, /File session rows/);
       assert.match(html, /DBYTE Report Index/);
       assert.match(html, /Path/);
       assert.match(html, /Required/);
       assert.match(html, /Index age/);
       assert.match(html, /Pool core/);
       assert.match(html, /Pool fixture/);
+      assert.match(html, /Pool file/);
       assert.match(html, /Bridge compare/);
       assert.match(html, /<td>yes<\/td>/);
       assert.match(html, /telemetry_json/);
@@ -198,6 +225,26 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     });
   });
 
+  test("agent health rollup marks blocked pool-core file replay status as attention", async () => {
+    await withFetchFixtures(agentFixtures({
+      index: {
+        ...INDEX,
+        reports: INDEX.reports.map((report) => report.name === "pool_core_file_ledger"
+          ? { ...report, replay_status: "blocked" }
+          : report)
+      }
+    }), async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /attention/);
+      assert.match(html, /pool_core_file_blocked/);
+      assert.match(html, /inspect_pool_core_file_report/);
+      assert.match(html, /DBYTE Pool Core Evidence/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
   test("agent health rollup marks stale report index as attention", async () => {
     await withFetchFixtures(agentFixtures({
       index: { ...INDEX, index_ts_unix: STALE_TS }
@@ -217,7 +264,7 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     await withFetchFixtures(agentFixtures({
       index: {
         ...INDEX,
-        report_count: 3,
+        report_count: 4,
         reports: INDEX.reports.filter((report) => report.name !== "pool_core_ledger")
       }
     }), async () => {
@@ -237,7 +284,7 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
     await withFetchFixtures(agentFixtures({
       index: {
         ...INDEX,
-        report_count: 3,
+        report_count: 4,
         reports: INDEX.reports.filter((report) => report.name !== "pool_core_fixture_ledger")
       }
     }), async () => {
@@ -249,6 +296,26 @@ test.describe("agent dashboard artifacts", { concurrency: false }, () => {
       assert.match(html, /refresh_index/);
       assert.match(html, /DBYTE Pool Core Evidence/);
       assert.match(html, /reports\/dbyte-pool-ledger-fixture-report\.json/);
+      assert.doesNotMatch(html, /undefined|NaN/);
+    });
+  });
+
+  test("agent health rollup marks missing pool-core file index entry as attention", async () => {
+    await withFetchFixtures(agentFixtures({
+      index: {
+        ...INDEX,
+        report_count: 4,
+        reports: INDEX.reports.filter((report) => report.name !== "pool_core_file_ledger")
+      }
+    }), async () => {
+      const html = await agentSummaryPanel();
+
+      assert.match(html, /DBYTE Agent Health/);
+      assert.match(html, /attention/);
+      assert.match(html, /missing_pool_core_file_ledger/);
+      assert.match(html, /refresh_index/);
+      assert.match(html, /DBYTE Pool Core Evidence/);
+      assert.match(html, /reports\/dbyte-pool-ledger-file-report\.json/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
