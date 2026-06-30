@@ -81,11 +81,15 @@ fn ledger_error_json(error: &LedgerError) -> String {
 mod tests {
     use super::*;
     use dbyte_pool_core::{
-        Hash32, LedgerEvent, LedgerOutcome, RejectReason, ShareLedger, ShareResult, ShareSubmit,
-        FakePoolHarness,
+        FakePoolHarness, Hash32, LedgerEvent, LedgerOutcome, ShareLedger, ShareResult, ShareSubmit,
     };
 
-    fn submit(session_id: dbyte_pool_core::SessionId, job_id: dbyte_pool_core::JobId, nonce: u64, difficulty: u64) -> ShareSubmit {
+    fn submit(
+        session_id: dbyte_pool_core::SessionId,
+        job_id: dbyte_pool_core::JobId,
+        nonce: u64,
+        difficulty: u64,
+    ) -> ShareSubmit {
         ShareSubmit {
             session_id,
             job_id,
@@ -143,11 +147,16 @@ mod tests {
 
     #[test]
     fn ledger_error_json_reports_duplicate_accepted_share() {
+        let mut pool = FakePoolHarness::new();
         let mut ledger = ShareLedger::new();
+        let session_id = pool
+            .register_session("wallet-one", "worker-a", 10)
+            .expect("valid session");
+        let job_id = pool.create_job(1_000, 10, Hash32::zero());
         let event = LedgerEvent {
             sequence: 1,
-            session_id: Some(dbyte_pool_core::SessionId::from_raw_for_test(1)),
-            job_id: Some(dbyte_pool_core::JobId::from_raw_for_test(2)),
+            session_id: Some(session_id),
+            job_id: Some(job_id),
             nonce: Some(9),
             outcome: LedgerOutcome::Accepted {
                 credited_difficulty: 10,
@@ -162,7 +171,7 @@ mod tests {
 
         assert_eq!(
             ledger_error_json(&error),
-            "{\n  \"schema\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"duplicate_accepted_share\",\n  \"sequence\": 2,\n  \"session_id\": 1,\n  \"job_id\": 2,\n  \"nonce\": 9\n}"
+            "{\n  \"schema\": 1,\n  \"status\": \"blocked\",\n  \"reason\": \"duplicate_accepted_share\",\n  \"sequence\": 2,\n  \"session_id\": 1,\n  \"job_id\": 1,\n  \"nonce\": 9\n}"
         );
     }
 
