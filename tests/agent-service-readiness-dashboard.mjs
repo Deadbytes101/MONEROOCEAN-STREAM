@@ -76,6 +76,16 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /Safety harness bind implemented/);
       assert.match(html, /Safety harness local endpoint/);
       assert.match(html, /Safety harness operator visible/);
+      assert.match(html, /Launch contract status/);
+      assert.match(html, /Launch contract host/);
+      assert.match(html, /Launch contract approval/);
+      assert.match(html, /Launch contract allowed/);
+      assert.match(html, /Launch contract report-only/);
+      assert.match(html, /Launch contract runtime started/);
+      assert.match(html, /Launch contract bind implemented/);
+      assert.match(html, /Launch contract external worker intake/);
+      assert.match(html, /Launch contract local host/);
+      assert.match(html, /Launch contract operator visible/);
       assert.match(html, /127\.0\.0\.1/);
       assert.match(html, />0<\/td>/);
       assert.match(html, /yes/);
@@ -101,6 +111,7 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /missing/);
       assert.match(html, /Preflight status/);
       assert.match(html, /Safety harness status/);
+      assert.match(html, /Launch contract status/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
@@ -132,7 +143,19 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
           safety_harness_runtime_started: true,
           safety_harness_bind_implemented: true,
           safety_harness_local_endpoint: false,
-          safety_harness_operator_visible: true
+          safety_harness_operator_visible: true,
+          launch_contract_status: "attention",
+          launch_contract_enabled: false,
+          launch_contract_host: "192.0.2.30",
+          launch_contract_port: 18082,
+          launch_contract_operator_approval_required: false,
+          launch_contract_allowed: false,
+          launch_contract_report_only: true,
+          launch_contract_runtime_started: false,
+          launch_contract_bind_implemented: false,
+          launch_contract_external_worker_intake: false,
+          launch_contract_local_host: false,
+          launch_contract_operator_visible: true
         }
       : report);
 
@@ -148,8 +171,10 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /fix_readiness_blockers/);
       assert.match(html, /192\.0\.2\.10/);
       assert.match(html, /192\.0\.2\.20/);
+      assert.match(html, /192\.0\.2\.30/);
       assert.match(html, /18,080/);
       assert.match(html, /18,081/);
+      assert.match(html, /18,082/);
       assert.match(html, />2<\/td>/);
       assert.match(html, /no/);
       assert.doesNotMatch(html, /undefined|NaN/);
@@ -231,7 +256,19 @@ function readinessReport() {
     safety_harness_runtime_started: false,
     safety_harness_bind_implemented: false,
     safety_harness_local_endpoint: true,
-    safety_harness_operator_visible: true
+    safety_harness_operator_visible: true,
+    launch_contract_status: "ok",
+    launch_contract_enabled: false,
+    launch_contract_host: "127.0.0.1",
+    launch_contract_port: 0,
+    launch_contract_operator_approval_required: true,
+    launch_contract_allowed: false,
+    launch_contract_report_only: true,
+    launch_contract_runtime_started: false,
+    launch_contract_bind_implemented: false,
+    launch_contract_external_worker_intake: false,
+    launch_contract_local_host: true,
+    launch_contract_operator_visible: true
   };
 }
 
