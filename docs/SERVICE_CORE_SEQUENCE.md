@@ -35,8 +35,9 @@ This is the proof layer. The next work is to grow it into a service layer withou
 12. Controlled-listener safety harness
 13. Safety harness dashboard projection
 14. Controlled-listener launch contract
-15. Controlled listener
-16. Readiness gate
+15. Launch contract dashboard projection
+16. Controlled listener
+17. Readiness gate
 ```
 
 Each part must emit a report before the next part can depend on it.
@@ -57,7 +58,8 @@ Phase I controlled-listener preflight evidence: implemented, reported, indexed, 
 Phase I preflight dashboard projection: implemented, dashboarded, and tested
 Phase I controlled-listener safety harness: implemented, reported, indexed, and gated
 Phase I safety harness dashboard projection: implemented, dashboarded, and tested
-Phase I controlled-listener launch contract: not implemented
+Phase I controlled-listener launch contract: implemented, reported, indexed, and gated
+Phase I launch contract dashboard projection: not implemented
 Phase I controlled listener: not implemented
 Phase J: not implemented
 ```
@@ -78,6 +80,12 @@ safety harness evidence is report-only
 safety harness dashboard evidence is read from the report index
 safety harness runtime_started=false
 safety harness bind_implemented=false
+launch contract remains disabled by default
+launch contract evidence is report-only
+launch_allowed=false
+launch runtime_started=false
+launch bind_implemented=false
+launch external_worker_intake=false
 reports are generated from synthetic fixtures and local artifacts
 operator-facing dashboard evidence is read from the report index
 ```
@@ -364,6 +372,7 @@ Tasks:
 2. Keep launch_allowed=false until all prior evidence and dashboard projections are present.
 3. Add tests that prove no runtime start, socket bind, or external worker intake exists in this phase.
 4. Carry launch contract fields through the report index before any listener code is added.
+5. Assert launch contract fields in the Phase I gate.
 ```
 
 Definition of done:
@@ -375,12 +384,36 @@ runtime_started=false
 bind_implemented=false
 external_worker_intake=false
 operator approval remains required and visible
+launch contract fields are carried by the report index
+launch contract fields are asserted by the Phase I gate
 no listener implementation exists in this phase
+```
+
+## Phase I-next: Launch contract dashboard projection
+
+Goal: show the indexed launch contract evidence to the operator before any controlled listener implementation exists.
+
+Tasks:
+
+```text
+1. Read launch contract status, enabled, host, port, approval, allowed, report-only, runtime-started, bind-implemented, external-worker-intake, local-host, and operator-visible fields from the report index.
+2. Render those fields in the Agent dashboard readiness panel.
+3. Add dashboard tests for ok, missing, and attention launch contract states.
+4. Keep the dashboard read-only and report-index-only.
+```
+
+Definition of done:
+
+```text
+launch contract dashboard renders from report index only
+missing optional launch contract evidence does not break healthy agent summary
+attention launch contract evidence remains visible
+no runtime path is introduced
 ```
 
 ## Phase I-final: Controlled listener
 
-Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, safety harness, safety harness dashboard, and launch contract gates pass.
+Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, safety harness, safety harness dashboard, launch contract, and launch contract dashboard gates pass.
 
 Tasks:
 
@@ -420,13 +453,14 @@ Required evidence before the service is called ready:
 11. Safety harness evidence status=ok
 12. Safety harness dashboard projection renders from report index
 13. Launch contract evidence status=ok
-14. Release manifest approved=true
-15. Dashboard renders every report from index
-16. FULL VERIFY GATE PASSED
+14. Launch contract dashboard projection renders from report index
+15. Release manifest approved=true
+16. Dashboard renders every report from index
+17. FULL VERIFY GATE PASSED
 ```
 
 ## Next implementation PR
 
-The next code PR should be a controlled-listener launch contract only: add report-only launch fields and tests that prove launch_allowed=false, runtime_started=false, bind_implemented=false, and external_worker_intake=false.
+The next code PR should be launch contract dashboard projection only: render indexed launch contract fields in the Agent dashboard and add tests for ok, missing, and attention states.
 
 Do not accept external worker traffic in the next PR. Do not execute settlement or payout actions in the next PR.
