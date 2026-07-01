@@ -74,6 +74,22 @@ test.describe("documentation links", { concurrency: false }, () => {
     }
   });
 
+  test("local link resolver rejects empty links", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "docs-links-"));
+
+    try {
+      await writeFile(join(tempDir, "target.md"), "# Target\n");
+      await writeFile(join(tempDir, "index.md"), "[local](target.md)\n[empty]()\n");
+
+      await assert.rejects(
+        () => assertLocalMarkdownLinks(join(tempDir, "index.md")),
+        /empty link targets/,
+      );
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
+  });
+
   test("local link resolver rejects unsupported protocols", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "docs-links-"));
 
@@ -93,12 +109,14 @@ test.describe("documentation links", { concurrency: false }, () => {
 
 async function assertLocalMarkdownLinks(sourcePath) {
   const source = await readFile(sourcePath, "utf8");
-  const hrefs = [...source.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].map((match) => match[1]);
+  const hrefs = [...source.matchAll(/\[[^\]]+\]\(([^)]*)\)/g)].map((match) => match[1]);
+  const emptyHrefs = hrefs.filter((href) => !href);
   const unsupportedProtocolHrefs = hrefs.filter(
     (href) => hasProtocol(href) && !href.startsWith("http://") && !href.startsWith("https://"),
   );
   const links = hrefs.filter(isLocalMarkdownHref);
 
+  assert.deepEqual(emptyHrefs, [], `${sourcePath} should not contain empty link targets`);
   assert.deepEqual(unsupportedProtocolHrefs, [], `${sourcePath} should not contain unsupported link protocols`);
   assert.ok(links.length > 0, `${sourcePath} should contain local links`);
 
