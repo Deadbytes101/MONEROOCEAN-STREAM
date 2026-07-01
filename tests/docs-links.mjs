@@ -29,6 +29,9 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.match(note, /readiness_tier=phase_i_report_ready/);
     assert.match(note, /score=90/);
     assert.match(note, /max_score=100/);
+    assert.match(note, /report_artifact_present=true/);
+    assert.match(note, /local_verification_present=true/);
+    assert.match(note, /dashboard_projection_present=true/);
     assert.match(note, /local evidence exists/);
   });
 
