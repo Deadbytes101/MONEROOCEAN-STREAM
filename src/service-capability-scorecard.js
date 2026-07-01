@@ -12,7 +12,10 @@ export function buildServiceCapabilityScorecard(input = {}) {
     launch_not_allowed: readiness.launch_contract.launch_allowed === false,
     launch_runtime_absent: readiness.launch_contract.runtime_started === false,
     launch_bind_absent: readiness.launch_contract.bind_implemented === false,
-    launch_intake_absent: readiness.launch_contract.external_worker_intake === false
+    launch_intake_absent: readiness.launch_contract.external_worker_intake === false,
+    controlled_listener_planned: true,
+    production_ready: false,
+    public_service_ready: false
   };
   const blockers = collectBlockers(checks);
   const capabilities = buildCapabilities(readiness, checks);
@@ -23,7 +26,10 @@ export function buildServiceCapabilityScorecard(input = {}) {
     schema: 1,
     status: blockers.length === 0 ? "ok" : "attention",
     mode: "report_only_capability_scorecard",
+    readiness_tier: "phase_i_report_ready",
     report_only: true,
+    production_ready: false,
+    public_service_ready: false,
     competitive_target: "evidence_first_operator_pool",
     max_score: maxScore,
     score: earnedScore,
@@ -36,7 +42,10 @@ export function buildServiceCapabilityScorecard(input = {}) {
       attention_capabilities: capabilities.filter((item) => item.status === "attention").length,
       planned_capabilities: capabilities.filter((item) => item.status === "planned").length,
       blocker_count: blockers.length,
+      readiness_tier: "phase_i_report_ready",
       report_only: true,
+      production_ready: false,
+      public_service_ready: false,
       runtime_present: false,
       intake_present: false,
       value_movement_present: false,
@@ -80,7 +89,8 @@ function buildCapabilities(readiness, checks) {
       max_score: 10,
       evidence: [
         "controlled_listener_not_implemented",
-        "requires_later_localhost_only_gate"
+        "requires_later_localhost_only_gate",
+        "scorecard_does_not_claim_public_service_ready"
       ]
     }
   ];
