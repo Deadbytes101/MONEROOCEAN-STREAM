@@ -22,20 +22,27 @@ export function assessServiceReadiness(input = {}) {
     launch_contract_runtime_not_started: true,
     launch_contract_bind_not_implemented: true,
     launch_contract_external_worker_intake_disabled: true,
+    closure_guard_report_only: true,
+    closure_guard_runtime_absent: true,
+    closure_guard_intake_absent: true,
+    closure_guard_value_movement_absent: true,
+    closure_guard_dashboard_projection_present: true,
+    closure_guard_phase_i_evidence_present: true,
     preflight_report_only: true,
     report_only: true
   };
   const blockers = collectBlockers(config, checks);
+  const ready = blockers.length === 0;
 
   return {
-    valid: blockers.length === 0,
-    status: blockers.length === 0 ? "ok" : "attention",
+    valid: ready,
+    status: ready ? "ok" : "attention",
     mode: "phase_i_readiness_planning",
     config,
     evidence,
     checks,
     preflight: {
-      status: blockers.length === 0 ? "ok" : "attention",
+      status: ready ? "ok" : "attention",
       enabled: config.preflight.enabled,
       endpoint: config.preflight.endpoint,
       port: config.preflight.port,
@@ -45,7 +52,7 @@ export function assessServiceReadiness(input = {}) {
       operator_visible: true
     },
     safety_harness: {
-      status: blockers.length === 0 ? "ok" : "attention",
+      status: ready ? "ok" : "attention",
       enabled: config.safety_harness.enabled,
       endpoint: config.safety_harness.endpoint,
       port: config.safety_harness.port,
@@ -57,7 +64,7 @@ export function assessServiceReadiness(input = {}) {
       operator_visible: true
     },
     launch_contract: {
-      status: blockers.length === 0 ? "ok" : "attention",
+      status: ready ? "ok" : "attention",
       enabled: config.launch_contract.enabled,
       host: config.launch_contract.host,
       port: config.launch_contract.port,
@@ -68,6 +75,23 @@ export function assessServiceReadiness(input = {}) {
       bind_implemented: false,
       external_worker_intake: false,
       local_host: config.launch_contract.host === "127.0.0.1",
+      operator_visible: true
+    },
+    readiness_closure: {
+      status: ready ? "ok" : "attention",
+      report_only: true,
+      readiness_evidence_present: true,
+      preflight_evidence_present: true,
+      safety_harness_evidence_present: true,
+      launch_contract_evidence_present: true,
+      dashboard_projection_source: "report_index",
+      readiness_dashboard_projected: true,
+      preflight_dashboard_projected: true,
+      safety_harness_dashboard_projected: true,
+      launch_contract_dashboard_projected: true,
+      runtime_present: false,
+      intake_present: false,
+      value_movement_present: false,
       operator_visible: true
     },
     summary: {
@@ -85,7 +109,11 @@ export function assessServiceReadiness(input = {}) {
       launch_runtime_started: false,
       launch_bind_implemented: false,
       launch_external_worker_intake: false,
-      next_step: blockers.length === 0 ? "review_configuration" : "fix_readiness_blockers"
+      readiness_closure_report_only: true,
+      readiness_closure_runtime_present: false,
+      readiness_closure_intake_present: false,
+      readiness_closure_value_movement_present: false,
+      next_step: ready ? "review_configuration" : "fix_readiness_blockers"
     },
     blockers
   };
