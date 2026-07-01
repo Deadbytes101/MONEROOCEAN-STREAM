@@ -27,6 +27,10 @@ test.describe("documentation links", { concurrency: false }, () => {
   test("service evidence index local links resolve to files", async () => {
     await assertLocalMarkdownLinks("docs/SERVICE_EVIDENCE_INDEX.md");
   });
+
+  test("operator runbook local links resolve to files", async () => {
+    await assertLocalMarkdownLinks("docs/operator-runbook.md");
+  });
 });
 
 async function assertLocalMarkdownLinks(sourcePath) {
