@@ -35,10 +35,13 @@ test.describe("documentation links", { concurrency: false }, () => {
 
 async function assertLocalMarkdownLinks(sourcePath) {
   const source = await readFile(sourcePath, "utf8");
-  const links = [...source.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)]
-    .map((match) => match[1])
-    .filter((href) => href && !href.startsWith("http") && !href.startsWith("#"));
+  const hrefs = [...source.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].map((match) => match[1]);
+  const unsupportedProtocolHrefs = hrefs.filter(
+    (href) => hasProtocol(href) && !href.startsWith("http://") && !href.startsWith("https://"),
+  );
+  const links = hrefs.filter(isLocalMarkdownHref);
 
+  assert.deepEqual(unsupportedProtocolHrefs, [], `${sourcePath} should not contain unsupported link protocols`);
   assert.ok(links.length > 0, `${sourcePath} should contain local links`);
 
   for (const href of links) {
@@ -47,4 +50,12 @@ async function assertLocalMarkdownLinks(sourcePath) {
     const info = await stat(target);
     assert.equal(info.isFile(), true, `${sourcePath} local link must resolve: ${href}`);
   }
+}
+
+function isLocalMarkdownHref(href) {
+  return Boolean(href) && !href.startsWith("#") && !hasProtocol(href);
+}
+
+function hasProtocol(href) {
+  return /^[a-z][a-z0-9+.-]*:/i.test(href);
 }
