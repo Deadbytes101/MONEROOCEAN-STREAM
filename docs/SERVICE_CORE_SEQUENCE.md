@@ -31,8 +31,9 @@ This is the proof layer. The next work is to grow it into a service layer withou
 8. Local service dry-run
 9. Service readiness planning
 10. Controlled-listener preflight evidence
-11. Controlled listener
-12. Readiness gate
+11. Preflight dashboard projection
+12. Controlled listener
+13. Readiness gate
 ```
 
 Each part must emit a report before the next part can depend on it.
@@ -50,7 +51,7 @@ Phase G: implemented, reported, and gated
 Phase H: implemented, reported, dashboarded, and gated
 Phase I readiness planning: implemented, reported, dashboarded, and gated
 Phase I controlled-listener preflight evidence: implemented, reported, indexed, and gated
-Phase I preflight dashboard projection: not implemented
+Phase I preflight dashboard projection: implemented, dashboarded, and tested
 Phase I controlled listener: not implemented
 Phase J: not implemented
 ```
@@ -65,6 +66,7 @@ no payout execution
 runtime enablement remains false in readiness reports
 preflight endpoint remains localhost-only
 preflight evidence is report-only
+preflight dashboard evidence is read from the report index
 reports are generated from synthetic fixtures and local artifacts
 operator-facing dashboard evidence is read from the report index
 ```
@@ -291,9 +293,31 @@ attention preflight evidence remains visible
 no runtime path is introduced
 ```
 
-## Phase I-later: Controlled listener
+## Phase I-later: Controlled-listener safety harness
 
-Goal: add the first operator-controlled listener only after readiness and preflight dashboard gates pass.
+Goal: define the first controlled-listener safety contract without starting any runtime listener.
+
+Tasks:
+
+```text
+1. Add disabled-by-default config fields for a future localhost-only listener.
+2. Add report fields that make the requested endpoint, port, enabled flag, and approval state visible.
+3. Add tests that prove no runtime path starts from default config.
+4. Keep external bind unavailable until a later explicit operator-approved step.
+```
+
+Definition of done:
+
+```text
+listener_enabled=false by default
+localhost remains the only accepted future endpoint in this phase
+operator approval is required and visible
+no socket bind is implemented in this phase
+```
+
+## Phase I-final: Controlled listener
+
+Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, and safety harness gates pass.
 
 Tasks:
 
@@ -329,13 +353,14 @@ Required evidence before the service is called ready:
 7. Service runner status=ok
 8. Service readiness status=ok
 9. Preflight evidence status=ok
-10. Release manifest approved=true
-11. Dashboard renders every report from index
-12. FULL VERIFY GATE PASSED
+10. Preflight dashboard projection renders from report index
+11. Release manifest approved=true
+12. Dashboard renders every report from index
+13. FULL VERIFY GATE PASSED
 ```
 
 ## Next implementation PR
 
-The next code PR should be preflight dashboard projection only: render indexed preflight fields in the Agent dashboard and add tests for ok, missing, and attention states.
+The next code PR should be a controlled-listener safety harness only: add disabled-by-default future-listener config and report fields, then prove through tests that no socket bind or runtime listener starts in this phase.
 
 Do not accept external worker traffic in the next PR. Do not execute settlement or payout actions in the next PR.
