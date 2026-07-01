@@ -409,13 +409,15 @@ function serviceReadinessPanel(index) {
   const status = readinessReport ? String(readinessReport.readiness_status || readinessReport.status || "unknown") : "missing";
   const preflightStatus = readinessReport ? String(readinessReport.preflight_status || "--") : "--";
   const preflightEndpoint = readinessReport ? String(readinessReport.preflight_endpoint || "--") : "--";
+  const safetyStatus = readinessReport ? String(readinessReport.safety_harness_status || "--") : "--";
+  const safetyEndpoint = readinessReport ? String(readinessReport.safety_harness_endpoint || "--") : "--";
   const path = readinessReport ? String(readinessReport.path || PHASE_I_SERVICE_READINESS_REPORT_PATH) : PHASE_I_SERVICE_READINESS_REPORT_PATH;
 
   return `<section class=panel>
     <div class=panel-header>
       <div>
         <h2>DBYTE Service Readiness Evidence</h2>
-        <p class=muted>Display-only Phase I readiness and preflight projection from the local report index.</p>
+        <p class=muted>Display-only Phase I readiness, preflight, and safety harness projection from the local report index.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
@@ -429,6 +431,10 @@ function serviceReadinessPanel(index) {
       ${kpi("Endpoint", preflightEndpoint, "Preflight endpoint embedded in the report index.")}
       ${kpi("Port", numberFieldLabel(readinessReport, "preflight_port"), "Preflight port embedded in the report index.")}
       ${kpi("Preflight runtime", booleanFieldLabel(readinessReport, "preflight_runtime_enabled"), "Whether preflight runtime enablement is visible in the report index.")}
+      ${kpi("Safety harness", { html: `<span class="${reportStatusClass(safetyStatus)}">${escapeHtml(safetyStatus)}</span>` }, "Safety harness status embedded in the report index.")}
+      ${kpi("Safety endpoint", safetyEndpoint, "Safety harness endpoint embedded in the report index.")}
+      ${kpi("Safety runtime", booleanFieldLabel(readinessReport, "safety_harness_runtime_started"), "Whether the safety harness reports any runtime start.")}
+      ${kpi("Safety bind", booleanFieldLabel(readinessReport, "safety_harness_bind_implemented"), "Whether the safety harness reports any bind implementation.")}
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE service readiness evidence details">
@@ -455,6 +461,16 @@ function serviceReadinessPanel(index) {
           ${detailRow("Preflight runtime enabled", booleanFieldLabel(readinessReport, "preflight_runtime_enabled"))}
           ${detailRow("Preflight local endpoint", booleanFieldLabel(readinessReport, "preflight_local_endpoint"))}
           ${detailRow("Preflight operator visible", booleanFieldLabel(readinessReport, "preflight_operator_visible"))}
+          ${detailRow("Safety harness status", safetyStatus)}
+          ${detailRow("Safety harness enabled", booleanFieldLabel(readinessReport, "safety_harness_enabled"))}
+          ${detailRow("Safety harness endpoint", safetyEndpoint)}
+          ${detailRow("Safety harness port", numberFieldLabel(readinessReport, "safety_harness_port"))}
+          ${detailRow("Safety harness approval", booleanFieldLabel(readinessReport, "safety_harness_operator_approval_required"))}
+          ${detailRow("Safety harness report-only", booleanFieldLabel(readinessReport, "safety_harness_report_only"))}
+          ${detailRow("Safety harness runtime started", booleanFieldLabel(readinessReport, "safety_harness_runtime_started"))}
+          ${detailRow("Safety harness bind implemented", booleanFieldLabel(readinessReport, "safety_harness_bind_implemented"))}
+          ${detailRow("Safety harness local endpoint", booleanFieldLabel(readinessReport, "safety_harness_local_endpoint"))}
+          ${detailRow("Safety harness operator visible", booleanFieldLabel(readinessReport, "safety_harness_operator_visible"))}
           ${detailRow("Path", path)}
         </tbody>
       </table>
