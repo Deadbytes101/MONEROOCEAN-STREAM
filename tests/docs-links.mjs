@@ -25,6 +25,14 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.match(index, /operator-runbook\.md/);
   });
 
+  test("root README links the agent docs", async () => {
+    const index = await readFile("README.md", "utf8");
+
+    assert.match(index, /docs\/release-artifact-contract\.md/);
+    assert.match(index, /docs\/operator-runbook\.md/);
+    assert.match(index, /docs\/SERVICE_CAPABILITY_SCORECARD\.md/);
+  });
+
   test("score note states current score", async () => {
     const note = await readFile("docs/SERVICE_SCORE_GAP.md", "utf8");
     const finalChecklistField = ["negative", "tests", "present=true"].join("_");
