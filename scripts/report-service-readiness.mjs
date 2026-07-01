@@ -20,6 +20,7 @@ const report = {
   preflight: readiness.preflight,
   safety_harness: readiness.safety_harness,
   launch_contract: readiness.launch_contract,
+  readiness_closure: readiness.readiness_closure,
   summary: readiness.summary,
   blockers: readiness.blockers
 };
