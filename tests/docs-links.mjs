@@ -61,6 +61,19 @@ test.describe("documentation links", { concurrency: false }, () => {
     }
   });
 
+  test("local link resolver strips anchors before stat", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "docs-links-"));
+
+    try {
+      await writeFile(join(tempDir, "target.md"), "# Target\n");
+      await writeFile(join(tempDir, "index.md"), "[local section](target.md#section)\n");
+
+      await assertLocalMarkdownLinks(join(tempDir, "index.md"));
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
+  });
+
   test("local link resolver rejects unsupported protocols", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "docs-links-"));
 
