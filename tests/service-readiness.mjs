@@ -24,6 +24,32 @@ test.describe("service readiness report", { concurrency: false }, () => {
     assert.deepEqual(readiness.blockers, []);
   });
 
+  test("keeps preflight evidence report-only with local defaults", () => {
+    const readiness = assessServiceReadiness();
+
+    assert.equal(readiness.preflight.status, "ok");
+    assert.equal(readiness.preflight.enabled, false);
+    assert.equal(readiness.preflight.endpoint, "127.0.0.1");
+    assert.equal(readiness.preflight.port, 0);
+    assert.equal(readiness.preflight.report_only, true);
+    assert.equal(readiness.preflight.runtime_enabled, false);
+    assert.equal(readiness.preflight.local_endpoint, true);
+    assert.equal(readiness.summary.preflight_report_only, true);
+  });
+
+  test("keeps requested local preflight visible without enabling runtime", () => {
+    const readiness = assessServiceReadiness({ config: { preflight: { enabled: true, endpoint: "127.0.0.1", port: 18080 } } });
+
+    assert.equal(readiness.valid, true);
+    assert.equal(readiness.status, "ok");
+    assert.equal(readiness.preflight.enabled, true);
+    assert.equal(readiness.preflight.endpoint, "127.0.0.1");
+    assert.equal(readiness.preflight.port, 18080);
+    assert.equal(readiness.preflight.runtime_enabled, false);
+    assert.equal(readiness.summary.runtime_enabled, false);
+    assert.equal(readiness.summary.preflight_enabled, true);
+  });
+
   test("blocks enabled runtime config in the readiness phase", () => {
     const readiness = assessServiceReadiness({ config: { enabled: true } });
 
@@ -42,6 +68,16 @@ test.describe("service readiness report", { concurrency: false }, () => {
     assert.match(readiness.blockers.join("\n"), /non_local_mode_requires_visible_acknowledgement/);
   });
 
+  test("blocks non-local preflight endpoints", () => {
+    const readiness = assessServiceReadiness({ config: { preflight: { enabled: true, endpoint: "0.0.0.0", port: 18080 } } });
+
+    assert.equal(readiness.valid, false);
+    assert.equal(readiness.status, "attention");
+    assert.equal(readiness.preflight.local_endpoint, false);
+    assert.equal(readiness.preflight.runtime_enabled, false);
+    assert.match(readiness.blockers.join("\n"), /preflight_endpoint_must_remain_local/);
+  });
+
   test("writes a stable service readiness report artifact", async () => {
     const directory = await mkdtemp(join(tmpdir(), "dbyte-service-readiness-"));
     const output = join(directory, "service-readiness.json");
@@ -58,6 +94,9 @@ test.describe("service readiness report", { concurrency: false }, () => {
       assert.equal(report.mode, "phase_i_readiness_planning");
       assert.equal(report.summary.report_only, true);
       assert.equal(report.summary.runtime_enabled, false);
+      assert.equal(report.preflight.report_only, true);
+      assert.equal(report.preflight.runtime_enabled, false);
+      assert.equal(report.preflight.local_endpoint, true);
       assert.deepEqual(report.blockers, []);
     } finally {
       await rm(directory, { recursive: true, force: true });
