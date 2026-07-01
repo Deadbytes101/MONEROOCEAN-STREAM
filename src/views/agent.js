@@ -413,13 +413,15 @@ function serviceReadinessPanel(index) {
   const safetyEndpoint = readinessReport ? String(readinessReport.safety_harness_endpoint || "--") : "--";
   const launchStatus = readinessReport ? String(readinessReport.launch_contract_status || "--") : "--";
   const launchHost = readinessReport ? String(readinessReport.launch_contract_host || "--") : "--";
+  const closureStatus = readinessReport ? String(readinessReport.readiness_closure_status || "--") : "--";
+  const closureSource = readinessReport ? String(readinessReport.readiness_closure_source || "--") : "--";
   const path = readinessReport ? String(readinessReport.path || PHASE_I_SERVICE_READINESS_REPORT_PATH) : PHASE_I_SERVICE_READINESS_REPORT_PATH;
 
   return `<section class=panel>
     <div class=panel-header>
       <div>
         <h2>DBYTE Service Readiness Evidence</h2>
-        <p class=muted>Display-only Phase I readiness, preflight, safety harness, and launch contract projection from the local report index.</p>
+        <p class=muted>Display-only Phase I readiness, preflight, safety harness, launch contract, and readiness closure projection from the local report index.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
@@ -441,6 +443,10 @@ function serviceReadinessPanel(index) {
       ${kpi("Launch host", launchHost, "Launch contract host embedded in the report index.")}
       ${kpi("Launch allowed", booleanFieldLabel(readinessReport, "launch_contract_allowed"), "Whether launch is allowed by the report-only contract.")}
       ${kpi("Launch intake", booleanFieldLabel(readinessReport, "launch_contract_external_worker_intake"), "Whether external worker intake is visible in the launch contract.")}
+      ${kpi("Closure", { html: `<span class="${reportStatusClass(closureStatus)}">${escapeHtml(closureStatus)}</span>` }, "Readiness closure status embedded in the report index.")}
+      ${kpi("Closure source", closureSource, "Readiness closure projection source embedded in the report index.")}
+      ${kpi("Closure runtime", booleanFieldLabel(readinessReport, "readiness_closure_runtime_present"), "Whether runtime presence is visible in the readiness closure.")}
+      ${kpi("Closure intake", booleanFieldLabel(readinessReport, "readiness_closure_intake_present"), "Whether intake presence is visible in the readiness closure.")}
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE service readiness evidence details">
@@ -489,6 +495,21 @@ function serviceReadinessPanel(index) {
           ${detailRow("Launch contract external worker intake", booleanFieldLabel(readinessReport, "launch_contract_external_worker_intake"))}
           ${detailRow("Launch contract local host", booleanFieldLabel(readinessReport, "launch_contract_local_host"))}
           ${detailRow("Launch contract operator visible", booleanFieldLabel(readinessReport, "launch_contract_operator_visible"))}
+          ${detailRow("Readiness closure status", closureStatus)}
+          ${detailRow("Readiness closure report-only", booleanFieldLabel(readinessReport, "readiness_closure_report_only"))}
+          ${detailRow("Readiness closure source", closureSource)}
+          ${detailRow("Readiness closure readiness evidence", booleanFieldLabel(readinessReport, "readiness_closure_readiness_evidence_present"))}
+          ${detailRow("Readiness closure preflight evidence", booleanFieldLabel(readinessReport, "readiness_closure_preflight_evidence_present"))}
+          ${detailRow("Readiness closure safety harness evidence", booleanFieldLabel(readinessReport, "readiness_closure_safety_harness_evidence_present"))}
+          ${detailRow("Readiness closure launch contract evidence", booleanFieldLabel(readinessReport, "readiness_closure_launch_contract_evidence_present"))}
+          ${detailRow("Readiness closure readiness dashboard", booleanFieldLabel(readinessReport, "readiness_closure_readiness_dashboard_projected"))}
+          ${detailRow("Readiness closure preflight dashboard", booleanFieldLabel(readinessReport, "readiness_closure_preflight_dashboard_projected"))}
+          ${detailRow("Readiness closure safety harness dashboard", booleanFieldLabel(readinessReport, "readiness_closure_safety_harness_dashboard_projected"))}
+          ${detailRow("Readiness closure launch contract dashboard", booleanFieldLabel(readinessReport, "readiness_closure_launch_contract_dashboard_projected"))}
+          ${detailRow("Readiness closure runtime present", booleanFieldLabel(readinessReport, "readiness_closure_runtime_present"))}
+          ${detailRow("Readiness closure intake present", booleanFieldLabel(readinessReport, "readiness_closure_intake_present"))}
+          ${detailRow("Readiness closure value movement present", booleanFieldLabel(readinessReport, "readiness_closure_value_movement_present"))}
+          ${detailRow("Readiness closure operator visible", booleanFieldLabel(readinessReport, "readiness_closure_operator_visible"))}
           ${detailRow("Path", path)}
         </tbody>
       </table>

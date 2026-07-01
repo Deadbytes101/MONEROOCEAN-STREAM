@@ -86,6 +86,14 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /Launch contract external worker intake/);
       assert.match(html, /Launch contract local host/);
       assert.match(html, /Launch contract operator visible/);
+      assert.match(html, /Readiness closure status/);
+      assert.match(html, /Readiness closure source/);
+      assert.match(html, /Readiness closure report-only/);
+      assert.match(html, /Readiness closure runtime present/);
+      assert.match(html, /Readiness closure intake present/);
+      assert.match(html, /Readiness closure value movement present/);
+      assert.match(html, /Readiness closure operator visible/);
+      assert.match(html, /report_index/);
       assert.match(html, /127\.0\.0\.1/);
       assert.match(html, />0<\/td>/);
       assert.match(html, /yes/);
@@ -112,6 +120,7 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /Preflight status/);
       assert.match(html, /Safety harness status/);
       assert.match(html, /Launch contract status/);
+      assert.match(html, /Readiness closure status/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
@@ -155,7 +164,22 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
           launch_contract_bind_implemented: false,
           launch_contract_external_worker_intake: false,
           launch_contract_local_host: false,
-          launch_contract_operator_visible: true
+          launch_contract_operator_visible: true,
+          readiness_closure_status: "attention",
+          readiness_closure_report_only: true,
+          readiness_closure_source: "report_index",
+          readiness_closure_runtime_present: false,
+          readiness_closure_intake_present: false,
+          readiness_closure_value_movement_present: false,
+          readiness_closure_readiness_evidence_present: true,
+          readiness_closure_preflight_evidence_present: true,
+          readiness_closure_safety_harness_evidence_present: true,
+          readiness_closure_launch_contract_evidence_present: true,
+          readiness_closure_readiness_dashboard_projected: true,
+          readiness_closure_preflight_dashboard_projected: true,
+          readiness_closure_safety_harness_dashboard_projected: true,
+          readiness_closure_launch_contract_dashboard_projected: true,
+          readiness_closure_operator_visible: true
         }
       : report);
 
@@ -176,6 +200,7 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /18,081/);
       assert.match(html, /18,082/);
       assert.match(html, />2<\/td>/);
+      assert.match(html, /report_index/);
       assert.match(html, /no/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
@@ -268,7 +293,22 @@ function readinessReport() {
     launch_contract_bind_implemented: false,
     launch_contract_external_worker_intake: false,
     launch_contract_local_host: true,
-    launch_contract_operator_visible: true
+    launch_contract_operator_visible: true,
+    readiness_closure_status: "ok",
+    readiness_closure_report_only: true,
+    readiness_closure_source: "report_index",
+    readiness_closure_runtime_present: false,
+    readiness_closure_intake_present: false,
+    readiness_closure_value_movement_present: false,
+    readiness_closure_readiness_evidence_present: true,
+    readiness_closure_preflight_evidence_present: true,
+    readiness_closure_safety_harness_evidence_present: true,
+    readiness_closure_launch_contract_evidence_present: true,
+    readiness_closure_readiness_dashboard_projected: true,
+    readiness_closure_preflight_dashboard_projected: true,
+    readiness_closure_safety_harness_dashboard_projected: true,
+    readiness_closure_launch_contract_dashboard_projected: true,
+    readiness_closure_operator_visible: true
   };
 }
 
