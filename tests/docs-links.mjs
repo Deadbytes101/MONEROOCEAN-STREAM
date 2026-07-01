@@ -9,6 +9,7 @@ test.describe("documentation links", { concurrency: false }, () => {
     const index = await readFile("docs/README.md", "utf8");
 
     assert.match(index, /SERVICE_EVIDENCE_INDEX\.md/);
+    assert.match(index, /SERVICE_SCORE_GAP\.md/);
     assert.match(index, /SERVICE_CAPABILITY_SCORECARD\.md|agent-docs\.md/);
     assert.match(index, /operator-runbook\.md/);
   });
