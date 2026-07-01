@@ -407,13 +407,15 @@ function serviceReadinessPanel(index) {
   const reports = indexReports(index);
   const readinessReport = serviceReadinessReport(reports);
   const status = readinessReport ? String(readinessReport.readiness_status || readinessReport.status || "unknown") : "missing";
+  const preflightStatus = readinessReport ? String(readinessReport.preflight_status || "--") : "--";
+  const preflightEndpoint = readinessReport ? String(readinessReport.preflight_endpoint || "--") : "--";
   const path = readinessReport ? String(readinessReport.path || PHASE_I_SERVICE_READINESS_REPORT_PATH) : PHASE_I_SERVICE_READINESS_REPORT_PATH;
 
   return `<section class=panel>
     <div class=panel-header>
       <div>
         <h2>DBYTE Service Readiness Evidence</h2>
-        <p class=muted>Display-only Phase I readiness projection from the local report index.</p>
+        <p class=muted>Display-only Phase I readiness and preflight projection from the local report index.</p>
       </div>
     </div>
     <div class="card grid kpi-grid">
@@ -423,6 +425,10 @@ function serviceReadinessPanel(index) {
       ${kpi("Runtime", booleanFieldLabel(readinessReport, "readiness_runtime_enabled"), "Whether runtime enablement is visible in the readiness report.")}
       ${kpi("Blockers", numberFieldLabel(readinessReport, "readiness_blocker_count"), "Readiness blocker count embedded in the report index.")}
       ${kpi("Phase H", booleanFieldLabel(readinessReport, "readiness_phase_h_gate_ok"), "Whether the Phase H gate was accepted by readiness checks.")}
+      ${kpi("Preflight", { html: `<span class="${reportStatusClass(preflightStatus)}">${escapeHtml(preflightStatus)}</span>` }, "Preflight status embedded in the report index.")}
+      ${kpi("Endpoint", preflightEndpoint, "Preflight endpoint embedded in the report index.")}
+      ${kpi("Port", numberFieldLabel(readinessReport, "preflight_port"), "Preflight port embedded in the report index.")}
+      ${kpi("Preflight runtime", booleanFieldLabel(readinessReport, "preflight_runtime_enabled"), "Whether preflight runtime enablement is visible in the report index.")}
     </div>
     <div class="card table-wrap">
       <table aria-label="DBYTE service readiness evidence details">
@@ -441,6 +447,14 @@ function serviceReadinessPanel(index) {
           ${detailRow("Payload limit", booleanFieldLabel(readinessReport, "readiness_payload_limit_present"))}
           ${detailRow("Message limit", booleanFieldLabel(readinessReport, "readiness_message_limit_present"))}
           ${detailRow("Operator approval", booleanFieldLabel(readinessReport, "readiness_operator_approval_required"))}
+          ${detailRow("Preflight status", preflightStatus)}
+          ${detailRow("Preflight enabled", booleanFieldLabel(readinessReport, "preflight_enabled"))}
+          ${detailRow("Preflight endpoint", preflightEndpoint)}
+          ${detailRow("Preflight port", numberFieldLabel(readinessReport, "preflight_port"))}
+          ${detailRow("Preflight report-only", booleanFieldLabel(readinessReport, "preflight_report_only"))}
+          ${detailRow("Preflight runtime enabled", booleanFieldLabel(readinessReport, "preflight_runtime_enabled"))}
+          ${detailRow("Preflight local endpoint", booleanFieldLabel(readinessReport, "preflight_local_endpoint"))}
+          ${detailRow("Preflight operator visible", booleanFieldLabel(readinessReport, "preflight_operator_visible"))}
           ${detailRow("Path", path)}
         </tbody>
       </table>
