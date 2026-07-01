@@ -68,6 +68,14 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /Preflight runtime enabled/);
       assert.match(html, /Preflight local endpoint/);
       assert.match(html, /Preflight operator visible/);
+      assert.match(html, /Safety harness status/);
+      assert.match(html, /Safety harness endpoint/);
+      assert.match(html, /Safety harness approval/);
+      assert.match(html, /Safety harness report-only/);
+      assert.match(html, /Safety harness runtime started/);
+      assert.match(html, /Safety harness bind implemented/);
+      assert.match(html, /Safety harness local endpoint/);
+      assert.match(html, /Safety harness operator visible/);
       assert.match(html, /127\.0\.0\.1/);
       assert.match(html, />0<\/td>/);
       assert.match(html, /yes/);
@@ -92,6 +100,7 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /phase_i_service_readiness/);
       assert.match(html, /missing/);
       assert.match(html, /Preflight status/);
+      assert.match(html, /Safety harness status/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
@@ -113,7 +122,17 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
           preflight_report_only: true,
           preflight_runtime_enabled: true,
           preflight_local_endpoint: false,
-          preflight_operator_visible: true
+          preflight_operator_visible: true,
+          safety_harness_status: "attention",
+          safety_harness_enabled: true,
+          safety_harness_endpoint: "192.0.2.20",
+          safety_harness_port: 18081,
+          safety_harness_operator_approval_required: false,
+          safety_harness_report_only: true,
+          safety_harness_runtime_started: true,
+          safety_harness_bind_implemented: true,
+          safety_harness_local_endpoint: false,
+          safety_harness_operator_visible: true
         }
       : report);
 
@@ -128,7 +147,9 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /attention/);
       assert.match(html, /fix_readiness_blockers/);
       assert.match(html, /192\.0\.2\.10/);
+      assert.match(html, /192\.0\.2\.20/);
       assert.match(html, /18,080/);
+      assert.match(html, /18,081/);
       assert.match(html, />2<\/td>/);
       assert.match(html, /no/);
       assert.doesNotMatch(html, /undefined|NaN/);
@@ -200,7 +221,17 @@ function readinessReport() {
     preflight_report_only: true,
     preflight_runtime_enabled: false,
     preflight_local_endpoint: true,
-    preflight_operator_visible: true
+    preflight_operator_visible: true,
+    safety_harness_status: "ok",
+    safety_harness_enabled: false,
+    safety_harness_endpoint: "127.0.0.1",
+    safety_harness_port: 0,
+    safety_harness_operator_approval_required: true,
+    safety_harness_report_only: true,
+    safety_harness_runtime_started: false,
+    safety_harness_bind_implemented: false,
+    safety_harness_local_endpoint: true,
+    safety_harness_operator_visible: true
   };
 }
 
