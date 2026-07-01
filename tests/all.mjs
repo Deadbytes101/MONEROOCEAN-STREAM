@@ -7,6 +7,7 @@ import "./agent-service-readiness-dashboard.mjs";
 import "./agent-scorecard-dashboard.mjs";
 import "./agent-bridge-dashboard.mjs";
 import "./agent-local-evidence.mjs";
+import "./docs-links.mjs";
 import "./service-protocol.mjs";
 import "./session-registry.mjs";
 import "./job-source.mjs";
