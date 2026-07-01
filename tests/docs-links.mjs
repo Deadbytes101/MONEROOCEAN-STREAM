@@ -23,6 +23,15 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.match(index, /operator-runbook\.md/);
   });
 
+  test("score note states current score", async () => {
+    const note = await readFile("docs/SERVICE_SCORE_GAP.md", "utf8");
+
+    assert.match(note, /readiness_tier=phase_i_report_ready/);
+    assert.match(note, /score=90/);
+    assert.match(note, /max_score=100/);
+    assert.match(note, /local evidence exists/);
+  });
+
   test("docs README local links resolve to files", async () => {
     await assertLocalMarkdownLinks("docs/README.md");
   });
