@@ -19,6 +19,7 @@ test.describe("documentation links", { concurrency: false }, () => {
 
     assert.match(index, /SERVICE_CORE_SEQUENCE\.md/);
     assert.match(index, /SERVICE_CAPABILITY_SCORECARD\.md/);
+    assert.match(index, /SERVICE_SCORE_GAP\.md/);
     assert.match(index, /operator-runbook\.md/);
   });
 
