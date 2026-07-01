@@ -16,6 +16,7 @@ import "./accounting-projection.mjs";
 import "./settlement-plan.mjs";
 import "./local-service-dry-run.mjs";
 import "./service-readiness.mjs";
+import "./service-scorecard-readiness-tier.mjs";
 import "./bridge-file-report.mjs";
 import "./wallet-workers-render-policy.mjs";
 import "./setup-settings.mjs";
