@@ -60,6 +60,22 @@ test.describe("documentation links", { concurrency: false }, () => {
       await rm(tempDir, { force: true, recursive: true });
     }
   });
+
+  test("local link resolver rejects unsupported protocols", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "docs-links-"));
+
+    try {
+      await writeFile(join(tempDir, "target.md"), "# Target\n");
+      await writeFile(join(tempDir, "index.md"), "[local](target.md)\n[mail](mailto:ops@example.invalid)\n");
+
+      await assert.rejects(
+        () => assertLocalMarkdownLinks(join(tempDir, "index.md")),
+        /unsupported link protocols/,
+      );
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
+  });
 });
 
 async function assertLocalMarkdownLinks(sourcePath) {
