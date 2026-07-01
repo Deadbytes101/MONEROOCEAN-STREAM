@@ -32,6 +32,9 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.match(note, /report_artifact_present=true/);
     assert.match(note, /local_verification_present=true/);
     assert.match(note, /dashboard_projection_present=true/);
+    assert.match(note, /SERVICE_EVIDENCE_INDEX\.md/);
+    assert.match(note, /SERVICE_CAPABILITY_SCORECARD\.md/);
+    assert.match(note, /LOCAL_GATE_REFERENCE\.md/);
     assert.match(note, /local evidence exists/);
   });
 
