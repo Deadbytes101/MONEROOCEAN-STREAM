@@ -245,6 +245,16 @@ try {
             $Entry.preflight_runtime_enabled = [bool]$PhaseIJson.preflight.runtime_enabled
             $Entry.preflight_local_endpoint = [bool]$PhaseIJson.preflight.local_endpoint
             $Entry.preflight_operator_visible = [bool]$PhaseIJson.preflight.operator_visible
+            $Entry.safety_harness_status = [string]$PhaseIJson.safety_harness.status
+            $Entry.safety_harness_enabled = [bool]$PhaseIJson.safety_harness.enabled
+            $Entry.safety_harness_endpoint = [string]$PhaseIJson.safety_harness.endpoint
+            $Entry.safety_harness_port = [int64]$PhaseIJson.safety_harness.port
+            $Entry.safety_harness_operator_approval_required = [bool]$PhaseIJson.safety_harness.operator_approval_required
+            $Entry.safety_harness_report_only = [bool]$PhaseIJson.safety_harness.report_only
+            $Entry.safety_harness_runtime_started = [bool]$PhaseIJson.safety_harness.runtime_started
+            $Entry.safety_harness_bind_implemented = [bool]$PhaseIJson.safety_harness.bind_implemented
+            $Entry.safety_harness_local_endpoint = [bool]$PhaseIJson.safety_harness.local_endpoint
+            $Entry.safety_harness_operator_visible = [bool]$PhaseIJson.safety_harness.operator_visible
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
