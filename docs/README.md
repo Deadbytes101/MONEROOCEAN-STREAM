@@ -5,6 +5,7 @@ Use this index to find the local DBYTE agent, release evidence, and pool stack d
 | Document | Purpose |
 | --- | --- |
 | [DBYTE Pool Stack Architecture](pool-stack-architecture.md) | Defines the long-term pool/miner stack direction, phases, boundaries, and first backend step. |
+| [Service Evidence Index](SERVICE_EVIDENCE_INDEX.md) | Maps the DBYTE service evidence documents and reading order. |
 | [Pool Core Report Artifact](pool-core-report-artifact.md) | Defines the pool-core replay report JSON artifact and the local gate that exports and verifies it. |
 | [DBYTE Agent Docs](agent-docs.md) | Entry point for DBYTE agent release and dashboard evidence docs. |
 | [Release Artifact Contract](release-artifact-contract.md) | Defines release report, manifest, checker output, seal, readback, and integrity rules. |
