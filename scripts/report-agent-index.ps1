@@ -267,6 +267,21 @@ try {
             $Entry.launch_contract_external_worker_intake = [bool]$PhaseIJson.launch_contract.external_worker_intake
             $Entry.launch_contract_local_host = [bool]$PhaseIJson.launch_contract.local_host
             $Entry.launch_contract_operator_visible = [bool]$PhaseIJson.launch_contract.operator_visible
+            $Entry.readiness_closure_status = [string]$PhaseIJson.readiness_closure.status
+            $Entry.readiness_closure_report_only = [bool]$PhaseIJson.readiness_closure.report_only
+            $Entry.readiness_closure_source = [string]$PhaseIJson.readiness_closure.dashboard_projection_source
+            $Entry.readiness_closure_runtime_present = [bool]$PhaseIJson.readiness_closure.runtime_present
+            $Entry.readiness_closure_intake_present = [bool]$PhaseIJson.readiness_closure.intake_present
+            $Entry.readiness_closure_value_movement_present = [bool]$PhaseIJson.readiness_closure.value_movement_present
+            $Entry.readiness_closure_readiness_evidence_present = [bool]$PhaseIJson.readiness_closure.readiness_evidence_present
+            $Entry.readiness_closure_preflight_evidence_present = [bool]$PhaseIJson.readiness_closure.preflight_evidence_present
+            $Entry.readiness_closure_safety_harness_evidence_present = [bool]$PhaseIJson.readiness_closure.safety_harness_evidence_present
+            $Entry.readiness_closure_launch_contract_evidence_present = [bool]$PhaseIJson.readiness_closure.launch_contract_evidence_present
+            $Entry.readiness_closure_readiness_dashboard_projected = [bool]$PhaseIJson.readiness_closure.readiness_dashboard_projected
+            $Entry.readiness_closure_preflight_dashboard_projected = [bool]$PhaseIJson.readiness_closure.preflight_dashboard_projected
+            $Entry.readiness_closure_safety_harness_dashboard_projected = [bool]$PhaseIJson.readiness_closure.safety_harness_dashboard_projected
+            $Entry.readiness_closure_launch_contract_dashboard_projected = [bool]$PhaseIJson.readiness_closure.launch_contract_dashboard_projected
+            $Entry.readiness_closure_operator_visible = [bool]$PhaseIJson.readiness_closure.operator_visible
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
