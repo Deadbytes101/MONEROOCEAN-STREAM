@@ -30,8 +30,9 @@ This is the proof layer. The next work is to grow it into a service layer withou
 7. Settlement plan report
 8. Local service dry-run
 9. Service readiness planning
-10. Controlled listener
-11. Readiness gate
+10. Controlled-listener preflight evidence
+11. Controlled listener
+12. Readiness gate
 ```
 
 Each part must emit a report before the next part can depend on it.
@@ -48,6 +49,8 @@ Phase F: implemented, reported, and gated
 Phase G: implemented, reported, and gated
 Phase H: implemented, reported, dashboarded, and gated
 Phase I readiness planning: implemented, reported, dashboarded, and gated
+Phase I controlled-listener preflight evidence: implemented, reported, indexed, and gated
+Phase I preflight dashboard projection: not implemented
 Phase I controlled listener: not implemented
 Phase J: not implemented
 ```
@@ -60,6 +63,8 @@ no live worker intake
 no settlement execution
 no payout execution
 runtime enablement remains false in readiness reports
+preflight endpoint remains localhost-only
+preflight evidence is report-only
 reports are generated from synthetic fixtures and local artifacts
 operator-facing dashboard evidence is read from the report index
 ```
@@ -244,8 +249,9 @@ Tasks:
 1. Add readiness config fields with safe defaults.
 2. Keep runtime enablement false by default.
 3. Emit readiness status, blockers, and next-step fields.
-4. Add dashboard projection from report index fields only.
-5. Gate readiness through FULL VERIFY.
+4. Emit preflight endpoint, port, report-only, runtime, local endpoint, and operator-visible fields.
+5. Add dashboard projection from report index fields only.
+6. Gate readiness and preflight evidence through FULL VERIFY.
 ```
 
 Definition of done:
@@ -254,13 +260,40 @@ Definition of done:
 readiness report status=ok
 runtime_enabled=false
 blocker_count=0
+preflight endpoint=127.0.0.1
+preflight runtime_enabled=false
+preflight report_only=true
+preflight fields are carried by the report index
+preflight fields are asserted by the Phase I gate
 readiness dashboard renders from report index
 FULL VERIFY GATE PASSED
 ```
 
-## Phase I-next: Controlled listener
+## Phase I-next: Preflight dashboard projection
 
-Goal: add the first operator-controlled listener only after readiness gates pass.
+Goal: show the indexed preflight evidence to the operator before any controlled listener implementation exists.
+
+Tasks:
+
+```text
+1. Read preflight status, enabled, endpoint, port, report-only, runtime, local endpoint, and operator-visible fields from the report index.
+2. Render those fields in the Agent dashboard readiness panel.
+3. Add dashboard tests for ok, missing, and attention preflight states.
+4. Keep the dashboard read-only and report-index-only.
+```
+
+Definition of done:
+
+```text
+preflight dashboard renders from report index only
+missing optional preflight evidence does not break healthy agent summary
+attention preflight evidence remains visible
+no runtime path is introduced
+```
+
+## Phase I-later: Controlled listener
+
+Goal: add the first operator-controlled listener only after readiness and preflight dashboard gates pass.
 
 Tasks:
 
@@ -295,13 +328,14 @@ Required evidence before the service is called ready:
 6. Settlement plan status=ok
 7. Service runner status=ok
 8. Service readiness status=ok
-9. Release manifest approved=true
-10. Dashboard renders every report from index
-11. FULL VERIFY GATE PASSED
+9. Preflight evidence status=ok
+10. Release manifest approved=true
+11. Dashboard renders every report from index
+12. FULL VERIFY GATE PASSED
 ```
 
 ## Next implementation PR
 
-The next code PR should be the first controlled-listener preflight only: disabled-by-default localhost configuration, operator-visible report fields, and tests that prove no runtime path starts unless explicitly enabled.
+The next code PR should be preflight dashboard projection only: render indexed preflight fields in the Agent dashboard and add tests for ok, missing, and attention states.
 
 Do not accept external worker traffic in the next PR. Do not execute settlement or payout actions in the next PR.
