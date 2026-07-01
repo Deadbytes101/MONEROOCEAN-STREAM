@@ -65,7 +65,10 @@ function assertScorecardIndex(path) {
   check(entry.status, "present");
   check(entry.scorecard_schema, 1);
   check(entry.scorecard_status, "ok");
+  check(entry.scorecard_readiness_tier, "phase_i_report_ready");
   check(entry.scorecard_report_only, true);
+  check(entry.scorecard_production_ready, false);
+  check(entry.scorecard_public_service_ready, false);
   check(entry.scorecard_score, 90);
   check(entry.scorecard_max_score, 100);
   check(entry.scorecard_runtime_present, false);
