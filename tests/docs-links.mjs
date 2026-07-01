@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize } from "node:path";
 
@@ -84,6 +84,23 @@ test.describe("documentation links", { concurrency: false }, () => {
       await assert.rejects(
         () => assertLocalMarkdownLinks(join(tempDir, "index.md")),
         /empty link targets/,
+      );
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
+  });
+
+  test("local link resolver rejects directory targets", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "docs-links-"));
+
+    try {
+      await mkdir(join(tempDir, "section"));
+      await writeFile(join(tempDir, "target.md"), "# Target\n");
+      await writeFile(join(tempDir, "index.md"), "[local](target.md)\n[directory](section)\n");
+
+      await assert.rejects(
+        () => assertLocalMarkdownLinks(join(tempDir, "index.md")),
+        /local link must resolve/,
       );
     } finally {
       await rm(tempDir, { force: true, recursive: true });
