@@ -17,6 +17,7 @@ const report = {
   config: readiness.config,
   evidence: readiness.evidence,
   checks: readiness.checks,
+  preflight: readiness.preflight,
   summary: readiness.summary,
   blockers: readiness.blockers
 };
