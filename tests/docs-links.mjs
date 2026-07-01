@@ -10,6 +10,7 @@ test.describe("documentation links", { concurrency: false }, () => {
 
     assert.match(index, /SERVICE_EVIDENCE_INDEX\.md/);
     assert.match(index, /SERVICE_SCORE_GAP\.md/);
+    assert.match(index, /LOCAL_GATE_REFERENCE\.md/);
     assert.match(index, /SERVICE_CAPABILITY_SCORECARD\.md|agent-docs\.md/);
     assert.match(index, /operator-runbook\.md/);
   });
@@ -20,6 +21,7 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.match(index, /SERVICE_CORE_SEQUENCE\.md/);
     assert.match(index, /SERVICE_CAPABILITY_SCORECARD\.md/);
     assert.match(index, /SERVICE_SCORE_GAP\.md/);
+    assert.match(index, /LOCAL_GATE_REFERENCE\.md/);
     assert.match(index, /operator-runbook\.md/);
   });
 
