@@ -29,8 +29,9 @@ This is the proof layer. The next work is to grow it into a service layer withou
 6. Accounting projection
 7. Settlement plan report
 8. Local service dry-run
-9. Controlled listener
-10. Readiness gate
+9. Service readiness planning
+10. Controlled listener
+11. Readiness gate
 ```
 
 Each part must emit a report before the next part can depend on it.
@@ -46,7 +47,8 @@ Phase E: implemented, reported, and gated
 Phase F: implemented, reported, and gated
 Phase G: implemented, reported, and gated
 Phase H: implemented, reported, dashboarded, and gated
-Phase I: not implemented
+Phase I readiness planning: implemented, reported, dashboarded, and gated
+Phase I controlled listener: not implemented
 Phase J: not implemented
 ```
 
@@ -57,6 +59,7 @@ no external worker traffic
 no live worker intake
 no settlement execution
 no payout execution
+runtime enablement remains false in readiness reports
 reports are generated from synthetic fixtures and local artifacts
 operator-facing dashboard evidence is read from the report index
 ```
@@ -231,9 +234,33 @@ all state is replayable
 FULL VERIFY GATE PASSED
 ```
 
-## Phase I: Controlled listener
+## Phase I: Service readiness planning
 
-Goal: add the first operator-controlled listener only after dry-run gates pass.
+Goal: prove the operator-facing configuration, limits, and report evidence before any controlled listener implementation exists.
+
+Tasks:
+
+```text
+1. Add readiness config fields with safe defaults.
+2. Keep runtime enablement false by default.
+3. Emit readiness status, blockers, and next-step fields.
+4. Add dashboard projection from report index fields only.
+5. Gate readiness through FULL VERIFY.
+```
+
+Definition of done:
+
+```text
+readiness report status=ok
+runtime_enabled=false
+blocker_count=0
+readiness dashboard renders from report index
+FULL VERIFY GATE PASSED
+```
+
+## Phase I-next: Controlled listener
+
+Goal: add the first operator-controlled listener only after readiness gates pass.
 
 Tasks:
 
@@ -253,7 +280,7 @@ unknown sessions cannot submit work
 operator report shows every live session
 ```
 
-Phase I must not start by accepting external traffic. The first implementation step must be a report-only readiness check that proves the configuration, limits, and operator-visible reports are present before any listener work is enabled.
+The controlled listener must not start by accepting external traffic. The first implementation step must be localhost-only, disabled by default, and covered by report evidence before any broader operator mode is allowed.
 
 ## Phase J: Readiness gate
 
@@ -267,13 +294,14 @@ Required evidence before the service is called ready:
 5. Accounting projection status=ok
 6. Settlement plan status=ok
 7. Service runner status=ok
-8. Release manifest approved=true
-9. Dashboard renders every report from index
-10. FULL VERIFY GATE PASSED
+8. Service readiness status=ok
+9. Release manifest approved=true
+10. Dashboard renders every report from index
+11. FULL VERIFY GATE PASSED
 ```
 
 ## Next implementation PR
 
-The next code PR should be Phase I readiness planning only: configuration schema, report fields, and tests that prove the listener remains disabled unless the operator explicitly enables it.
+The next code PR should be the first controlled-listener preflight only: disabled-by-default localhost configuration, operator-visible report fields, and tests that prove no runtime path starts unless explicitly enabled.
 
 Do not accept external worker traffic in the next PR. Do not execute settlement or payout actions in the next PR.
