@@ -29,6 +29,39 @@ test.describe("build invariants", { concurrency: false }, () => {
     assert.deepEqual(findings, [], "real email addresses must stay obfuscated or test-only");
   });
 
+  test("service planning files stay report-only", async () => {
+    const files = [
+      "src/service-readiness.js",
+      "scripts/report-service-readiness.mjs",
+      "scripts/verify-phase-i.mjs"
+    ];
+    const forbiddenPatterns = [
+      /\bcreateServer\b/,
+      /\bnet\.createServer\b/,
+      /\bdgram\.createSocket\b/,
+      /\bhttp\.createServer\b/,
+      /\bhttps\.createServer\b/,
+      /\bWebSocketServer\b/,
+      /\bnew\s+WebSocket\b/,
+      /\.listen\s*\(/,
+      /\.bind\s*\(/,
+      /\bchild_process\b/,
+      /\bspawn\s*\(/,
+      /\bexec\s*\(/,
+      /\bexecFile\s*\(/
+    ];
+    const findings = [];
+
+    for (const file of files) {
+      const source = await readFile(file, "utf8");
+      for (const pattern of forbiddenPatterns) {
+        if (pattern.test(source)) findings.push(`${file}: ${pattern}`);
+      }
+    }
+
+    assert.deepEqual(findings, [], "service planning files must remain report-only static projections");
+  });
+
   test("source HTML has SEO metadata and no retired asset references", async () => {
     const index = await readFile("index.html", "utf8");
     assert.match(index, /MoneroOcean Pool Dashboard/);
