@@ -2,6 +2,14 @@
 
 This repo is operated through a small set of explicit local commands.
 
+## Evidence map
+
+Read the service evidence index when you need the DBYTE service roadmap, scorecard contract, release contract, and operator workflow in one place:
+
+```text
+docs/SERVICE_EVIDENCE_INDEX.md
+```
+
 ## Full gate
 
 Run this before merging any pull request:
