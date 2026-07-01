@@ -18,6 +18,7 @@ const report = {
   evidence: readiness.evidence,
   checks: readiness.checks,
   preflight: readiness.preflight,
+  safety_harness: readiness.safety_harness,
   summary: readiness.summary,
   blockers: readiness.blockers
 };

@@ -50,6 +50,44 @@ test.describe("service readiness report", { concurrency: false }, () => {
     assert.equal(readiness.summary.preflight_enabled, true);
   });
 
+  test("keeps the safety harness report-only and not started by default", () => {
+    const readiness = assessServiceReadiness();
+
+    assert.equal(readiness.safety_harness.status, "ok");
+    assert.equal(readiness.safety_harness.enabled, false);
+    assert.equal(readiness.safety_harness.endpoint, "127.0.0.1");
+    assert.equal(readiness.safety_harness.port, 0);
+    assert.equal(readiness.safety_harness.operator_approval_required, true);
+    assert.equal(readiness.safety_harness.report_only, true);
+    assert.equal(readiness.safety_harness.runtime_started, false);
+    assert.equal(readiness.safety_harness.bind_implemented, false);
+    assert.equal(readiness.safety_harness.local_endpoint, true);
+    assert.equal(readiness.summary.safety_harness_runtime_started, false);
+  });
+
+  test("blocks requested safety harness enablement without starting runtime", () => {
+    const readiness = assessServiceReadiness({ config: { safety_harness: { enabled: true, endpoint: "127.0.0.1", port: 18080 } } });
+
+    assert.equal(readiness.valid, false);
+    assert.equal(readiness.status, "attention");
+    assert.equal(readiness.safety_harness.enabled, true);
+    assert.equal(readiness.safety_harness.runtime_started, false);
+    assert.equal(readiness.safety_harness.bind_implemented, false);
+    assert.equal(readiness.summary.runtime_enabled, false);
+    assert.match(readiness.blockers.join("\n"), /safety_harness_must_remain_disabled/);
+  });
+
+  test("blocks non-local safety harness endpoints", () => {
+    const readiness = assessServiceReadiness({ config: { safety_harness: { endpoint: "0.0.0.0", port: 18080 } } });
+
+    assert.equal(readiness.valid, false);
+    assert.equal(readiness.status, "attention");
+    assert.equal(readiness.safety_harness.local_endpoint, false);
+    assert.equal(readiness.safety_harness.runtime_started, false);
+    assert.equal(readiness.safety_harness.bind_implemented, false);
+    assert.match(readiness.blockers.join("\n"), /safety_harness_endpoint_must_remain_local/);
+  });
+
   test("blocks enabled runtime config in the readiness phase", () => {
     const readiness = assessServiceReadiness({ config: { enabled: true } });
 
@@ -97,6 +135,10 @@ test.describe("service readiness report", { concurrency: false }, () => {
       assert.equal(report.preflight.report_only, true);
       assert.equal(report.preflight.runtime_enabled, false);
       assert.equal(report.preflight.local_endpoint, true);
+      assert.equal(report.safety_harness.report_only, true);
+      assert.equal(report.safety_harness.runtime_started, false);
+      assert.equal(report.safety_harness.bind_implemented, false);
+      assert.equal(report.safety_harness.local_endpoint, true);
       assert.deepEqual(report.blockers, []);
     } finally {
       await rm(directory, { recursive: true, force: true });

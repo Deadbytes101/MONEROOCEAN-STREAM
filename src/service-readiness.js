@@ -10,6 +10,11 @@ export function assessServiceReadiness(input = {}) {
     message_limit_present: config.max_messages_per_session > 0,
     operator_approval_required: config.operator_approval_required === true,
     preflight_local_endpoint: config.preflight.endpoint === "127.0.0.1",
+    safety_harness_disabled: config.safety_harness.enabled === false,
+    safety_harness_local_endpoint: config.safety_harness.endpoint === "127.0.0.1",
+    safety_harness_operator_approval_required: config.safety_harness.operator_approval_required === true,
+    safety_harness_runtime_not_started: true,
+    safety_harness_bind_not_implemented: true,
     preflight_report_only: true,
     report_only: true
   };
@@ -32,12 +37,27 @@ export function assessServiceReadiness(input = {}) {
       local_endpoint: config.preflight.endpoint === "127.0.0.1",
       operator_visible: true
     },
+    safety_harness: {
+      status: blockers.length === 0 ? "ok" : "attention",
+      enabled: config.safety_harness.enabled,
+      endpoint: config.safety_harness.endpoint,
+      port: config.safety_harness.port,
+      operator_approval_required: config.safety_harness.operator_approval_required,
+      report_only: true,
+      runtime_started: false,
+      bind_implemented: false,
+      local_endpoint: config.safety_harness.endpoint === "127.0.0.1",
+      operator_visible: true
+    },
     summary: {
       blocker_count: blockers.length,
       report_only: true,
       runtime_enabled: false,
       preflight_enabled: config.preflight.enabled,
       preflight_report_only: true,
+      safety_harness_enabled: config.safety_harness.enabled,
+      safety_harness_report_only: true,
+      safety_harness_runtime_started: false,
       next_step: blockers.length === 0 ? "review_configuration" : "fix_readiness_blockers"
     },
     blockers
@@ -52,7 +72,8 @@ function normalizeConfig(config) {
     max_messages_per_session: normalizeInteger(config.max_messages_per_session, 100),
     operator_approval_required: config.operator_approval_required !== false,
     public_mode_acknowledged: config.public_mode_acknowledged === true,
-    preflight: normalizePreflight(config.preflight || {})
+    preflight: normalizePreflight(config.preflight || {}),
+    safety_harness: normalizeSafetyHarness(config.safety_harness || {})
   };
 }
 
@@ -61,6 +82,15 @@ function normalizePreflight(preflight) {
     enabled: preflight.enabled === true,
     endpoint: String(preflight.endpoint || "127.0.0.1"),
     port: normalizeInteger(preflight.port, 0)
+  };
+}
+
+function normalizeSafetyHarness(safetyHarness) {
+  return {
+    enabled: safetyHarness.enabled === true,
+    endpoint: String(safetyHarness.endpoint || "127.0.0.1"),
+    port: normalizeInteger(safetyHarness.port, 0),
+    operator_approval_required: safetyHarness.operator_approval_required !== false
   };
 }
 
@@ -88,6 +118,9 @@ function collectBlockers(config, checks) {
   if (!checks.message_limit_present) blockers.push("missing_message_limit");
   if (!checks.operator_approval_required) blockers.push("operator_approval_required");
   if (!checks.preflight_local_endpoint) blockers.push("preflight_endpoint_must_remain_local");
+  if (!checks.safety_harness_disabled) blockers.push("safety_harness_must_remain_disabled_in_readiness_phase");
+  if (!checks.safety_harness_local_endpoint) blockers.push("safety_harness_endpoint_must_remain_local");
+  if (!checks.safety_harness_operator_approval_required) blockers.push("safety_harness_operator_approval_required");
   if (config.mode !== "local" && config.public_mode_acknowledged !== true) blockers.push("non_local_mode_requires_visible_acknowledgement");
 
   return blockers;
