@@ -36,8 +36,9 @@ This is the proof layer. The next work is to grow it into a service layer withou
 13. Safety harness dashboard projection
 14. Controlled-listener launch contract
 15. Launch contract dashboard projection
-16. Controlled listener
-17. Readiness gate
+16. Readiness closure guard
+17. Controlled listener
+18. Readiness gate
 ```
 
 Each part must emit a report before the next part can depend on it.
@@ -59,7 +60,8 @@ Phase I preflight dashboard projection: implemented, dashboarded, and tested
 Phase I controlled-listener safety harness: implemented, reported, indexed, and gated
 Phase I safety harness dashboard projection: implemented, dashboarded, and tested
 Phase I controlled-listener launch contract: implemented, reported, indexed, and gated
-Phase I launch contract dashboard projection: not implemented
+Phase I launch contract dashboard projection: implemented, dashboarded, and tested
+Phase I readiness closure guard: implemented, reported, indexed, dashboarded, and gated
 Phase I controlled listener: not implemented
 Phase J: not implemented
 ```
@@ -82,10 +84,16 @@ safety harness runtime_started=false
 safety harness bind_implemented=false
 launch contract remains disabled by default
 launch contract evidence is report-only
+launch contract dashboard evidence is read from the report index
 launch_allowed=false
 launch runtime_started=false
 launch bind_implemented=false
 launch external_worker_intake=false
+readiness closure evidence is report-only
+readiness closure dashboard evidence is read from the report index
+readiness closure runtime_present=false
+readiness closure intake_present=false
+readiness closure value_movement_present=false
 reports are generated from synthetic fixtures and local artifacts
 operator-facing dashboard evidence is read from the report index
 ```
@@ -411,9 +419,33 @@ attention launch contract evidence remains visible
 no runtime path is introduced
 ```
 
+## Phase I-next: Readiness closure guard
+
+Goal: show the final Phase I closure evidence to the operator before any controlled listener implementation exists.
+
+Tasks:
+
+```text
+1. Read closure status, source, evidence presence, dashboard projection, runtime, intake, and value-movement fields from the report index.
+2. Render those fields in the Agent dashboard readiness panel.
+3. Add dashboard tests for ok, missing, and attention closure states.
+4. Keep the dashboard read-only and report-index-only.
+```
+
+Definition of done:
+
+```text
+readiness closure renders from report index only
+readiness closure source=report_index
+runtime_present=false
+intake_present=false
+value_movement_present=false
+no runtime path is introduced
+```
+
 ## Phase I-final: Controlled listener
 
-Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, safety harness, safety harness dashboard, launch contract, and launch contract dashboard gates pass.
+Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, safety harness, safety harness dashboard, launch contract, launch contract dashboard, and readiness closure gates pass.
 
 Tasks:
 
@@ -454,13 +486,15 @@ Required evidence before the service is called ready:
 12. Safety harness dashboard projection renders from report index
 13. Launch contract evidence status=ok
 14. Launch contract dashboard projection renders from report index
-15. Release manifest approved=true
-16. Dashboard renders every report from index
-17. FULL VERIFY GATE PASSED
+15. Readiness closure guard status=ok
+16. Readiness closure dashboard projection renders from report index
+17. Release manifest approved=true
+18. Dashboard renders every report from index
+19. FULL VERIFY GATE PASSED
 ```
 
 ## Next implementation PR
 
-The next code PR should be launch contract dashboard projection only: render indexed launch contract fields in the Agent dashboard and add tests for ok, missing, and attention states.
+The next code PR should be an additional report-only hardening step or a docs-only status update. Do not add a controlled listener in the next PR.
 
 Do not accept external worker traffic in the next PR. Do not execute settlement or payout actions in the next PR.
