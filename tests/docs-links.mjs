@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join, normalize } from "node:path";
 
 test.describe("documentation links", { concurrency: false }, () => {
@@ -42,6 +43,22 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.equal(hasProtocol("https://example.com"), true);
     assert.equal(hasProtocol("mailto:ops@example.invalid"), true);
     assert.equal(hasProtocol("docs/README.md"), false);
+  });
+
+  test("local link resolver ignores http links", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "docs-links-"));
+
+    try {
+      await writeFile(join(tempDir, "target.md"), "# Target\n");
+      await writeFile(
+        join(tempDir, "index.md"),
+        "[local](target.md)\n[external](https://example.invalid/docs)\n",
+      );
+
+      await assertLocalMarkdownLinks(join(tempDir, "index.md"));
+    } finally {
+      await rm(tempDir, { force: true, recursive: true });
+    }
   });
 });
 
