@@ -32,8 +32,10 @@ This is the proof layer. The next work is to grow it into a service layer withou
 9. Service readiness planning
 10. Controlled-listener preflight evidence
 11. Preflight dashboard projection
-12. Controlled listener
-13. Readiness gate
+12. Controlled-listener safety harness
+13. Safety harness dashboard projection
+14. Controlled listener
+15. Readiness gate
 ```
 
 Each part must emit a report before the next part can depend on it.
@@ -52,6 +54,8 @@ Phase H: implemented, reported, dashboarded, and gated
 Phase I readiness planning: implemented, reported, dashboarded, and gated
 Phase I controlled-listener preflight evidence: implemented, reported, indexed, and gated
 Phase I preflight dashboard projection: implemented, dashboarded, and tested
+Phase I controlled-listener safety harness: implemented, reported, indexed, and gated
+Phase I safety harness dashboard projection: not implemented
 Phase I controlled listener: not implemented
 Phase J: not implemented
 ```
@@ -67,6 +71,10 @@ runtime enablement remains false in readiness reports
 preflight endpoint remains localhost-only
 preflight evidence is report-only
 preflight dashboard evidence is read from the report index
+safety harness remains disabled by default
+safety harness evidence is report-only
+safety harness runtime_started=false
+safety harness bind_implemented=false
 reports are generated from synthetic fixtures and local artifacts
 operator-facing dashboard evidence is read from the report index
 ```
@@ -303,21 +311,48 @@ Tasks:
 1. Add disabled-by-default config fields for a future localhost-only listener.
 2. Add report fields that make the requested endpoint, port, enabled flag, and approval state visible.
 3. Add tests that prove no runtime path starts from default config.
-4. Keep external bind unavailable until a later explicit operator-approved step.
+4. Carry safety harness fields through the report index.
+5. Assert safety harness fields in the Phase I gate.
 ```
 
 Definition of done:
 
 ```text
-listener_enabled=false by default
-localhost remains the only accepted future endpoint in this phase
-operator approval is required and visible
+safety_harness_enabled=false by default
+safety_harness endpoint=127.0.0.1
+safety_harness report_only=true
+safety_harness runtime_started=false
+safety_harness bind_implemented=false
+safety_harness fields are carried by the report index
+safety_harness fields are asserted by the Phase I gate
 no socket bind is implemented in this phase
+```
+
+## Phase I-next: Safety harness dashboard projection
+
+Goal: show the indexed safety harness evidence to the operator before any controlled listener implementation exists.
+
+Tasks:
+
+```text
+1. Read safety harness status, enabled, endpoint, port, approval, report-only, runtime-started, bind-implemented, local endpoint, and operator-visible fields from the report index.
+2. Render those fields in the Agent dashboard readiness panel.
+3. Add dashboard tests for ok, missing, and attention safety harness states.
+4. Keep the dashboard read-only and report-index-only.
+```
+
+Definition of done:
+
+```text
+safety harness dashboard renders from report index only
+missing optional safety harness evidence does not break healthy agent summary
+attention safety harness evidence remains visible
+no runtime path is introduced
 ```
 
 ## Phase I-final: Controlled listener
 
-Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, and safety harness gates pass.
+Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, safety harness, and safety harness dashboard gates pass.
 
 Tasks:
 
@@ -354,13 +389,15 @@ Required evidence before the service is called ready:
 8. Service readiness status=ok
 9. Preflight evidence status=ok
 10. Preflight dashboard projection renders from report index
-11. Release manifest approved=true
-12. Dashboard renders every report from index
-13. FULL VERIFY GATE PASSED
+11. Safety harness evidence status=ok
+12. Safety harness dashboard projection renders from report index
+13. Release manifest approved=true
+14. Dashboard renders every report from index
+15. FULL VERIFY GATE PASSED
 ```
 
 ## Next implementation PR
 
-The next code PR should be a controlled-listener safety harness only: add disabled-by-default future-listener config and report fields, then prove through tests that no socket bind or runtime listener starts in this phase.
+The next code PR should be safety harness dashboard projection only: render indexed safety harness fields in the Agent dashboard and add tests for ok, missing, and attention states.
 
 Do not accept external worker traffic in the next PR. Do not execute settlement or payout actions in the next PR.
