@@ -237,6 +237,14 @@ try {
             $Entry.readiness_payload_limit_present = [bool]$PhaseIJson.checks.payload_limit_present
             $Entry.readiness_message_limit_present = [bool]$PhaseIJson.checks.message_limit_present
             $Entry.readiness_operator_approval_required = [bool]$PhaseIJson.checks.operator_approval_required
+            $Entry.preflight_status = [string]$PhaseIJson.preflight.status
+            $Entry.preflight_enabled = [bool]$PhaseIJson.preflight.enabled
+            $Entry.preflight_endpoint = [string]$PhaseIJson.preflight.endpoint
+            $Entry.preflight_port = [int64]$PhaseIJson.preflight.port
+            $Entry.preflight_report_only = [bool]$PhaseIJson.preflight.report_only
+            $Entry.preflight_runtime_enabled = [bool]$PhaseIJson.preflight.runtime_enabled
+            $Entry.preflight_local_endpoint = [bool]$PhaseIJson.preflight.local_endpoint
+            $Entry.preflight_operator_visible = [bool]$PhaseIJson.preflight.operator_visible
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
