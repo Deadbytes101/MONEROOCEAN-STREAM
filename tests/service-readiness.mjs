@@ -133,6 +133,42 @@ test.describe("service readiness report", { concurrency: false }, () => {
     assert.match(readiness.blockers.join("\n"), /launch_contract_host_must_remain_local/);
   });
 
+  test("keeps the readiness closure report-only and inert", () => {
+    const readiness = assessServiceReadiness();
+
+    assert.equal(readiness.readiness_closure.status, "ok");
+    assert.equal(readiness.readiness_closure.report_only, true);
+    assert.equal(readiness.readiness_closure.dashboard_projection_source, "report_index");
+    assert.equal(readiness.readiness_closure.readiness_evidence_present, true);
+    assert.equal(readiness.readiness_closure.preflight_evidence_present, true);
+    assert.equal(readiness.readiness_closure.safety_harness_evidence_present, true);
+    assert.equal(readiness.readiness_closure.launch_contract_evidence_present, true);
+    assert.equal(readiness.readiness_closure.readiness_dashboard_projected, true);
+    assert.equal(readiness.readiness_closure.preflight_dashboard_projected, true);
+    assert.equal(readiness.readiness_closure.safety_harness_dashboard_projected, true);
+    assert.equal(readiness.readiness_closure.launch_contract_dashboard_projected, true);
+    assert.equal(readiness.readiness_closure.runtime_present, false);
+    assert.equal(readiness.readiness_closure.intake_present, false);
+    assert.equal(readiness.readiness_closure.value_movement_present, false);
+    assert.equal(readiness.summary.readiness_closure_report_only, true);
+    assert.equal(readiness.summary.readiness_closure_runtime_present, false);
+    assert.equal(readiness.summary.readiness_closure_intake_present, false);
+    assert.equal(readiness.summary.readiness_closure_value_movement_present, false);
+  });
+
+  test("keeps the readiness closure in attention when readiness has blockers", () => {
+    const readiness = assessServiceReadiness({ config: { enabled: true } });
+
+    assert.equal(readiness.valid, false);
+    assert.equal(readiness.status, "attention");
+    assert.equal(readiness.readiness_closure.status, "attention");
+    assert.equal(readiness.readiness_closure.report_only, true);
+    assert.equal(readiness.readiness_closure.runtime_present, false);
+    assert.equal(readiness.readiness_closure.intake_present, false);
+    assert.equal(readiness.readiness_closure.value_movement_present, false);
+    assert.match(readiness.blockers.join("\n"), /runtime_must_remain_disabled/);
+  });
+
   test("blocks enabled runtime config in the readiness phase", () => {
     const readiness = assessServiceReadiness({ config: { enabled: true } });
 
@@ -190,6 +226,11 @@ test.describe("service readiness report", { concurrency: false }, () => {
       assert.equal(report.launch_contract.bind_implemented, false);
       assert.equal(report.launch_contract.external_worker_intake, false);
       assert.equal(report.launch_contract.local_host, true);
+      assert.equal(report.readiness_closure.report_only, true);
+      assert.equal(report.readiness_closure.dashboard_projection_source, "report_index");
+      assert.equal(report.readiness_closure.runtime_present, false);
+      assert.equal(report.readiness_closure.intake_present, false);
+      assert.equal(report.readiness_closure.value_movement_present, false);
       assert.deepEqual(report.blockers, []);
     } finally {
       await rm(directory, { recursive: true, force: true });
