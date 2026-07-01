@@ -16,8 +16,8 @@ export function buildServiceCapabilityScorecard(input = {}) {
   };
   const blockers = collectBlockers(checks);
   const capabilities = buildCapabilities(readiness, checks);
-  const earnedScore = capabilities.reduce((sum, capability) => sum + capability.score, 0);
-  const maxScore = capabilities.reduce((sum, capability) => sum + capability.max_score, 0);
+  const earnedScore = capabilities.reduce((sum, item) => sum + item.score, 0);
+  const maxScore = capabilities.reduce((sum, item) => sum + item.max_score, 0);
 
   return {
     schema: 1,
@@ -32,9 +32,9 @@ export function buildServiceCapabilityScorecard(input = {}) {
     capabilities,
     summary: {
       capability_count: capabilities.length,
-      ok_capabilities: capabilities.filter((capability) => capability.status === "ok").length,
-      attention_capabilities: capabilities.filter((capability) => capability.status === "attention").length,
-      planned_capabilities: capabilities.filter((capability) => capability.status === "planned").length,
+      ok_capabilities: capabilities.filter((item) => item.status === "ok").length,
+      attention_capabilities: capabilities.filter((item) => item.status === "attention").length,
+      planned_capabilities: capabilities.filter((item) => item.status === "planned").length,
       blocker_count: blockers.length,
       report_only: true,
       runtime_present: false,
@@ -48,28 +48,28 @@ export function buildServiceCapabilityScorecard(input = {}) {
 
 function buildCapabilities(readiness, checks) {
   return [
-    capability("deterministic_replay_spine", checks.readiness_ok, 20, [
+    scoreCapability("deterministic_replay_spine", checks.readiness_ok, 20, [
       "service_readiness_status_ok",
       "phase_i_gate_ok",
       `blockers=${readiness.summary.blocker_count}`
     ]),
-    capability("operator_report_index_projection", checks.report_index_projection, 20, [
+    scoreCapability("operator_report_index_projection", checks.report_index_projection, 20, [
       `dashboard_projection_source=${readiness.readiness_closure.dashboard_projection_source}`,
       `readiness_dashboard_projected=${readiness.readiness_closure.readiness_dashboard_projected}`,
       `launch_contract_dashboard_projected=${readiness.readiness_closure.launch_contract_dashboard_projected}`
     ]),
-    capability("runtime_boundary", checks.runtime_absent && checks.intake_absent, 20, [
+    scoreCapability("runtime_boundary", checks.runtime_absent && checks.intake_absent, 20, [
       `runtime_enabled=${readiness.summary.runtime_enabled}`,
       `runtime_present=${readiness.readiness_closure.runtime_present}`,
       `intake_present=${readiness.readiness_closure.intake_present}`
     ]),
-    capability("launch_control", checks.launch_not_allowed && checks.launch_runtime_absent && checks.launch_bind_absent && checks.launch_intake_absent, 20, [
+    scoreCapability("launch_control", checks.launch_not_allowed && checks.launch_runtime_absent && checks.launch_bind_absent && checks.launch_intake_absent, 20, [
       `launch_allowed=${readiness.launch_contract.launch_allowed}`,
       `runtime_started=${readiness.launch_contract.runtime_started}`,
       `bind_implemented=${readiness.launch_contract.bind_implemented}`,
       `external_worker_intake=${readiness.launch_contract.external_worker_intake}`
     ]),
-    capability("value_movement_boundary", checks.value_movement_absent, 10, [
+    scoreCapability("value_movement_boundary", checks.value_movement_absent, 10, [
       `value_movement_present=${readiness.readiness_closure.value_movement_present}`,
       "settlement_execution=report_only"
     ]),
@@ -86,7 +86,7 @@ function buildCapabilities(readiness, checks) {
   ];
 }
 
-function capability(id, ok, maxScore, evidence) {
+function scoreCapability(id, ok, maxScore, evidence) {
   return {
     id,
     status: ok ? "ok" : "attention",
