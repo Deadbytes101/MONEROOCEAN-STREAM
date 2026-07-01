@@ -62,6 +62,13 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /review_configuration/);
       assert.match(html, /Report-only/);
       assert.match(html, /Runtime enabled/);
+      assert.match(html, /Preflight status/);
+      assert.match(html, /Preflight endpoint/);
+      assert.match(html, /Preflight report-only/);
+      assert.match(html, /Preflight runtime enabled/);
+      assert.match(html, /Preflight local endpoint/);
+      assert.match(html, /Preflight operator visible/);
+      assert.match(html, /127\.0\.0\.1/);
       assert.match(html, />0<\/td>/);
       assert.match(html, /yes/);
       assert.match(html, /no/);
@@ -84,6 +91,7 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /DBYTE Service Readiness Evidence/);
       assert.match(html, /phase_i_service_readiness/);
       assert.match(html, /missing/);
+      assert.match(html, /Preflight status/);
       assert.doesNotMatch(html, /undefined|NaN/);
     });
   });
@@ -97,7 +105,15 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
           readiness_runtime_enabled: true,
           readiness_blocker_count: 2,
           readiness_next_step: "fix_readiness_blockers",
-          readiness_local_mode: false
+          readiness_local_mode: false,
+          preflight_status: "attention",
+          preflight_enabled: true,
+          preflight_endpoint: "192.0.2.10",
+          preflight_port: 18080,
+          preflight_report_only: true,
+          preflight_runtime_enabled: true,
+          preflight_local_endpoint: false,
+          preflight_operator_visible: true
         }
       : report);
 
@@ -111,6 +127,8 @@ test.describe("agent service readiness dashboard", { concurrency: false }, () =>
       assert.match(html, /DBYTE Service Readiness Evidence/);
       assert.match(html, /attention/);
       assert.match(html, /fix_readiness_blockers/);
+      assert.match(html, /192\.0\.2\.10/);
+      assert.match(html, /18,080/);
       assert.match(html, />2<\/td>/);
       assert.match(html, /no/);
       assert.doesNotMatch(html, /undefined|NaN/);
@@ -174,7 +192,15 @@ function readinessReport() {
     readiness_local_mode: true,
     readiness_payload_limit_present: true,
     readiness_message_limit_present: true,
-    readiness_operator_approval_required: true
+    readiness_operator_approval_required: true,
+    preflight_status: "ok",
+    preflight_enabled: false,
+    preflight_endpoint: "127.0.0.1",
+    preflight_port: 0,
+    preflight_report_only: true,
+    preflight_runtime_enabled: false,
+    preflight_local_endpoint: true,
+    preflight_operator_visible: true
   };
 }
 
