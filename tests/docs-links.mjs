@@ -43,6 +43,10 @@ test.describe("documentation links", { concurrency: false }, () => {
     await assertLocalMarkdownLinks("docs/SERVICE_EVIDENCE_INDEX.md");
   });
 
+  test("score note local links resolve to files", async () => {
+    await assertLocalMarkdownLinks("docs/SERVICE_SCORE_GAP.md");
+  });
+
   test("operator runbook local links resolve to files", async () => {
     await assertLocalMarkdownLinks("docs/operator-runbook.md");
   });
