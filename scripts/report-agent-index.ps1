@@ -34,6 +34,7 @@ try {
         @{ name = "phase_g_settlement_plan"; kind = "json"; path = "reports\dbyte-settlement-plan.json"; required = $false },
         @{ name = "phase_h_local_dry_run"; kind = "json"; path = "reports\dbyte-local-service-dry-run.json"; required = $false },
         @{ name = "phase_i_service_readiness"; kind = "json"; path = "reports\dbyte-service-readiness.json"; required = $false },
+        @{ name = "service_capability_scorecard"; kind = "json"; path = "reports\dbyte-service-capability-scorecard.json"; required = $false },
         @{ name = "session_events_summary"; kind = "json"; path = "reports\dbyte-session-events-summary.json"; required = $false },
         @{ name = "replay_projection"; kind = "json"; path = "reports\dbyte-replay-projection.json"; required = $false },
         @{ name = "bridge_compare"; kind = "json"; path = "reports\dbyte-bridge-compare.json"; required = $false },
@@ -282,6 +283,27 @@ try {
             $Entry.readiness_closure_safety_harness_dashboard_projected = [bool]$PhaseIJson.readiness_closure.safety_harness_dashboard_projected
             $Entry.readiness_closure_launch_contract_dashboard_projected = [bool]$PhaseIJson.readiness_closure.launch_contract_dashboard_projected
             $Entry.readiness_closure_operator_visible = [bool]$PhaseIJson.readiness_closure.operator_visible
+        }
+
+        if ([string]$Report.name -eq "service_capability_scorecard" -and $Exists) {
+            $ScorecardJson = Get-Content $Path -Raw | ConvertFrom-Json
+            $Entry.scorecard_schema = [int]$ScorecardJson.schema
+            $Entry.scorecard_status = [string]$ScorecardJson.status
+            $Entry.scorecard_mode = [string]$ScorecardJson.mode
+            $Entry.scorecard_report_only = [bool]$ScorecardJson.report_only
+            $Entry.scorecard_target = [string]$ScorecardJson.competitive_target
+            $Entry.scorecard_score = [int64]$ScorecardJson.score
+            $Entry.scorecard_max_score = [int64]$ScorecardJson.max_score
+            $Entry.scorecard_score_percent = [double]$ScorecardJson.score_percent
+            $Entry.scorecard_capability_count = [int64]$ScorecardJson.summary.capability_count
+            $Entry.scorecard_ok_capabilities = [int64]$ScorecardJson.summary.ok_capabilities
+            $Entry.scorecard_attention_capabilities = [int64]$ScorecardJson.summary.attention_capabilities
+            $Entry.scorecard_planned_capabilities = [int64]$ScorecardJson.summary.planned_capabilities
+            $Entry.scorecard_blocker_count = [int64]$ScorecardJson.summary.blocker_count
+            $Entry.scorecard_runtime_present = [bool]$ScorecardJson.summary.runtime_present
+            $Entry.scorecard_intake_present = [bool]$ScorecardJson.summary.intake_present
+            $Entry.scorecard_value_movement_present = [bool]$ScorecardJson.summary.value_movement_present
+            $Entry.scorecard_next_step = [string]$ScorecardJson.summary.next_step
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
