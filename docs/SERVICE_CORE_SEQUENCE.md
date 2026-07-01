@@ -34,8 +34,9 @@ This is the proof layer. The next work is to grow it into a service layer withou
 11. Preflight dashboard projection
 12. Controlled-listener safety harness
 13. Safety harness dashboard projection
-14. Controlled listener
-15. Readiness gate
+14. Controlled-listener launch contract
+15. Controlled listener
+16. Readiness gate
 ```
 
 Each part must emit a report before the next part can depend on it.
@@ -55,7 +56,8 @@ Phase I readiness planning: implemented, reported, dashboarded, and gated
 Phase I controlled-listener preflight evidence: implemented, reported, indexed, and gated
 Phase I preflight dashboard projection: implemented, dashboarded, and tested
 Phase I controlled-listener safety harness: implemented, reported, indexed, and gated
-Phase I safety harness dashboard projection: not implemented
+Phase I safety harness dashboard projection: implemented, dashboarded, and tested
+Phase I controlled-listener launch contract: not implemented
 Phase I controlled listener: not implemented
 Phase J: not implemented
 ```
@@ -73,6 +75,7 @@ preflight evidence is report-only
 preflight dashboard evidence is read from the report index
 safety harness remains disabled by default
 safety harness evidence is report-only
+safety harness dashboard evidence is read from the report index
 safety harness runtime_started=false
 safety harness bind_implemented=false
 reports are generated from synthetic fixtures and local artifacts
@@ -350,9 +353,34 @@ attention safety harness evidence remains visible
 no runtime path is introduced
 ```
 
+## Phase I-next: Controlled-listener launch contract
+
+Goal: define the operator-visible launch contract before any listener implementation exists.
+
+Tasks:
+
+```text
+1. Add report-only launch contract fields for requested host, port, enablement, approval, and reason.
+2. Keep launch_allowed=false until all prior evidence and dashboard projections are present.
+3. Add tests that prove no runtime start, socket bind, or external worker intake exists in this phase.
+4. Carry launch contract fields through the report index before any listener code is added.
+```
+
+Definition of done:
+
+```text
+launch_allowed=false by default
+launch contract is report-only
+runtime_started=false
+bind_implemented=false
+external_worker_intake=false
+operator approval remains required and visible
+no listener implementation exists in this phase
+```
+
 ## Phase I-final: Controlled listener
 
-Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, safety harness, and safety harness dashboard gates pass.
+Goal: add the first operator-controlled listener only after readiness, preflight evidence, dashboard projection, safety harness, safety harness dashboard, and launch contract gates pass.
 
 Tasks:
 
@@ -391,13 +419,14 @@ Required evidence before the service is called ready:
 10. Preflight dashboard projection renders from report index
 11. Safety harness evidence status=ok
 12. Safety harness dashboard projection renders from report index
-13. Release manifest approved=true
-14. Dashboard renders every report from index
-15. FULL VERIFY GATE PASSED
+13. Launch contract evidence status=ok
+14. Release manifest approved=true
+15. Dashboard renders every report from index
+16. FULL VERIFY GATE PASSED
 ```
 
 ## Next implementation PR
 
-The next code PR should be safety harness dashboard projection only: render indexed safety harness fields in the Agent dashboard and add tests for ok, missing, and attention states.
+The next code PR should be a controlled-listener launch contract only: add report-only launch fields and tests that prove launch_allowed=false, runtime_started=false, bind_implemented=false, and external_worker_intake=false.
 
 Do not accept external worker traffic in the next PR. Do not execute settlement or payout actions in the next PR.
