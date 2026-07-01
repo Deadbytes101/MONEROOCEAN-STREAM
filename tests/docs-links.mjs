@@ -31,6 +31,18 @@ test.describe("documentation links", { concurrency: false }, () => {
   test("operator runbook local links resolve to files", async () => {
     await assertLocalMarkdownLinks("docs/operator-runbook.md");
   });
+
+  test("link classifier separates local anchors and protocols", () => {
+    assert.equal(isLocalMarkdownHref("docs/README.md"), true);
+    assert.equal(isLocalMarkdownHref("docs/README.md#testing"), true);
+    assert.equal(isLocalMarkdownHref("#testing"), false);
+    assert.equal(isLocalMarkdownHref("https://example.com"), false);
+    assert.equal(isLocalMarkdownHref("mailto:ops@example.invalid"), false);
+
+    assert.equal(hasProtocol("https://example.com"), true);
+    assert.equal(hasProtocol("mailto:ops@example.invalid"), true);
+    assert.equal(hasProtocol("docs/README.md"), false);
+  });
 });
 
 async function assertLocalMarkdownLinks(sourcePath) {
