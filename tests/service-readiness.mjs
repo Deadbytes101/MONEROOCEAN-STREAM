@@ -88,6 +88,51 @@ test.describe("service readiness report", { concurrency: false }, () => {
     assert.match(readiness.blockers.join("\n"), /safety_harness_endpoint_must_remain_local/);
   });
 
+  test("keeps the launch contract report-only and not allowed by default", () => {
+    const readiness = assessServiceReadiness();
+
+    assert.equal(readiness.launch_contract.status, "ok");
+    assert.equal(readiness.launch_contract.enabled, false);
+    assert.equal(readiness.launch_contract.host, "127.0.0.1");
+    assert.equal(readiness.launch_contract.port, 0);
+    assert.equal(readiness.launch_contract.operator_approval_required, true);
+    assert.equal(readiness.launch_contract.launch_allowed, false);
+    assert.equal(readiness.launch_contract.report_only, true);
+    assert.equal(readiness.launch_contract.runtime_started, false);
+    assert.equal(readiness.launch_contract.bind_implemented, false);
+    assert.equal(readiness.launch_contract.external_worker_intake, false);
+    assert.equal(readiness.launch_contract.local_host, true);
+    assert.equal(readiness.summary.launch_allowed, false);
+    assert.equal(readiness.summary.launch_external_worker_intake, false);
+  });
+
+  test("blocks requested launch contract enablement without starting runtime", () => {
+    const readiness = assessServiceReadiness({ config: { launch_contract: { enabled: true, host: "127.0.0.1", port: 18080 } } });
+
+    assert.equal(readiness.valid, false);
+    assert.equal(readiness.status, "attention");
+    assert.equal(readiness.launch_contract.enabled, true);
+    assert.equal(readiness.launch_contract.launch_allowed, false);
+    assert.equal(readiness.launch_contract.runtime_started, false);
+    assert.equal(readiness.launch_contract.bind_implemented, false);
+    assert.equal(readiness.launch_contract.external_worker_intake, false);
+    assert.equal(readiness.summary.runtime_enabled, false);
+    assert.match(readiness.blockers.join("\n"), /launch_contract_must_remain_disabled/);
+  });
+
+  test("blocks non-local launch contract hosts", () => {
+    const readiness = assessServiceReadiness({ config: { launch_contract: { host: "0.0.0.0", port: 18080 } } });
+
+    assert.equal(readiness.valid, false);
+    assert.equal(readiness.status, "attention");
+    assert.equal(readiness.launch_contract.local_host, false);
+    assert.equal(readiness.launch_contract.launch_allowed, false);
+    assert.equal(readiness.launch_contract.runtime_started, false);
+    assert.equal(readiness.launch_contract.bind_implemented, false);
+    assert.equal(readiness.launch_contract.external_worker_intake, false);
+    assert.match(readiness.blockers.join("\n"), /launch_contract_host_must_remain_local/);
+  });
+
   test("blocks enabled runtime config in the readiness phase", () => {
     const readiness = assessServiceReadiness({ config: { enabled: true } });
 
@@ -139,6 +184,12 @@ test.describe("service readiness report", { concurrency: false }, () => {
       assert.equal(report.safety_harness.runtime_started, false);
       assert.equal(report.safety_harness.bind_implemented, false);
       assert.equal(report.safety_harness.local_endpoint, true);
+      assert.equal(report.launch_contract.report_only, true);
+      assert.equal(report.launch_contract.launch_allowed, false);
+      assert.equal(report.launch_contract.runtime_started, false);
+      assert.equal(report.launch_contract.bind_implemented, false);
+      assert.equal(report.launch_contract.external_worker_intake, false);
+      assert.equal(report.launch_contract.local_host, true);
       assert.deepEqual(report.blockers, []);
     } finally {
       await rm(directory, { recursive: true, force: true });
