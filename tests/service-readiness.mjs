@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execPath } from "node:process";
 import { promisify } from "node:util";
+import { buildServiceCapabilityScorecard } from "../src/service-capability-scorecard.js";
 import { assessServiceReadiness } from "../src/service-readiness.js";
 
 const execFileAsync = promisify(execFile);
@@ -167,6 +168,55 @@ test.describe("service readiness report", { concurrency: false }, () => {
     assert.equal(readiness.readiness_closure.intake_present, false);
     assert.equal(readiness.readiness_closure.value_movement_present, false);
     assert.match(readiness.blockers.join("\n"), /runtime_must_remain_disabled/);
+  });
+
+  test("scores current report-only service capability without claiming listener readiness", () => {
+    const scorecard = buildServiceCapabilityScorecard();
+
+    assert.equal(scorecard.status, "ok");
+    assert.equal(scorecard.mode, "report_only_capability_scorecard");
+    assert.equal(scorecard.report_only, true);
+    assert.equal(scorecard.score, 90);
+    assert.equal(scorecard.max_score, 100);
+    assert.equal(scorecard.summary.ok_capabilities, 5);
+    assert.equal(scorecard.summary.planned_capabilities, 1);
+    assert.equal(scorecard.summary.runtime_present, false);
+    assert.equal(scorecard.summary.intake_present, false);
+    assert.equal(scorecard.summary.value_movement_present, false);
+    assert.deepEqual(scorecard.blockers, []);
+  });
+
+  test("turns scorecard attention when readiness has blockers", () => {
+    const readiness = assessServiceReadiness({ config: { enabled: true } });
+    const scorecard = buildServiceCapabilityScorecard({ readiness });
+
+    assert.equal(scorecard.status, "attention");
+    assert.equal(scorecard.score < scorecard.max_score, true);
+    assert.match(scorecard.blockers.join("\n"), /readiness_not_ok/);
+  });
+
+  test("writes a stable service capability scorecard artifact", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "dbyte-service-scorecard-"));
+    const output = join(directory, "scorecard.json");
+
+    try {
+      const { stdout } = await execFileAsync(execPath, ["scripts/report-service-capability-scorecard.mjs", "--out", output]);
+      const report = JSON.parse(await readFile(output, "utf8"));
+
+      assert.match(stdout, /service\.capability\.status=ok/);
+      assert.match(stdout, /service\.capability\.score=90/);
+      assert.equal(report.schema, 1);
+      assert.equal(report.status, "ok");
+      assert.equal(report.report_path, output);
+      assert.equal(report.score, 90);
+      assert.equal(report.max_score, 100);
+      assert.equal(report.summary.runtime_present, false);
+      assert.equal(report.summary.intake_present, false);
+      assert.equal(report.summary.value_movement_present, false);
+      assert.deepEqual(report.blockers, []);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   test("blocks enabled runtime config in the readiness phase", () => {
