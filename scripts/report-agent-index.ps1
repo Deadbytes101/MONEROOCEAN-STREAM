@@ -255,6 +255,18 @@ try {
             $Entry.safety_harness_bind_implemented = [bool]$PhaseIJson.safety_harness.bind_implemented
             $Entry.safety_harness_local_endpoint = [bool]$PhaseIJson.safety_harness.local_endpoint
             $Entry.safety_harness_operator_visible = [bool]$PhaseIJson.safety_harness.operator_visible
+            $Entry.launch_contract_status = [string]$PhaseIJson.launch_contract.status
+            $Entry.launch_contract_enabled = [bool]$PhaseIJson.launch_contract.enabled
+            $Entry.launch_contract_host = [string]$PhaseIJson.launch_contract.host
+            $Entry.launch_contract_port = [int64]$PhaseIJson.launch_contract.port
+            $Entry.launch_contract_operator_approval_required = [bool]$PhaseIJson.launch_contract.operator_approval_required
+            $Entry.launch_contract_allowed = [bool]$PhaseIJson.launch_contract.launch_allowed
+            $Entry.launch_contract_report_only = [bool]$PhaseIJson.launch_contract.report_only
+            $Entry.launch_contract_runtime_started = [bool]$PhaseIJson.launch_contract.runtime_started
+            $Entry.launch_contract_bind_implemented = [bool]$PhaseIJson.launch_contract.bind_implemented
+            $Entry.launch_contract_external_worker_intake = [bool]$PhaseIJson.launch_contract.external_worker_intake
+            $Entry.launch_contract_local_host = [bool]$PhaseIJson.launch_contract.local_host
+            $Entry.launch_contract_operator_visible = [bool]$PhaseIJson.launch_contract.operator_visible
         }
 
         if ([string]$Report.name -like "bridge*compare" -and $Exists) {
