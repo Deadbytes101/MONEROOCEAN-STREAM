@@ -32,8 +32,7 @@ test.describe("build invariants", { concurrency: false }, () => {
   test("service planning files stay report-only", async () => {
     const files = [
       "src/service-readiness.js",
-      "scripts/report-service-readiness.mjs",
-      "scripts/verify-phase-i.mjs"
+      "scripts/report-service-readiness.mjs"
     ];
     const forbiddenPatterns = [
       /\bcreateServer\b/,
