@@ -31,6 +31,8 @@ The release artifact contract is documented in [`docs/release-artifact-contract.
 
 The operator runbook is documented in [`docs/operator-runbook.md`](docs/operator-runbook.md). It keeps the merge gate, agent artifact commands, and Agent dashboard health check in one place.
 
+The service capability scorecard contract is documented in [`docs/SERVICE_CAPABILITY_SCORECARD.md`](docs/SERVICE_CAPABILITY_SCORECARD.md). It defines the current `phase_i_report_ready` tier, the `90/100` report-only score, and the explicit non-production boundaries.
+
 ## Features
 
 - Pool overview, coin list, blocks, payments, uptime, and profit calculator views.
