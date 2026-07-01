@@ -25,6 +25,14 @@ dashboard_projection_present=true
 negative_tests_present=true
 ```
 
+## Related documents
+
+| Document | Purpose |
+| --- | --- |
+| [`SERVICE_EVIDENCE_INDEX.md`](SERVICE_EVIDENCE_INDEX.md) | Main map for service evidence documents. |
+| [`SERVICE_CAPABILITY_SCORECARD.md`](SERVICE_CAPABILITY_SCORECARD.md) | Scorecard contract for the current service capability tier. |
+| [`LOCAL_GATE_REFERENCE.md`](LOCAL_GATE_REFERENCE.md) | Short local verification checklist. |
+
 ## Rule
 
 Do not raise the score just because a plan exists. Raise it only when the local evidence exists and the full verification gate stays green.
