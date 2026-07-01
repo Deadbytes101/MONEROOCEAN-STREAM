@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, normalize } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 test.describe("documentation links", { concurrency: false }, () => {
   test("docs README links the service evidence entry", async () => {
@@ -107,6 +107,24 @@ test.describe("documentation links", { concurrency: false }, () => {
     }
   });
 
+  test("local link resolver rejects traversal outside the root", async () => {
+    const tempParent = await mkdtemp(join(tmpdir(), "docs-links-"));
+    const rootDir = join(tempParent, "root");
+
+    try {
+      await mkdir(rootDir);
+      await writeFile(join(tempParent, "outside.md"), "# Outside\n");
+      await writeFile(join(rootDir, "index.md"), "[outside](../outside.md)\n");
+
+      await assert.rejects(
+        () => assertLocalMarkdownLinks(join(rootDir, "index.md")),
+        /stay inside root/,
+      );
+    } finally {
+      await rm(tempParent, { force: true, recursive: true });
+    }
+  });
+
   test("local link resolver rejects unsupported protocols", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "docs-links-"));
 
@@ -132,6 +150,7 @@ async function assertLocalMarkdownLinks(sourcePath) {
     (href) => hasProtocol(href) && !href.startsWith("http://") && !href.startsWith("https://"),
   );
   const links = hrefs.filter(isLocalMarkdownHref);
+  const rootPath = linkRootFor(sourcePath);
 
   assert.deepEqual(emptyHrefs, [], `${sourcePath} should not contain empty link targets`);
   assert.deepEqual(unsupportedProtocolHrefs, [], `${sourcePath} should not contain unsupported link protocols`);
@@ -139,7 +158,10 @@ async function assertLocalMarkdownLinks(sourcePath) {
 
   for (const href of links) {
     const cleanHref = href.split("#")[0];
-    const target = normalize(join(dirname(sourcePath), cleanHref));
+    const target = resolve(dirname(sourcePath), cleanHref);
+
+    assert.equal(isInsideRoot(rootPath, target), true, `${sourcePath} local link must stay inside root: ${href}`);
+
     const info = await stat(target);
     assert.equal(info.isFile(), true, `${sourcePath} local link must resolve: ${href}`);
   }
@@ -151,4 +173,15 @@ function isLocalMarkdownHref(href) {
 
 function hasProtocol(href) {
   return /^[a-z][a-z0-9+.-]*:/i.test(href);
+}
+
+function linkRootFor(sourcePath) {
+  return resolve(isAbsolute(sourcePath) ? dirname(sourcePath) : ".");
+}
+
+function isInsideRoot(rootPath, targetPath) {
+  const resolvedTarget = resolve(targetPath);
+  const relativePath = relative(rootPath, resolvedTarget);
+
+  return relativePath === "" || (!relativePath.startsWith("..") && !isAbsolute(relativePath));
 }
