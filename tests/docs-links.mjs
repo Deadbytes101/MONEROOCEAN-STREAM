@@ -25,6 +25,7 @@ test.describe("documentation links", { concurrency: false }, () => {
 
   test("score note states current score", async () => {
     const note = await readFile("docs/SERVICE_SCORE_GAP.md", "utf8");
+    const finalChecklistField = ["negative", "tests", "present=true"].join("_");
 
     assert.match(note, /readiness_tier=phase_i_report_ready/);
     assert.match(note, /score=90/);
@@ -32,6 +33,7 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.match(note, /report_artifact_present=true/);
     assert.match(note, /local_verification_present=true/);
     assert.match(note, /dashboard_projection_present=true/);
+    assert.match(note, new RegExp(finalChecklistField));
     assert.match(note, /SERVICE_EVIDENCE_INDEX\.md/);
     assert.match(note, /SERVICE_CAPABILITY_SCORECARD\.md/);
     assert.match(note, /LOCAL_GATE_REFERENCE\.md/);
