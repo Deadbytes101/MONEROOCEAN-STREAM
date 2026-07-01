@@ -19,6 +19,7 @@ const report = {
   checks: readiness.checks,
   preflight: readiness.preflight,
   safety_harness: readiness.safety_harness,
+  launch_contract: readiness.launch_contract,
   summary: readiness.summary,
   blockers: readiness.blockers
 };
