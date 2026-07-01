@@ -290,7 +290,10 @@ try {
             $Entry.scorecard_schema = [int]$ScorecardJson.schema
             $Entry.scorecard_status = [string]$ScorecardJson.status
             $Entry.scorecard_mode = [string]$ScorecardJson.mode
+            $Entry.scorecard_readiness_tier = [string]$ScorecardJson.readiness_tier
             $Entry.scorecard_report_only = [bool]$ScorecardJson.report_only
+            $Entry.scorecard_production_ready = [bool]$ScorecardJson.production_ready
+            $Entry.scorecard_public_service_ready = [bool]$ScorecardJson.public_service_ready
             $Entry.scorecard_target = [string]$ScorecardJson.competitive_target
             $Entry.scorecard_score = [int64]$ScorecardJson.score
             $Entry.scorecard_max_score = [int64]$ScorecardJson.max_score
