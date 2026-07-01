@@ -42,6 +42,10 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.match(note, /local evidence exists/);
   });
 
+  test("root README local links resolve to files", async () => {
+    await assertLocalMarkdownLinks("README.md");
+  });
+
   test("docs README local links resolve to files", async () => {
     await assertLocalMarkdownLinks("docs/README.md");
   });
