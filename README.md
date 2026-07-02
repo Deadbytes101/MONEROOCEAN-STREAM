@@ -35,6 +35,8 @@ The service capability scorecard contract is documented in [`docs/SERVICE_CAPABI
 
 The service evidence index is documented in [`docs/SERVICE_EVIDENCE_INDEX.md`](docs/SERVICE_EVIDENCE_INDEX.md). It maps the report-only service documents, local gate reference, scorecard, and score gap note.
 
+The score gap note is documented in [`docs/SERVICE_SCORE_GAP.md`](docs/SERVICE_SCORE_GAP.md). It records why the current score remains below the maximum until the supporting evidence stays complete and verified.
+
 ## Features
 
 - Pool overview, coin list, blocks, payments, uptime, and profit calculator views.
