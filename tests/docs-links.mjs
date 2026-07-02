@@ -31,6 +31,7 @@ test.describe("documentation links", { concurrency: false }, () => {
     assert.match(index, /docs\/release-artifact-contract\.md/);
     assert.match(index, /docs\/operator-runbook\.md/);
     assert.match(index, /docs\/SERVICE_CAPABILITY_SCORECARD\.md/);
+    assert.match(index, /docs\/SERVICE_EVIDENCE_INDEX\.md/);
   });
 
   test("score note states current score", async () => {
