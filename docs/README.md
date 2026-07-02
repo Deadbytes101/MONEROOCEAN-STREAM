@@ -7,6 +7,7 @@ Use this index to find the local DBYTE agent, release evidence, and pool stack d
 | [DBYTE Pool Stack Architecture](pool-stack-architecture.md) | Defines the long-term pool/miner stack direction, phases, boundaries, and first backend step. |
 | [Service Evidence Index](SERVICE_EVIDENCE_INDEX.md) | Maps the DBYTE service evidence documents and reading order. |
 | [Service Core Sequence](SERVICE_CORE_SEQUENCE.md) | Defines the ordered service evidence roadmap and current phase boundaries. |
+| [Service Capability Scorecard](SERVICE_CAPABILITY_SCORECARD.md) | Defines the current service readiness tier, score, blockers, and non-production boundaries. |
 | [Service Score Gap](SERVICE_SCORE_GAP.md) | Explains why the service capability score remains below full completion until more local proof exists. |
 | [Local Gate Reference](LOCAL_GATE_REFERENCE.md) | Compact checklist for the local verification command and clean tree check. |
 | [Pool Core Report Artifact](pool-core-report-artifact.md) | Defines the pool-core replay report JSON artifact and the local gate that exports and verifies it. |
