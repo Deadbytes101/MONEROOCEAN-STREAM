@@ -8,6 +8,7 @@ This page is a small operator map for the DBYTE evidence documents.
 | --- | --- |
 | [`../README.md`](../README.md) | Repository overview and top-level testing entrypoint. |
 | [`README.md`](README.md) | Documentation index for agent, release, and service evidence references. |
+| [`pool-stack-architecture.md`](pool-stack-architecture.md) | Long-term pool stack direction and project boundaries. |
 | [`ROADMAP.md`](ROADMAP.md) | Project roadmap for evidence and service-core tracks. |
 | [`SERVICE_CORE_SEQUENCE.md`](SERVICE_CORE_SEQUENCE.md) | Ordered roadmap for the DBYTE service evidence sequence. |
 | [`SERVICE_CAPABILITY_SCORECARD.md`](SERVICE_CAPABILITY_SCORECARD.md) | Scorecard contract for the current `phase_i_report_ready` tier and `90/100` score. |
