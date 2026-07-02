@@ -14,6 +14,7 @@ This page is a small operator map for the DBYTE evidence documents.
 | [`SERVICE_CAPABILITY_SCORECARD.md`](SERVICE_CAPABILITY_SCORECARD.md) | Scorecard contract for the current `phase_i_report_ready` tier and `90/100` score. |
 | [`SERVICE_SCORE_GAP.md`](SERVICE_SCORE_GAP.md) | Short note explaining why the score remains below full completion until more proof exists. |
 | [`LOCAL_GATE_REFERENCE.md`](LOCAL_GATE_REFERENCE.md) | Compact checklist for the local verification command and clean tree check. |
+| [`report-index-fields.md`](report-index-fields.md) | Field reference for the read-only report index artifact. |
 | [`release-artifact-contract.md`](release-artifact-contract.md) | Agent release artifact contract, manifest, checker report, and seal rules. |
 | [`operator-runbook.md`](operator-runbook.md) | Operator commands, merge gate, and Agent dashboard health workflow. |
 
