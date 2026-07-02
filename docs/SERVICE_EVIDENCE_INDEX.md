@@ -27,12 +27,13 @@ This page is a small operator map for the DBYTE evidence documents.
 ```text
 1. ../README.md
 2. README.md
-3. SERVICE_CORE_SEQUENCE.md
-4. SERVICE_CAPABILITY_SCORECARD.md
-5. SERVICE_SCORE_GAP.md
-6. LOCAL_GATE_REFERENCE.md
-7. release-artifact-contract.md
-8. operator-runbook.md
+3. ROADMAP.md
+4. SERVICE_CORE_SEQUENCE.md
+5. SERVICE_CAPABILITY_SCORECARD.md
+6. SERVICE_SCORE_GAP.md
+7. LOCAL_GATE_REFERENCE.md
+8. release-artifact-contract.md
+9. operator-runbook.md
 ```
 
 Use the repository README for the top-level entrypoint and the docs README for the documentation index. Use the service core sequence to understand the roadmap. Use the scorecard contract and score gap note to understand the current score. Use the local gate reference for the short verification checklist. Use the release artifact contract and operator runbook to reproduce the full workflow.
