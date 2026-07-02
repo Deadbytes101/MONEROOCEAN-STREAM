@@ -10,6 +10,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 chdir(root);
 
+const docsTestArgs = [
+  "--require",
+  "./tests/common/test_output_buffer.cjs",
+  "--test",
+  "--test-reporter=./tests/common/spec_reporter.cjs",
+  "--test-concurrency=1",
+  "tests/docs-links.mjs"
+];
+
 const unitTestArgs = [
   "--require",
   "./tests/common/test_output_buffer.cjs",
@@ -24,6 +33,12 @@ const unitTestArgs = [
   "tests/dom-interactions.mjs",
   "tests/settings-setup-interactions.mjs"
 ];
+
+if (argv.includes("--docs")) {
+  runStep("documentation links", execPath, docsTestArgs);
+  console.log("DOCS VERIFY GATE PASSED");
+  process.exit(0);
+}
 
 if (argv.includes("--fast")) {
   runStep("clean test artifacts", execPath, ["scripts/clean-test-artifacts.mjs"]);
