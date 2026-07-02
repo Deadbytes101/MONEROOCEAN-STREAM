@@ -2,13 +2,36 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { chdir, execPath, platform } from "node:process";
+import { argv, chdir, execPath, platform } from "node:process";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 chdir(root);
+
+const unitTestArgs = [
+  "--require",
+  "./tests/common/test_output_buffer.cjs",
+  "--test",
+  "--test-reporter=./tests/common/spec_reporter.cjs",
+  "--test-concurrency=1",
+  "tests/build-invariants.mjs",
+  "tests/core-routing-privacy.mjs",
+  "tests/rendered-views.mjs",
+  "tests/wallet-workers-render-policy.mjs",
+  "tests/setup-settings.mjs",
+  "tests/dom-interactions.mjs",
+  "tests/settings-setup-interactions.mjs"
+];
+
+if (argv.includes("--fast")) {
+  runStep("clean test artifacts", execPath, ["scripts/clean-test-artifacts.mjs"]);
+  runStep("lint", execPath, [packageBin("eslint", "eslint"), "."]);
+  runStep("unit tests", execPath, unitTestArgs);
+  console.log("FAST VERIFY GATE PASSED");
+  process.exit(0);
+}
 
 runStep("clean test artifacts", execPath, ["scripts/clean-test-artifacts.mjs"]);
 runStep("lint", execPath, [packageBin("eslint", "eslint"), "."]);
