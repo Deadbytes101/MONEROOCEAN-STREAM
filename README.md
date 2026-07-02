@@ -33,6 +33,8 @@ The operator runbook is documented in [`docs/operator-runbook.md`](docs/operator
 
 The service capability scorecard contract is documented in [`docs/SERVICE_CAPABILITY_SCORECARD.md`](docs/SERVICE_CAPABILITY_SCORECARD.md). It defines the current `phase_i_report_ready` tier, the `90/100` report-only score, and the explicit non-production boundaries.
 
+The service evidence index is documented in [`docs/SERVICE_EVIDENCE_INDEX.md`](docs/SERVICE_EVIDENCE_INDEX.md). It maps the report-only service documents, local gate reference, scorecard, and score gap note.
+
 ## Features
 
 - Pool overview, coin list, blocks, payments, uptime, and profit calculator views.
